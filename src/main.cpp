@@ -1,178 +1,84 @@
 #include <Arduino.h>
-#include <stdio.h>
-#include <string.h>
-#include "led.h"
+#include "serial_stdio/serial_stdio.h"
+#include "command/command.h"
+#include "led/led.h"
 
-// STDIO helpers to route avr-libc stdio to Arduino Serial
+static const unsigned long SERIAL_BAUD_RATE = 9600;
+static const uint8_t LED1_PIN = 9;
+static const uint8_t LED2_PIN = 13;
 
-int serial_putchar(char c, FILE *stream)
+static Led led1(LED1_PIN);
+static Led led2(LED2_PIN);
+
+static void executeCommand(CommandType cmd)
 {
-  if (c == '\n')
-    Serial.write('\r');
-  Serial.write(c);
-  return 0;
-}
-
-int serial_getchar(FILE *stream)
-{
-  while (!Serial.available())
-    ;
-  int c = Serial.read();
-
-  // Handle backspace character (ASCII 8 or 127)
-  if (c == '\b' || c == 127)
+  switch (cmd)
   {
-    // Echo backspace sequence to erase character from terminal
-    Serial.write("\b \b");
-    return c;
-  }
-
-  return c;
-}
-
-static FILE serial_stdout;
-static FILE serial_stdin;
-
-// instantiate two LEDs (change pins as needed)
-static Led led1(9);
-static Led led2(13);
-
-void setup()
-{
-  // Initialize Serial first, then initialize LEDs via the Led API.
-  // Avoid calling pinMode/digitalWrite on the same pin here because
-  // `led1.begin()` will set the pin mode and initial state.
-  Serial.begin(9600);
-  led1.begin();
-  led2.begin();
-
-  // If you want LED1 to start ON, use `led1.on();` here.
-
-  // attach stdio streams
-  fdev_setup_stream(&serial_stdout, serial_putchar, NULL, _FDEV_SETUP_WRITE);
-  fdev_setup_stream(&serial_stdin, NULL, serial_getchar, _FDEV_SETUP_READ);
-  stdout = &serial_stdout;
-  stdin = &serial_stdin;
-
-  printf("STDIO serial ready. Commands: 'led1 on', 'led1 off', 'led2 on', 'led2 off'\n");
-}
-
-#define LINE_BUF 80
-
-static void strip_crlf(char *s)
-{
-  for (char *p = s; *p; ++p)
-  {
-    if (*p == '\r' || *p == '\n')
-    {
-      *p = 0;
-      break;
-    }
-  }
-}
-
-static void trim_whitespace(char *s)
-{
-  char *end;
-
-  // Trim leading space
-  while (*s == ' ')
-    s++;
-
-  // All spaces?
-  if (*s == 0)
-  {
-    *s = 0;
-    return;
-  }
-
-  // Trim trailing space
-  end = s + strlen(s) - 1;
-  while (end > s && *end == ' ')
-    end--;
-
-  // Write new null terminator
-  *(end + 1) = 0;
-}
-
-void loop()
-{
-  char line[LINE_BUF];
-  int pos = 0;
-
-  // Read characters one by one to handle backspace properly
-  while (true)
-  {
-    int c = getchar();
-
-    // Handle Enter key (newline or carriage return)
-    if (c == '\r' || c == '\n')
-    {
-      line[pos] = '\0';
-      break;
-    }
-
-    // Handle backspace (ASCII 8) or delete (ASCII 127)
-    if (c == '\b' || c == 127)
-    {
-      if (pos > 0)
-      {
-        pos--;
-      }
-      continue;
-    }
-
-    // Handle printable characters
-    if (c >= 32 && c <= 126 && pos < LINE_BUF - 1)
-    {
-      line[pos++] = (char)c;
-    }
-  }
-
-  trim_whitespace(line);
-
-  if (strcmp(line, "led1 on") == 0)
-  {
+  case CMD_LED1_ON:
     led1.on();
     printf("OK: LED1 is ON\n");
-  }
-  else if (strcmp(line, "led1 off") == 0)
-  {
+    break;
+
+  case CMD_LED1_OFF:
     led1.off();
     printf("OK: LED1 is OFF\n");
-  }
-  else if (strcmp(line, "led2 on") == 0)
-  {
+    break;
+
+  case CMD_LED2_ON:
     led2.on();
     printf("OK: LED2 is ON\n");
-  }
-  else if (strcmp(line, "led2 off") == 0)
-  {
+    break;
+
+  case CMD_LED2_OFF:
     led2.off();
     printf("OK: LED2 is OFF\n");
-  }
-  else if (strcmp(line, "led both on") == 0)
-  {
-    // Turn on LED1, wait 1 second, then turn on LED2
+    break;
+
+  case CMD_BOTH_ON:
     led1.on();
     printf("OK: LED1 is ON (starting sequence)\n");
     delay(500);
     led2.on();
     printf("OK: LED2 is ON (sequence complete)\n");
-  }
-  else if (strcmp(line, "led both off") == 0)
-  {
-    // Turn both off immediately
+    break;
+
+  case CMD_BOTH_OFF:
     led1.off();
     led2.off();
     printf("OK: Both LEDs are OFF\n");
+    break;
+
+  case CMD_EMPTY:
+    break;
+
+  case CMD_UNKNOWN:
+  default:
+    printf("ERR: Unknown command\n");
+    break;
   }
-  else if (line[0] == '\0')
-  {
-    // ignore empty lines
-  }
-  else
-  {
-    printf("ERR: Unknown command '%s'\n", line);
-  }
+}
+
+void setup()
+{
+  SerialStdio::begin(SERIAL_BAUD_RATE);
+
+  led1.begin();
+  led2.begin();
+
+  SerialStdio::printWelcome();
+}
+
+void loop()
+{
+  char line[SerialStdio::LINE_BUF_SIZE];
+
+  SerialStdio::readLine(line, sizeof(line));
+
+  CommandType cmd = CommandParser::parse(line);
+
+  printf("DEBUG: Received '%s' -> %s\n",
+         line,
+         CommandParser::toString(cmd));
+
+  executeCommand(cmd);
 }
