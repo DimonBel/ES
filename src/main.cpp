@@ -21,13 +21,18 @@ static FILE serial_stdout;
 static FILE serial_stdin;
 
 // instantiate two LEDs (change pins as needed)
-static Led led1(12);
+static Led led1(9);
 static Led led2(13);
 
 void setup() {
+  // Initialize Serial first, then initialize LEDs via the Led API.
+  // Avoid calling pinMode/digitalWrite on the same pin here because
+  // `led1.begin()` will set the pin mode and initial state.
   Serial.begin(9600);
   led1.begin();
   led2.begin();
+
+  // If you want LED1 to start ON, use `led1.on();` here.
 
   // attach stdio streams
   fdev_setup_stream(&serial_stdout, serial_putchar, NULL, _FDEV_SETUP_WRITE);
@@ -66,7 +71,7 @@ void loop() {
       // Turn on LED1, wait 1 second, then turn on LED2
       led1.on();
       printf("OK: LED1 is ON (starting sequence)\n");
-      delay(1000);
+      delay(500);
       led2.on();
       printf("OK: LED2 is ON (sequence complete)\n");
     } else if (strcmp(line, "led both off") == 0) {
