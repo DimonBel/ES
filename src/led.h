@@ -3,7 +3,8 @@
 
 #include <Arduino.h>
 
-class Led {
+class Led
+{
 public:
 	explicit Led(uint8_t pin);
 	void begin();
@@ -18,16 +19,3 @@ private:
 };
 
 #endif // LED_H
-
-
-
-// #ifndef LED_H
-// #define LED_H
-
-// #include <Arduino.h>
-
-// void LedInit(uint8_t pin);
-// void LedOn();
-// void LedOff();
-
-// #endif // LED_H
