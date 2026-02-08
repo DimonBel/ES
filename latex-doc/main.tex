@@ -1,0 +1,407 @@
+\documentclass[12pt]{article}
+\usepackage[utf8]{inputenc}
+\usepackage{graphicx} % Allows you to insert figures
+\usepackage{subcaption}
+\usepackage{amsmath} % Allows you to do equations
+\usepackage{fancyhdr} % Formats the header
+\usepackage{geometry} % Formats the paper size, orientation, and margins
+\usepackage{dirtytalk} % typesetting different types of quotation
+\usepackage[english]{babel}
+\usepackage{csquotes}
+\usepackage{hyperref}
+\usepackage{listings}
+\usepackage{xcolor}
+\usepackage{array}
+\usepackage{caption}
+\usepackage{graphicx}  % in preamble
+\usepackage{float}     % in preamble, for [H] placement
+
+% % Define code style
+% \lstset{
+%   basicstyle=\ttfamily\small,
+%   backgroundcolor=\color{gray!10},
+%   frame=single,
+%   breaklines=true,
+%   postbreak=\mbox{\textcolor{red}{$\hookrightarrow$}\space},
+%   keywordstyle=\color{blue},
+%   commentstyle=\color{green!50!black},
+%   stringstyle=\color{orange},
+% }
+
+% Code styling
+\lstset{
+    basicstyle=\ttfamily\footnotesize,
+    backgroundcolor=\color{lightgray!20},
+    keywordstyle=\color{blue},
+    commentstyle=\color{green!50!black},
+    stringstyle=\color{red},
+    numbers=left,
+    numberstyle=\tiny\color{gray},
+    stepnumber=1,
+    numbersep=10pt,
+    showspaces=false,
+    showstringspaces=false,
+    showtabs=false,
+    frame=single,
+    tabsize=2,
+    breaklines=true,
+    breakatwhitespace=false,
+    escapeinside={\%*}{*)},
+    morekeywords={void, size, setup, draw, pushMatrix, popMatrix}
+}
+
+\linespread{1.25} % About 1.5 spacing in Word
+\setlength{\parindent}{0.8cm} % No paragraph indents
+\setlength{\parskip}{0em} % Paragraphs separated by one line
+\renewcommand{\headrulewidth}{0pt} % Removes line in header
+\geometry{a4paper, portrait, margin=1in}
+\setlength{\headheight}{14.49998pt}
+\graphicspath{ {images/} }
+
+\begin{document}
+\begin{titlepage}
+   \begin{center}
+    \textsc{\large Ministry of Education of Republic of Moldova}\\[0.5cm]
+    \textsc{\large Technical University of Moldova}\\[0.5cm]
+    \textsc{\large Faculty of Computers, Informatics and Microelectronics}\\[0.5cm]
+    \textsc{\large Department of Physics}\\[1.2cm]
+    
+    \vspace{25 mm}
+    
+    \textsc{\Large Criptography and security}\\[0.5cm]
+    \textsc{\large Laboratory work \#5}\\[0.5cm]    % <<<<<<< CHANGE LAB NUMBER HERE
+    
+    \newcommand{\HRule}{\rule{\linewidth}{0.5mm}}
+    \vspace{10 mm}
+    \HRule \\[0.4cm]
+    { \LARGE \bfseries Public Key Infrastructure (PKI) and Digital Signature Algorithm (DSA)}\\[0.4cm] % <<<<<<< CHANGE LAB TITLE HERE
+    \HRule \\[1.5cm]
+    
+    \vspace{10mm}
+    
+    \begin{minipage}[t]{0.4\textwidth}
+    \begin{flushleft} \large
+    \emph{Author:} \\
+    Dmitrii \textsc{Belih}\\                         % <<<<<<< CHANGE YOUR NAME HERE
+    std. gr. FAF-232                                % <<<<<<< CHANGE GROUP NUMBER HERE
+    \end{flushleft}
+    \end{minipage}
+    ~
+    \begin{minipage}[t]{0.4\textwidth}
+    \begin{flushright} \large
+    \emph{Verified:} \\
+    \textsc{Zaica} M.\\
+    \end{flushright}
+    \end{minipage}\\[3cm]
+    
+    \vspace{5 mm}
+    \large Chișinău 2025\\[0.5cm]
+    
+    \vfill
+    \end{center}
+\end{titlepage}
+
+\setcounter{page}{2}
+\pagestyle{fancy}
+\fancyhf{}
+\rhead{\thepage}
+\lhead{FAF-232 Belih Dmitrii; Laboratory Work №52222222s}
+
+\section*{Theory}
+
+\subsection*{Public Key Infrastructure (PKI)}
+Public Key Infrastructure represents the technological and organizational framework that enables secure communication and identity verification in digital environments. At its core, PKI relies on the principles of public key cryptography, where each participant possesses a pair of cryptographic keys: a public key, which can be shared openly, and a private key, which must remain confidential. The purpose of PKI is to establish trust between parties who may have never interacted before, ensuring that messages are exchanged securely and that the identity of each participant can be verified.
+
+A central element of PKI is the digital certificate, a structured document that binds a public key to a specific entity, such as a person, device, or server. Certificates are issued by a trusted authority known as a Certificate Authority (CA). Before issuing a certificate, the CA may rely on a Registration Authority (RA), which is responsible for validating the identity of the requester. Once validation is complete, the CA signs the certificate using its own private key, guaranteeing its authenticity.
+
+PKI also incorporates mechanisms for maintaining long-term trust. Certificates may become invalid for various reasons, such as compromised private keys or organizational changes. For this reason, PKI defines procedures for certificate revocation, most commonly implemented through Certificate Revocation Lists (CRLs), which contain the serial numbers of certificates that are no longer considered valid. Through these components, PKI provides a complete life-cycle for managing certificates—from issuance to expiration or revocation—and supports secure communication on a large scale.
+
+\subsection*{Digital Signature Algorithm (DSA)}
+The Digital Signature Algorithm (DSA) is a cryptographic standard designed specifically for generating and verifying digital signatures. The primary purpose of a digital signature is to ensure that a message originates from a legitimate source and has not been modified during transmission. When a user signs a document with DSA, the algorithm produces a signature based on both the content of the message and the private key of the signer. Any alteration to either the message or the key results in a different signature, making digital signatures highly effective at detecting tampering.
+
+DSA also provides authentication, allowing the receiver to confirm the identity of the signer through the corresponding public key. Because the public key is typically distributed within an X.509 certificate—validated by a Certificate Authority—the receiver can trust that the key genuinely belongs to the claimed individual or entity. Digital signatures further ensure non-repudiation, meaning the signer cannot later deny having signed the message, as only the private key owner could have produced the signature.
+
+The security of DSA relies on strong mathematical foundations, particularly the difficulty of solving discrete logarithm problems. Combined with robust key management and certificate-based identity verification, DSA becomes an essential tool for protecting the integrity and authenticity of digital information.
+
+\subsection*{OpenSSL Tool}
+OpenSSL is an open-source, cross-platform software toolkit widely used for implementing cryptographic functions and secure communication protocols. It offers a comprehensive set of tools for generating cryptographic keys, creating certificate signing requests (CSRs), issuing and validating X.509 certificates, encrypting and decrypting data, and computing message digests using various hashing algorithms.
+
+In the context of PKI, OpenSSL serves both as a cryptographic engine and a certificate management utility. It allows users to create their own Certificate Authorities, sign certificates for servers or individuals, and maintain revocation lists. Its versatility and command-line interface make it suitable for educational projects, testing environments, and even production systems when properly configured.
+
+Because OpenSSL supports a wide range of algorithms—including RSA, DSA, ECDSA, AES, and SHA-256—it is widely used in secure communication protocols such as TLS and SSL. Its reliability and extensive features have established it as a fundamental tool in modern cybersecurity, system administration, and cryptographic research.
+
+
+\section*{The Task}
+Create an internal PKI using the OpenSSL tool. The generation of the root private key
+and the initialization of a Certificate Authority (CA) are required. A self-signed certificate must be
+created for the CA. //
+The system must be able to issue and revoke private keys for users so that they can subse-
+quently generate a digital signature. Each user or entity that obtains a signature must be able to
+sign a document or file and verify this signature. //
+For the realization of this laboratory, the use of any programming language is allowed, includ-
+ing scripting languages such as Bash, PowerShell, or zsh
+% \section*{Introduction}
+\section*{Technical Implementation}
+
+\subsection*{System Architecture}
+
+The PKI system is implemented as a Python script that provides a command-line interface for managing the entire PKI lifecycle. The system follows a modular directory structure:
+
+\begin{lstlisting}[caption=PKI Directory Structure]
+pki/
+├── ca/
+│   ├── ca.cert.pem          # CA self-signed certificate
+│   ├── ca.key.pem           # CA private key (4096-bit)
+│   ├── ca.srl               # CA serial file
+│   ├── certs/               # User certificates
+│   ├── private/             # User private keys
+│   ├── crl/                 # Certificate Revocation Lists
+│   └── csrs/                # Certificate Signing Requests
+\end{lstlisting}
+
+\subsection*{Core Components}
+
+\subsubsection*{Certificate Authority Setup}
+
+The CA is initialized with a 4096-bit RSA private key and a self-signed certificate valid for 10 years (3650 days):
+
+\begin{lstlisting}[language=Python, caption=CA Initialization Function]
+def init_ca():
+    ensure_dirs()
+    # Generate CA private key (4096-bit)
+    if not CA_KEY.exists():
+        run([OPENSSL_BIN, "genrsa", "-out", str(CA_KEY), "4096"])
+        CA_KEY.chmod(0o600)
+    # Self-signed CA certificate (3650 days)
+    if not CA_CERT.exists():
+        subj = "/CN=My Test Root CA"
+        run([
+            OPENSSL_BIN, "req", "-x509", "-new", "-nodes",
+            "-key", str(CA_KEY), "-sha256", "-days", "3650",
+            "-subj", subj, "-out", str(CA_CERT)
+        ])
+    # Create CA serial file
+    if not CA_SERIAL.exists():
+        CA_SERIAL.write_text("1000\n")
+\end{lstlisting}
+
+\subsubsection*{User Certificate Management}
+
+User certificates are generated with 2048-bit RSA keys and valid for 365 days:
+
+\begin{lstlisting}[language=Python, caption=User Certificate Creation]
+def create_user(username: str):
+    user_key = PRIVATE_DIR / f"{username}.key.pem"
+    user_csr = CSRS_DIR / f"{username}.csr.pem"
+    user_cert = CERTS_DIR / f"{username}.cert.pem"
+    
+    # Generate user private key
+    run([OPENSSL_BIN, "genrsa", "-out", str(user_key), "2048"])
+    user_key.chmod(0o600)
+    
+    # Create Certificate Signing Request
+    subj = f"/CN={username}"
+    run([
+        OPENSSL_BIN, "req", "-new", "-key", str(user_key),
+        "-out", str(user_csr), "-subj", subj
+    ])
+    
+    # Sign CSR with CA
+    run([
+        OPENSSL_BIN, "x509", "-req", "-in", str(user_csr),
+        "-CA", str(CA_CERT), "-CAkey", str(CA_KEY),
+        "-CAcreateserial", "-out", str(user_cert),
+        "-days", "365", "-sha256"
+    ])
+\end{lstlisting}
+
+\subsubsection*{Digital Signature Operations}
+
+The system implements document signing and verification using RSA with SHA-256:
+
+\begin{lstlisting}[language=Python, caption=Digital Signature Functions]
+def sign_file(username: str, filepath: str):
+    user_key = PRIVATE_DIR / f"{username}.key.pem"
+    filepath = Path(filepath)
+    sig = filepath.with_suffix(filepath.suffix + ".sig")
+    run([
+        OPENSSL_BIN, "dgst", "-sha256", "-sign", str(user_key),
+        "-out", str(sig), str(filepath)
+    ])
+    return sig
+
+def verify_sig(username: str, filepath: str, sigpath: str):
+    user_cert = CERTS_DIR / f"{username}.cert.pem"
+    pubkey = PRIVATE_DIR / f"{username}.pub.pem"
+    
+    # Extract public key from certificate
+    run([
+        OPENSSL_BIN, "x509", "-in", str(user_cert),
+        "-pubkey", "-noout", "-out", str(pubkey)
+    ])
+    
+    # Verify signature
+    run([
+        OPENSSL_BIN, "dgst", "-sha256", "-verify", str(pubkey),
+        "-signature", str(sigpath), str(filepath)
+    ])
+\end{lstlisting}
+
+\subsection*{Command-Line Interface}
+
+The script provides a comprehensive CLI with the following commands:
+
+\begin{itemize}
+    \item \texttt{init} - Initialize CA (creates ./pki directory structure)
+    \item \texttt{create-user <name>} - Create user key and certificate (2048-bit, 365 days)
+    \item \texttt{sign-file <user> <file>} - Sign file with user's private key (RSA + SHA256)
+    \item \texttt{verify <user> <file> <sig>} - Verify signature using user's certificate
+    \item \texttt{revoke <user>} - Revoke user certificate (via CRL)
+    \item \texttt{gen-crl} - Generate/update CRL (crl.pem)
+    \item \texttt{show-certs} - Show issued certificates
+\end{itemize}
+
+\section*{Usage Examples}
+
+\subsection*{Initializing the PKI System}
+
+\begin{lstlisting}[language=bash, caption=Initializing the CA]
+python pki_manager.py init
+\end{lstlisting}
+
+\textbf{Output:}
+\begin{verbatim}
+=> openssl genrsa -out pki\ca\private\ca.key.pem 4096
+=> openssl req -x509 -new -nodes -key pki\ca\private\ca.key.pem 
+   -sha256 -days 3650 -subj /CN=My Test Root CA -out pki\ca\ca.cert.pem
+CA инициализирован в папке: pki\ca
+\end{verbatim}
+
+\subsection*{Creating User Certificates}
+
+\begin{lstlisting}[language=bash, caption=Creating User Certificate]
+python pki_manager.py create-user alice
+\end{lstlisting}
+
+\textbf{Output:}
+\begin{verbatim}
+=> openssl genrsa -out pki\ca\private\alice.key.pem 2048
+=> openssl req -new -key pki\ca\private\alice.key.pem 
+   -out pki\ca\csrs\alice.csr.pem -subj /CN=alice
+=> openssl x509 -req -in pki\ca\csrs\alice.csr.pem 
+   -CA pki\ca\ca.cert.pem -CAkey pki\ca\private\ca.key.pem 
+   -CAcreateserial -out pki\ca\certs\alice.cert.pem -days 365 -sha256
+Создан сертификат: pki\ca\certs\alice.cert.pem
+\end{verbatim}
+
+\subsection*{Document Signing and Verification}
+
+\begin{lstlisting}[language=bash, caption=Digital Signature Workflow]
+# Sign document
+python pki_manager.py sign-file alice document.txt
+
+# Verify signature
+python pki_manager.py verify alice document.txt document.txt.sig
+\end{lstlisting}
+
+\textbf{Output:}
+\begin{verbatim}
+=> openssl dgst -sha256 -sign pki\ca\private\alice.key.pem 
+   -out document.txt.sig document.txt
+Подписанный файл: document.txt.sig
+
+=> openssl x509 -in pki\ca\certs\alice.cert.pem 
+   -pubkey -noout -out pki\ca\private\alice.pub.pem
+=> openssl dgst -sha256 -verify pki\ca\private\alice.pub.pem 
+   -signature document.txt.sig document.txt
+Подпись верна.
+\end{verbatim}
+
+\section*{Security Features}
+
+\subsection*{Cryptographic Compliance}
+
+\begin{itemize}
+    \item \textbf{CA Private Key}: 4096-bit RSA as required
+    \item \textbf{User Private Keys}: 2048-bit RSA minimum as required
+    \item \textbf{CA Certificate Validity}: 10 years (3650 days) as specified
+    \item \textbf{User Certificate Validity}: 365 days as required
+    \item \textbf{Digital Signatures}: RSA with SHA-256 hashing
+\end{itemize}
+
+\subsection*{Key Management Security}
+
+\begin{itemize}
+    \item \textbf{File Permissions}: Private keys automatically set to 600 (read/write owner only)
+    \item \textbf{Directory Structure}: Organized separation of CA materials, user keys, and certificates
+    \item \textbf{Secure Key Generation}: Uses OpenSSL's cryptographically secure random number generation
+\end{itemize}
+
+\subsection*{Error Handling and Validation}
+
+\begin{itemize}
+    \item \textbf{OpenSSL Availability Check}: Verifies OpenSSL is installed and in PATH
+    \item \textbf{File Existence Checks}: Prevents overwriting existing keys and certificates
+    \item \textbf{Command Validation}: Ensures correct number of arguments for each command
+    \item \textbf{Process Error Handling}: Catches and reports OpenSSL command failures
+\end{itemize}
+
+\section*{Implementation Details}
+
+\subsection*{Cross-Platform Compatibility}
+
+The implementation was designed to function reliably on both Windows and Unix-like operating systems without requiring platform-specific adjustments. To achieve this, the script uses the \texttt{pathlib.Path} module, which provides a unified interface for handling filesystem paths regardless of the underlying OS. This eliminates issues related to different path formats such as backslashes on Windows and forward slashes on Linux. 
+
+Whenever file permissions must be enforced, the script applies \texttt{chmod()} to set restrictive access on private key files. While permission handling is native to Unix, Windows interprets it sufficiently for the purposes of this laboratory, allowing the script to remain portable. OpenSSL is located dynamically using \texttt{shutil.which()}, ensuring that the script can run even if the binary is installed in a non-standard directory. Through this combination of techniques, the project maintains consistent behavior across diverse operating system environments.
+
+\subsection*{Modular Design}
+
+The system is structured with a modular architecture that clearly separates the responsibilities of different components. All directory paths and filenames are defined in a centralized section of the script, making the code easy to maintain and adapt. The creation and validation of directories are handled by the \texttt{ensure\_dirs()} function, which guarantees that the required PKI structure exists before any operation is performed.
+
+Each PKI-related task—whether initializing the CA, generating user certificates, signing files, or verifying signatures—is implemented as an independent function. This separation improves readability and avoids duplication, making the script easier to extend with additional functionality in the future. The modular approach also allows each function to be tested in isolation, ensuring reliable and predictable behavior.
+
+\subsection*{OpenSSL Command Integration}
+
+One of the core elements of the implementation is the integration of OpenSSL through a custom wrapper function:
+
+\begin{lstlisting}[caption=OpenSSL Command Wrapper]
+def run(cmd, **kwargs):
+    print("=>", " ".join(cmd))
+    subprocess.run(cmd, check=True, **kwargs)
+\end{lstlisting}
+
+This wrapper ensures consistent execution of OpenSSL commands and provides full transparency by printing every command before it is run. Using \texttt{check=True} forces Python to raise an exception automatically if OpenSSL encounters an error, making problems easier to diagnose. The wrapper also accepts additional keyword arguments, which allows flexibility such as redirecting output streams or customizing environment variables when necessary.
+
+By centralizing all OpenSSL command execution into a single function, the implementation avoids code repetition and maintains cleaner logic throughout the script. This contributes to a more maintainable and extensible PKI system.
+
+% \textit{Task1}
+
+% \begin{figure}[h!]
+%     \centering
+%     \includegraphics[width=0.8\textwidth]{img/Res1.png}
+%     \caption{Result of the encoding and decoding program}
+%     \label{fig:result1}
+% \end{figure}
+
+% \textit{Task2}
+
+% \begin{figure}[h!]
+%     \centering
+%     \includegraphics[width=0.8\textwidth]{img/Res2.png}
+%     \caption{Result of the encoding and decoding program}
+%     \label{fig:result1}
+% \end{figure}
+
+
+
+
+
+\section*{Conclusion}
+
+\hspace{0.8cm} The implementation demonstrates a practical understanding of PKI concepts, cryptographic key management, and digital signature operations. All laboratory requirements were met, including key size specifications, validity periods, and functional capabilities for certificate issuance, revocation, and digital signature operations.
+
+The Bash script implementation provides an efficient and user-friendly interface for managing the PKI system, making it suitable for educational purposes and potential real-world applications in controlled environments.
+
+
+\pagebreak
+\end{document}
