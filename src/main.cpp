@@ -17,6 +17,7 @@ static const uint8_t KEYPAD_ROW_PINS[4] = {4, 5, 6, 7};   // C1, C2, C3, C4
 // Pini pentru LED
 static const uint8_t LED_GREEN_PIN = 12;
 static const uint8_t LED_RED_PIN = 13;
+static const uint8_t LED_PROGRAMMING_PIN = 3; // Programming mode indicator
 
 // Adresa I2C pentru LCD
 static uint8_t LCD_I2C_ADDRESS = 0x27; // Default address for 16x2 LCD with I2C module
@@ -30,7 +31,8 @@ static Keypad keypad(KEYPAD_ROW_PINS, KEYPAD_COL_PINS, 4, 4);
 static LcdI2c *lcd_ptr = nullptr; // Va fi inițializat în setup()
 static Led ledGreen(LED_GREEN_PIN);
 static Led ledRed(LED_RED_PIN);
-static App *app_ptr = nullptr; // Va fi inițializat în setup()
+static Led ledProgramming(LED_PROGRAMMING_PIN); // Programming mode LED
+static App *app_ptr = nullptr;                  // Va fi inițializat în setup()
 
 // ========== SETUP ==========
 
@@ -101,7 +103,7 @@ void setup()
   // Inițializez LCD și App
   printf("\nSetting up LCD at 0x%02X...\n", LCD_I2C_ADDRESS);
   lcd_ptr = new LcdI2c(LCD_I2C_ADDRESS, 16, 2);
-  app_ptr = new App(keypad, *lcd_ptr, ledGreen, ledRed);
+  app_ptr = new App(keypad, *lcd_ptr, ledGreen, ledRed, ledProgramming);
 
   printf("Initializing application...\n");
   app_ptr->begin();

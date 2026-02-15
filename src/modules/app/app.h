@@ -10,7 +10,7 @@
 class App
 {
 public:
-    App(Keypad &keypad, LcdI2c &lcd, Led &ledGreen, Led &ledRed);
+    App(Keypad &keypad, LcdI2c &lcd, Led &ledGreen, Led &ledRed, Led &ledProgramming);
 
     void begin();
     void run();
@@ -20,15 +20,20 @@ private:
     LcdI2c &_lcd;
     Led &_ledGreen;
     Led &_ledRed;
+    Led &_ledProgramming; // LED for programming mode indication
 
     // Codul corect (implicit: 1234)
-    static const char CORRECT_CODE[];
+    char _correctCode[5]; // Now variable, not const
     static const int CODE_LENGTH = 4;
     static const char CLEAR_KEY = '*';
     static const char ENTER_KEY = '#';
+    static const char PROGRAM_KEY = 'D';
 
     char _inputCode[CODE_LENGTH + 1];
     int _inputPos;
+    bool _programmingMode;
+    char _newCode[CODE_LENGTH + 1];
+    int _newCodePos;
 
     void clearInput();
     void displayWelcome();
@@ -36,6 +41,9 @@ private:
     bool verifyCode();
     void handleValidCode();
     void handleInvalidCode();
+    void enterProgrammingMode();
+    void processProgrammingInput(char key);
+    void confirmNewCode();
 };
 
 #endif // APP_H
