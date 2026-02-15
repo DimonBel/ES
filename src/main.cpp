@@ -11,15 +11,15 @@
 // ========== CONFIGURARE PINI ==========
 
 // Pini pentru Keypad 4x4
-static const uint8_t KEYPAD_ROW_PINS[4] = {8, 9, 10, 11}; // R1, R2, R3, R4
-static const uint8_t KEYPAD_COL_PINS[4] = {4, 5, 6, 7};   // C1, C2, C3, C4
+static const uint8_t KEYPAD_COL_PINS[4] = {8, 9, 10, 11}; // R1, R2, R3, R4
+static const uint8_t KEYPAD_ROW_PINS[4] = {4, 5, 6, 7};   // C1, C2, C3, C4
 
 // Pini pentru LED
 static const uint8_t LED_GREEN_PIN = 12;
 static const uint8_t LED_RED_PIN = 13;
 
-// Adresa I2C pentru LCD - va fi inițializată din scan
-static uint8_t LCD_I2C_ADDRESS = 0x27; // Default, poate fi 0x3F
+// Adresa I2C pentru LCD
+static uint8_t LCD_I2C_ADDRESS = 0x27; // Default address for 16x2 LCD with I2C module
 
 // Rata baud pentru serial
 static const unsigned long SERIAL_BAUD_RATE = 9600;

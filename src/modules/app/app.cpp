@@ -1,4 +1,6 @@
 #include "app.h"
+#include <string.h>
+#include <ctype.h>
 
 const char App::CORRECT_CODE[] = "1234";
 
@@ -38,61 +40,54 @@ void App::clearInput()
 void App::displayWelcome()
 {
     _lcd.clear();
-    delay(50);
+    delay(200);
+
     _lcd.setCursor(0, 0);
+    delay(50);
     _lcd.print("Enter Code:");
     delay(50);
-    _lcd.setCursor(0, 1);
-    _lcd.print("____");
 
-    // Stingem LED-urile inițial
+    _lcd.setCursor(0, 1);
+    delay(50);
+    _lcd.print("[    ]");
+    delay(100);
+
     _ledGreen.off();
     _ledRed.off();
 
-    printf("LCD: Welcome screen displayed\n");
+    printf("[APP] Welcome screen ready\n");
 }
 
 void App::processInput(char key)
 {
-    printf("Key pressed: %c\n", key); // Debug STDIO
+    printf("[KEYPAD] %c\n", key);
 
-    // Tasta de ștergere
     if (key == CLEAR_KEY)
     {
         clearInput();
-        _lcd.clear();
-        _lcd.setCursor(0, 0);
-        _lcd.print("Enter Code:");
-        _lcd.setCursor(0, 1);
-        _lcd.print("");
-        printf("Code cleared\n");
+        displayWelcome();
         return;
     }
 
-    // Tasta de confirmare
     if (key == ENTER_KEY)
     {
         if (_inputPos > 0)
         {
             _inputCode[_inputPos] = '\0';
-            printf("Code entered: %s\n", _inputCode);
+            printf("[CODE] %s\n", _inputCode);
 
             if (verifyCode())
-            {
                 handleValidCode();
-            }
             else
-            {
                 handleInvalidCode();
-            }
 
-            delay(2000); // Aștept înainte de a resurecta
+            delay(3000);
+            clearInput();
             displayWelcome();
         }
         return;
     }
 
-    // Cifre și alte caractere valide (0-9, A-D)
     if (isdigit(key) || (key >= 'A' && key <= 'D'))
     {
         if (_inputPos < CODE_LENGTH)
@@ -100,10 +95,22 @@ void App::processInput(char key)
             _inputCode[_inputPos] = key;
             _inputPos++;
 
-            // Afișez asteriscul în loc de caracter pentru securitate
-            _lcd.setCursor(_inputPos - 1, 1);
-            _lcd.write('*');
-            printf("Code position %d: %c\n", _inputPos, key);
+            _lcd.setCursor(0, 1);
+            delay(50);
+            _lcd.print("[");
+            delay(20);
+
+            for (int i = 0; i < CODE_LENGTH; i++)
+            {
+                if (i < _inputPos)
+                    _lcd.write('*');
+                else
+                    _lcd.write(' ');
+                delay(20);
+            }
+
+            _lcd.print("]");
+            delay(50);
         }
     }
 }
@@ -116,46 +123,59 @@ bool App::verifyCode()
 
 void App::handleValidCode()
 {
-    printf("Code VALID! Unlocking...\n");
+    printf("[SUCCESS] CODE VALID! UNLOCKING!\n");
 
     _lcd.clear();
-    _lcd.setCursor(2, 0);
-    _lcd.print("Code Valid!");
-    _lcd.setCursor(2, 1);
-    _lcd.print("Door Unlocked");
+    delay(150);
 
-    // Aprind LED verde și stingem LED roșu
+    _lcd.setCursor(0, 0);
+    delay(50);
+    _lcd.print("ACCESS GRANTED!");
+    delay(50);
+
+    _lcd.setCursor(0, 1);
+    delay(50);
+    _lcd.print("Door Unlocked");
+    delay(100);
+
     _ledGreen.on();
     _ledRed.off();
 
-    delay(500);
-    _ledGreen.off();
-    delay(200);
-    _ledGreen.on();
-    delay(500);
+    for (int i = 0; i < 3; i++)
+    {
+        delay(300);
+        _ledGreen.off();
+        delay(200);
+        _ledGreen.on();
+    }
     _ledGreen.off();
 }
 
 void App::handleInvalidCode()
 {
-    printf("Code INVALID!\n");
+    printf("[FAILURE] CODE INVALID! ACCESS DENIED!\n");
 
     _lcd.clear();
-    _lcd.setCursor(2, 0);
-    _lcd.print("Code Invalid!");
-    _lcd.setCursor(1, 1);
-    _lcd.print("Access Denied");
+    delay(150);
 
-    // Aprind LED roșu și stingem LED verde
+    _lcd.setCursor(0, 0);
+    delay(50);
+    _lcd.print("ACCESS DENIED!");
+    delay(50);
+
+    _lcd.setCursor(0, 1);
+    delay(50);
+    _lcd.print("Wrong Code");
+    delay(100);
+
     _ledRed.on();
     _ledGreen.off();
 
-    // Bliț LED roșu
-    for (int i = 0; i < 3; i++)
+    for (int i = 0; i < 5; i++)
     {
-        delay(200);
+        delay(150);
         _ledRed.off();
-        delay(200);
+        delay(150);
         _ledRed.on();
     }
     _ledRed.off();

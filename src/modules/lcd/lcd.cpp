@@ -5,10 +5,25 @@ LcdI2c::LcdI2c(uint8_t address, uint8_t cols, uint8_t rows)
 
 void LcdI2c::begin()
 {
+    // Delay lung pentru stabilizare I2C
+    delay(500);
+
+    // Inițializare completă a LCD-ului
     _lcd.init();
+
+    // Setează backlight
     _lcd.backlight();
+    delay(50);
+
+    // Șterge display complet
     _lcd.clear();
     delay(100);
+
+    // Setează cursor la 0,0
+    _lcd.setCursor(0, 0);
+    delay(50);
+
+    printf("[LCD] Initialized with backlight ON\n");
 }
 
 void LcdI2c::print(const char *text)

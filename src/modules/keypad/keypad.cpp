@@ -22,43 +22,44 @@ void Keypad::begin()
 
 char Keypad::getKey()
 {
-    // Scanare randul por randul
+    // Scanare rând cu rând
     for (uint8_t row = 0; row < _rows; row++)
     {
-        // Activez rândul curent
+        // Activez rândul curent (LOW)
         digitalWrite(_rowPins[row], LOW);
-
-        delay(DEBOUNCE_DELAY);
+        delayMicroseconds(100);
 
         // Citit coloanele
         for (uint8_t col = 0; col < _cols; col++)
         {
             if (digitalRead(_colPins[col]) == LOW)
             {
-                delay(DEBOUNCE_DELAY); // Debounce
+                // Debounce - aștept 20ms
+                delay(20);
 
-                // Verific din nou pentru a confirma
+                // Verific din nou
                 if (digitalRead(_colPins[col]) == LOW)
                 {
-                    // Aștept apăsare (pentru evitarea repetării)
-                    delay(KEY_HOLD_DELAY);
+                    char pressedKey = _keys[row][col];
 
-                    // Aștept eliberare
+                    // Aștept apăsare și eliberare (până coloana devine HIGH)
                     while (digitalRead(_colPins[col]) == LOW)
                     {
-                        delay(DEBOUNCE_DELAY);
+                        delay(10);
                     }
 
-                    delay(DEBOUNCE_DELAY);
+                    // Debounce pe eliberare
+                    delay(50);
 
                     // Dezactivez rândul
                     digitalWrite(_rowPins[row], HIGH);
-                    return _keys[row][col];
+
+                    return pressedKey;
                 }
             }
         }
 
-        // Dezactivez rândul
+        // Dezactivez rândul (HIGH)
         digitalWrite(_rowPins[row], HIGH);
     }
 
