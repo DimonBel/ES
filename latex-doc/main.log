@@ -1,4 +1,4 @@
-This is pdfTeX, Version 3.141592653-2.6-1.40.25 (TeX Live 2023/Debian) (preloaded format=pdflatex 2025.10.12)  16 FEB 2026 17:22
+This is pdfTeX, Version 3.141592653-2.6-1.40.25 (TeX Live 2023/Debian) (preloaded format=pdflatex 2025.10.12)  16 FEB 2026 17:55
 entering extended mode
  restricted \write18 enabled.
  %&-line parsing enabled.
@@ -1252,7 +1252,7 @@ Overfull \hbox (8.99573pt too wide) in paragraph at lines 438--439
 lowing MCAL/ECAL/SRV
  []
 
-
+[9]
 Overfull \hbox (102.05855pt too wide) in paragraph at lines 443--444
 []\T2A/cmr/bx/n/12 I2C Bus: \T2A/cmr/m/n/12 Low-level I2C communication via Wir
 e library (\T2A/cmtt/m/n/12 Wire.begin()\T2A/cmr/m/n/12 , \T2A/cmtt/m/n/12 Wire
@@ -1266,13 +1266,13 @@ Overfull \hbox (16.39359pt too wide) in paragraph at lines 444--445
 /12 , \T2A/cmtt/m/n/12 Serial.read() 
  []
 
-[9]
+
 Overfull \hbox (22.48788pt too wide) in paragraph at lines 456--457
 []\T2A/cmr/bx/n/12 Application Controller: \T2A/cmr/m/n/12 FSM implementation m
 anaging system states and transitions 
  []
 
-<lab1.2-img/electrical_sketch.jpg, id=103, 560.0925pt x 479.54156pt>
+<lab1.2-img/electrical_sketch.jpg, id=102, 560.0925pt x 479.54156pt>
 File: lab1.2-img/electrical_sketch.jpg Graphic file (type jpg)
 <use lab1.2-img/electrical_sketch.jpg>
 Package pdftex.def Info: lab1.2-img/electrical_sketch.jpg  used on input line 5
@@ -1417,55 +1417,97 @@ l_I2C library with additional \T2A/cmtt/m/n/12 fprintf(stderr,
  []
 
 [14] [15] [16] [17] [18]
-Overfull \hbox (3.15067pt too wide) in paragraph at lines 865--866
+Overfull \hbox (3.15067pt too wide) in paragraph at lines 863--864
 \T2A/cmr/m/n/12 The Electronic Lock System was successfully implemented and tes
 ted. The system provides
  []
 
 
-Overfull \hbox (11.46957pt too wide) in paragraph at lines 865--866
+Overfull \hbox (11.46957pt too wide) in paragraph at lines 863--864
 \T2A/cmr/m/n/12 100ms, meeting the specified latency requirement. STDIO redirec
 tion enables comprehensive
  []
 
 [19]
-<img/console.jpg, id=187, 448.67625pt x 300.3722pt>
-File: img/console.jpg Graphic file (type jpg)
-<use img/console.jpg>
-Package pdftex.def Info: img/console.jpg  used on input line 873.
-(pdftex.def)             Requested size: 407.66833pt x 272.9266pt.
- [20 <./img/console.jpg>]
-Overfull \hbox (8.73006pt too wide) in paragraph at lines 903--904
+Overfull \hbox (8.73006pt too wide) in paragraph at lines 895--896
 []\T2A/cmr/m/n/12 New code input: "[PROG-INPUT] 5 "[PROG-INPUT] 6 "[PROG-INPUT]
  7 "[PROG-
  []
 
-<lab1.2-img/start-app.jpg, id=196, 1284.8pt x 722.7pt>
+[20]
+<lab1.2-img/start-app.jpg, id=194, 1284.8pt x 722.7pt>
 File: lab1.2-img/start-app.jpg Graphic file (type jpg)
 <use lab1.2-img/start-app.jpg>
-Package pdftex.def Info: lab1.2-img/start-app.jpg  used on input line 912.
+Package pdftex.def Info: lab1.2-img/start-app.jpg  used on input line 904.
 (pdftex.def)             Requested size: 362.37569pt x 203.8323pt.
-[21 <./lab1.2-img/start-app.jpg>]
-<lab1.2-img/corect-code.jpg, id=204, 722.7pt x 1284.8pt>
+
+
+LaTeX Warning: Reference `fig:screenshot-welcome' on page 21 undefined on input
+ line 909.
+
+<lab1.2-img/corect-code.jpg, id=195, 722.7pt x 1284.8pt>
 File: lab1.2-img/corect-code.jpg Graphic file (type jpg)
 <use lab1.2-img/corect-code.jpg>
-Package pdftex.def Info: lab1.2-img/corect-code.jpg  used on input line 930.
-(pdftex.def)             Requested size: 362.37569pt x 644.22165pt.
- [22] [23 <./lab1.2-img/corect-code.jpg>]
-<lab1.2-img/dev-mode.jpg, id=215, 722.7pt x 1284.8pt>
+Package pdftex.def Info: lab1.2-img/corect-code.jpg  used on input line 922.
+(pdftex.def)             Requested size: 226.48395pt x 402.63608pt.
+[21 <./lab1.2-img/start-app.jpg>]
+
+LaTeX Warning: Reference `fig:screenshot-granted' on page 22 undefined on input
+ line 927.
+
+<lab1.2-img/dev-mode.jpg, id=202, 722.7pt x 1284.8pt>
 File: lab1.2-img/dev-mode.jpg Graphic file (type jpg)
 <use lab1.2-img/dev-mode.jpg>
-Package pdftex.def Info: lab1.2-img/dev-mode.jpg  used on input line 946.
-(pdftex.def)             Requested size: 362.37569pt x 644.22165pt.
+Package pdftex.def Info: lab1.2-img/dev-mode.jpg  used on input line 938.
+(pdftex.def)             Requested size: 226.48395pt x 402.63608pt.
+[22 <./lab1.2-img/corect-code.jpg>]
 
-[24] [25 <./lab1.2-img/dev-mode.jpg>]
-<lab1.2-img/Hardware-setup.jpg, id=227, 963.6pt x 210.7875pt>
+LaTeX Warning: Reference `fig:screenshot-programming' on page 23 undefined on i
+nput line 943.
+
+<lab1.2-img/Hardware-setup.jpg, id=208, 963.6pt x 210.7875pt>
+! Illegal unit of measure (pt inserted).
+<to be read again> 
+                   .
+l.957 ...textwidth]{lab1.2-img/Hardware-setup.jpg}
+                                                  
+? 
+! Missing number, treated as zero.
+<to be read again> 
+                   \relax 
+l.957 ...textwidth]{lab1.2-img/Hardware-setup.jpg}
+                                                  
+? 
+! Illegal unit of measure (pt inserted).
+<to be read again> 
+                   \relax 
+l.957 ...textwidth]{lab1.2-img/Hardware-setup.jpg}
+                                                  
+? 
+! Illegal unit of measure (pt inserted).
+<to be read again> 
+                   .
+l.957 ...textwidth]{lab1.2-img/Hardware-setup.jpg}
+                                                  
+? 
+! Missing number, treated as zero.
+<to be read again> 
+                   \relax 
+l.957 ...textwidth]{lab1.2-img/Hardware-setup.jpg}
+                                                  
+? 
+! Illegal unit of measure (pt inserted).
+<to be read again> 
+                   \relax 
+l.957 ...textwidth]{lab1.2-img/Hardware-setup.jpg}
+                                                  
+? 
 File: lab1.2-img/Hardware-setup.jpg Graphic file (type jpg)
 <use lab1.2-img/Hardware-setup.jpg>
-Package pdftex.def Info: lab1.2-img/Hardware-setup.jpg  used on input line 965.
+Package pdftex.def Info: lab1.2-img/Hardware-setup.jpg  used on input line 957.
 
-(pdftex.def)             Requested size: 317.07614pt x 69.36067pt.
-
+(pdftex.def)             Requested size: 0.8pt x 0.17368pt.
+[23 <./lab1.2-img/dev-mode.jpg>]
 
 ! LaTeX Error: Unicode character Ω (U+03A9)
                not set up for use with LaTeX.
@@ -1474,71 +1516,53 @@ See the LaTeX manual or LaTeX Companion for explanation.
 Type  H <return>  for immediate help.
  ...                                              
                                                   
-l.981 ...{Current-Limiting Resistors:} Three 220Ω
+l.973 ...{Current-Limiting Resistors:} Three 220Ω
                                                    resistors for LED protection
 
 ? 
-[26 <./lab1.2-img/Hardware-setup.jpg>]
-Overfull \hbox (0.28374pt too wide) in paragraph at lines 999--1000
+
+Overfull \hbox (0.28374pt too wide) in paragraph at lines 991--992
 \T2A/cmr/m/n/12 eliminated contact bounce, with zero false triggers observed du
 ring extensive testing. 
  []
 
-[27]
-Overfull \hbox (28.85855pt too wide) in paragraph at lines 1035--1036
+[24 <./lab1.2-img/Hardware-setup.jpg>]
+Overfull \hbox (28.85855pt too wide) in paragraph at lines 1027--1028
 \T2A/cmr/m/n/12 drivers for Keypad, LCD, LED, and Application Controller, follo
 wing MCAL/ECAL/SRV
  []
 
-
-Overfull \hbox (37.3868pt too wide) in paragraph at lines 1039--1040
+[25]
+Overfull \hbox (37.3868pt too wide) in paragraph at lines 1031--1032
 []\T2A/cmr/bx/n/12 STDIO Integration: \T2A/cmr/m/n/12 Successfully redirected s
 tdout/stdin to Serial port for comprehensive
  []
 
 
-Overfull \hbox (12.06529pt too wide) in paragraph at lines 1055--1056
+Overfull \hbox (12.06529pt too wide) in paragraph at lines 1047--1048
 []\T2A/cmr/bx/n/12 Matrix Keypads: \T2A/cmr/m/n/12 Understanding of matrix scan
 ning algorithms, GPIO configuration
  []
 
-[28]
-Overfull \hbox (0.47926pt too wide) in paragraph at lines 1061--1062
+
+Overfull \hbox (0.47926pt too wide) in paragraph at lines 1053--1054
 []\T2A/cmr/bx/n/12 Finite State Machines: \T2A/cmr/m/n/12 Understanding of FSM 
 design principles, state definitions,
  []
 
 
-Overfull \hbox (24.22903pt too wide) in paragraph at lines 1063--1064
+Overfull \hbox (24.22903pt too wide) in paragraph at lines 1055--1056
 []\T2A/cmr/bx/n/12 Embedded Architecture: \T2A/cmr/m/n/12 Experience with layer
 ed architecture (MCAL/ECAL/SRV),
  []
 
-[29] [30]
-Overfull \hbox (5.03606pt too wide) in paragraph at lines 1142--1143
-\T2A/cmr/m/n/12 (keypad, LEDs, sensors, potentially RFID readers). I2C's 2-pin 
-requirement preserves
+[26] [27]
+Overfull \hbox (53.8898pt too wide) in paragraph at lines 1110--1111
+[]\T2A/cmr/bx/n/12 Best choice here: \T2A/cmr/m/n/12 I2C, because access-contro
+l systems need free pins for keypad/LED/sensors
  []
 
-
-Overfull \hbox (25.55775pt too wide) in paragraph at lines 1148--1149
-[]\T2A/cmr/bx/n/12 Simplified Wiring: \T2A/cmr/m/n/12 Access control installati
-ons benefit from minimal wiring complexity,
- []
-
-[31]
-
-! LaTeX Error: Unicode character μ (U+03BC)
-               not set up for use with LaTeX.
-
-See the LaTeX manual or LaTeX Companion for explanation.
-Type  H <return>  for immediate help.
- ...                                              
-                                                  
-l.1246 		\item Wait 100μ
-                         s
-? 
-[32] (/usr/share/texlive/texmf-dist/tex/latex/listings/lstlang1.sty
+[28] (/usr/share/texlive/texmf-dist/tex/latex/listings/lstlang1.sty
 File: lstlang1.sty 2023/02/27 1.9 listings language file
 )
 (/usr/share/texlive/texmf-dist/tex/latex/listings/lstlang1.sty
@@ -1548,38 +1572,9 @@ File: lstlang1.sty 2023/02/27 1.9 listings language file
 File: lstmisc.sty 2023/02/27 1.9 (Carsten Heinz)
 )
 Package hyperref Info: bookmark level for unknown lstlisting defaults to 0 on i
-nput line 1285.
- [33] [34]
-[35] [36]
-Underfull \hbox (badness 10000) in paragraph at lines 1510--1510
-[]|\T2A/cmr/m/n/12 Complex: Cursor
- []
-
-[37] [38] [39] [40]
-Overfull \hbox (21.54387pt too wide) in paragraph at lines 1666--1667
-[]\T2A/cmr/m/n/12 Each driver (Keypad, LCD, LED) can be developed, tested, and 
-debugged independently 
- []
-
-[41]
-Overfull \hbox (33.73921pt too wide) in paragraph at lines 1735--1736
-[]\T2A/cmr/bx/n/12 Security Enhancement: \T2A/cmr/m/n/12 Implementing password 
-hashing affects only the Authentication
- []
-
-[42]
-
-! LaTeX Error: Unicode character μ (U+03BC)
-               not set up for use with LaTeX.
-
-See the LaTeX manual or LaTeX Companion for explanation.
-Type  H <return>  for immediate help.
- ...                                              
-                                                  
-l.1797 	\item Matrix scanning (100μ
-                                    s/row) + Debouncing (20ms)
-? 
-[43]
+nput line 1234.
+ [29] [30]
+[31]
 
 ! LaTeX Error: Unicode character ✓ (U+2713)
                not set up for use with LaTeX.
@@ -1588,328 +1583,100 @@ See the LaTeX manual or LaTeX Companion for explanation.
 Type  H <return>  for immediate help.
  ...                                              
                                                   
-l.1822 ...Total Response: 35-60ms ($< 100ms$ ✓)}
+l.1437 ...Total Response: 35-60ms ($< 100ms$ ✓)}
                                                   
 ? 
 LaTeX Font Info:    Trying to load font information for TS1+cmtt on input line 
-1841.
+1456.
 (/usr/share/texlive/texmf-dist/tex/latex/base/ts1cmtt.fd
 File: ts1cmtt.fd 2023/04/13 v2.5m Standard LaTeX font definitions
-)
-
-! LaTeX Error: Unicode character ┌ (U+250C)
-               not set up for use with LaTeX.
-
-See the LaTeX manual or LaTeX Companion for explanation.
-Type  H <return>  for immediate help.
- ...                                              
-                                                  
-l.1866 \end{verbatim}
-                     
-? 
-
-! LaTeX Error: Unicode character ─ (U+2500)
-               not set up for use with LaTeX.
-
-See the LaTeX manual or LaTeX Companion for explanation.
-Type  H <return>  for immediate help.
- ...                                              
-                                                  
-l.1866 \end{verbatim}
-                     
-? 
-
-! LaTeX Error: Unicode character ─ (U+2500)
-               not set up for use with LaTeX.
-
-See the LaTeX manual or LaTeX Companion for explanation.
-Type  H <return>  for immediate help.
- ...                                              
-                                                  
-l.1866 \end{verbatim}
-                     
-? 
-
-! LaTeX Error: Unicode character ─ (U+2500)
-               not set up for use with LaTeX.
-
-See the LaTeX manual or LaTeX Companion for explanation.
-Type  H <return>  for immediate help.
- ...                                              
-                                                  
-l.1866 \end{verbatim}
-                     
-? 
-
-! LaTeX Error: Unicode character ┬ (U+252C)
-               not set up for use with LaTeX.
-
-See the LaTeX manual or LaTeX Companion for explanation.
-Type  H <return>  for immediate help.
- ...                                              
-                                                  
-l.1866 \end{verbatim}
-                     
-? 
-
-! LaTeX Error: Unicode character ─ (U+2500)
-               not set up for use with LaTeX.
-
-See the LaTeX manual or LaTeX Companion for explanation.
-Type  H <return>  for immediate help.
- ...                                              
-                                                  
-l.1866 \end{verbatim}
-                     
-? 
-
-! LaTeX Error: Unicode character ─ (U+2500)
-               not set up for use with LaTeX.
-
-See the LaTeX manual or LaTeX Companion for explanation.
-Type  H <return>  for immediate help.
- ...                                              
-                                                  
-l.1866 \end{verbatim}
-                     
-? 
-
-! LaTeX Error: Unicode character ─ (U+2500)
-               not set up for use with LaTeX.
-
-See the LaTeX manual or LaTeX Companion for explanation.
-Type  H <return>  for immediate help.
- ...                                              
-                                                  
-l.1866 \end{verbatim}
-                     
-? 
-
-! LaTeX Error: Unicode character ┬ (U+252C)
-               not set up for use with LaTeX.
-
-See the LaTeX manual or LaTeX Companion for explanation.
-Type  H <return>  for immediate help.
- ...                                              
-                                                  
-l.1866 \end{verbatim}
-                     
-? 
-
-! LaTeX Error: Unicode character ─ (U+2500)
-               not set up for use with LaTeX.
-
-See the LaTeX manual or LaTeX Companion for explanation.
-Type  H <return>  for immediate help.
- ...                                              
-                                                  
-l.1866 \end{verbatim}
-                     
-? 
-
-! LaTeX Error: Unicode character ─ (U+2500)
-               not set up for use with LaTeX.
-
-See the LaTeX manual or LaTeX Companion for explanation.
-Type  H <return>  for immediate help.
- ...                                              
-                                                  
-l.1866 \end{verbatim}
-                     
-? 
-
-! LaTeX Error: Unicode character ─ (U+2500)
-               not set up for use with LaTeX.
-
-See the LaTeX manual or LaTeX Companion for explanation.
-Type  H <return>  for immediate help.
- ...                                              
-                                                  
-l.1866 \end{verbatim}
-                     
-? 
-
-! LaTeX Error: Unicode character ┬ (U+252C)
-               not set up for use with LaTeX.
-
-See the LaTeX manual or LaTeX Companion for explanation.
-Type  H <return>  for immediate help.
- ...                                              
-                                                  
-l.1866 \end{verbatim}
-                     
-? 
-
-! LaTeX Error: Unicode character ─ (U+2500)
-               not set up for use with LaTeX.
-
-See the LaTeX manual or LaTeX Companion for explanation.
-Type  H <return>  for immediate help.
- ...                                              
-                                                  
-l.1866 \end{verbatim}
-                     
-? 
-
-! LaTeX Error: Unicode character ─ (U+2500)
-               not set up for use with LaTeX.
-
-See the LaTeX manual or LaTeX Companion for explanation.
-Type  H <return>  for immediate help.
- ...                                              
-                                                  
-l.1866 \end{verbatim}
-                     
-? 
-
-! LaTeX Error: Unicode character ─ (U+2500)
-               not set up for use with LaTeX.
-
-See the LaTeX manual or LaTeX Companion for explanation.
-Type  H <return>  for immediate help.
- ...                                              
-                                                  
-l.1866 \end{verbatim}
-                     
-? 
-
-! LaTeX Error: Unicode character ┐ (U+2510)
-               not set up for use with LaTeX.
-
-See the LaTeX manual or LaTeX Companion for explanation.
-Type  H <return>  for immediate help.
- ...                                              
-                                                  
-l.1866 \end{verbatim}
-                     
-? 
-[44] [45] [46] [47] [48] [49]
-Overfull \hbox (5.55304pt too wide) in paragraph at lines 2095--2096
-[]\T2A/cmr/bx/n/12 Concept: \T2A/cmr/m/n/12 Redirect standard C I/O functions t
-o LCD/keypad hardware, using familiar
+) [32]
+Overfull \hbox (21.3797pt too wide) in paragraph at lines 1469--1470
+[]\T2A/cmr/bx/n/12 Usability rules: \T2A/cmr/m/n/12 keep key meaning consistent
+, show hints on LCD, and ask confirmation
  []
 
-[50] [51] [52] [53]
-Underfull \hbox (badness 10000) in paragraph at lines 2286--2286
-[]|\T2A/cmr/m/n/12 Good (non-blocking
- []
-
-[54]
-Overfull \hbox (4.70314pt too wide) in paragraph at lines 2335--2336
-[]\T2A/cmr/m/n/12 This hybrid approach provides the benefits of both methods: d
-evelopment productivity
+[33] [34]
+Overfull \hbox (2.19958pt too wide) in paragraph at lines 1544--1545
+[]\T2A/cmr/bx/n/12 STDIO approach: \T2A/cmr/m/n/12 cleaner and faster to write 
+(\T2A/cmtt/m/n/12 printf\T2A/cmr/m/n/12 /\T2A/cmtt/m/n/12 scanf\T2A/cmr/m/n/12 
+), good for readability
  []
 
 
-Overfull \hbox (21.03131pt too wide) in paragraph at lines 2339--2340
+Overfull \hbox (21.03131pt too wide) in paragraph at lines 1801--1802
 \T2A/cmr/m/n/12 interfaces between different hardware platforms? How can hardwa
 re interaction be abstracted? 
  []
 
-[55] [56] [57] [58] [59]
-Overfull \hbox (10.04404pt too wide) in paragraph at lines 2525--2525
-[]        \T2A/cmtt/m/n/12 return new MatrixKeypad(createHAL(), rows, cols, num
-Rows, numCols);[] 
+
+Overfull \hbox (24.06793pt too wide) in paragraph at lines 2215--2216
+[]\T2A/cmr/bx/n/12 Acceptance tests: \T2A/cmr/m/n/12 verify user-visible behavi
+or and response times against requirements. 
  []
 
-[60] [61] [62] [63] [64] [65] [66] [67] [68] [69] [70] [71]
-! Undefined control sequence.
-<recently read> \midline 
-                         
-l.3113 ... & High - Management feature \\ \midline
-                                                  
-? 
-! Undefined control sequence.
-<recently read> \midline 
-                         
-l.3114 ...ical - Usability requirement \\ \midline
-                                                  
-? 
-! Undefined control sequence.
-<recently read> \midline 
-                         
-l.3115 ... & Critical - Input accuracy \\ \midline
-                                                  
-? 
-! Undefined control sequence.
-<recently read> \midline 
-                         
-l.3116 ...uracy & High - User feedback \\ \midline
-                                                  
-? 
-! Undefined control sequence.
-<recently read> \midline 
-                         
-l.3117 ...ess & High - Visual feedback \\ \midline
-                                                  
-? 
-! Undefined control sequence.
-<recently read> \midline 
-                         
-l.3118 ...ection & Critical - Security \\ \midline
-                                                  
-? 
-! Undefined control sequence.
-<recently read> \midline 
-                         
-l.3119 ...authorized access prevention \\ \midline
-                                                  
-? 
-[72]
-Overfull \hbox (135.02112pt too wide) in paragraph at lines 3162--3163
+[35]
+Overfull \hbox (135.02112pt too wide) in paragraph at lines 2650--2651
 \T2A/cmtt/m/n/12 ww1 . microchip . com / downloads / en / DeviceDoc / Atmel-[]4
 2735-[]8-[]bit-[]AVR-[]Microcontroller-[]ATmega328P _
  []
 
-[73]
-Overfull \hbox (3.83556pt too wide) in paragraph at lines 3168--3169
+
+Overfull \hbox (3.83556pt too wide) in paragraph at lines 2656--2657
 []$\T2A/cmtt/m/n/12 https : / / www . nxp . com / docs / en / user-[]guide / UM
 10204 . pdf$[] \T2A/cmr/m/n/12 [Accessed: 2026-02-16]. 
  []
 
-
-Overfull \hbox (9.2441pt too wide) in paragraph at lines 3174--3175
+[36]
+Overfull \hbox (9.2441pt too wide) in paragraph at lines 2662--2663
 []\T2A/cmr/m/n/12 Arduino.cc. \T2A/cmr/m/it/12 LiquidCrystal Library\T2A/cmr/m/
 n/12 . Available: []$\T2A/cmtt/m/n/12 https : / / www . arduino . cc / referenc
 e /
  []
 
 
-Overfull \hbox (0.52444pt too wide) in paragraph at lines 3176--3177
+Overfull \hbox (0.52444pt too wide) in paragraph at lines 2664--2665
 []\T2A/cmr/m/n/12 Horowitz, P., and Hill, W. \T2A/cmr/m/it/12 The Art of Electr
 onics\T2A/cmr/m/n/12 . 3rd Edition, Cambridge University
  []
 
 
-Overfull \hbox (63.40598pt too wide) in paragraph at lines 3178--3179
+Overfull \hbox (63.40598pt too wide) in paragraph at lines 2666--2667
 []\T2A/cmr/m/n/12 Wikipedia. \T2A/cmr/m/it/12 Finite-state machine\T2A/cmr/m/n/
 12 . Available: []$\T2A/cmtt/m/n/12 https : / / en . wikipedia . org / wiki / F
 inite-[]state _
  []
 
 
-Overfull \hbox (29.6641pt too wide) in paragraph at lines 3180--3181
+Overfull \hbox (29.6641pt too wide) in paragraph at lines 2668--2669
 []\T2A/cmr/m/n/12 Wikipedia. \T2A/cmr/m/it/12 Debouncing\T2A/cmr/m/n/12 . Avail
 able: []$\T2A/cmtt/m/n/12 https : / / en . wikipedia . org / wiki / Switch # Co
 ntact _
  []
 
-[74] [75] (./main.aux)
+[37] (./main.aux)
  ***********
 LaTeX2e <2023-11-01> patch level 1
 L3 programming layer <2024-01-22>
  ***********
+
+
+LaTeX Warning: There were undefined references.
+
+
+LaTeX Warning: Label(s) may have changed. Rerun to get cross-references right.
+
 Package rerunfilecheck Info: File `main.out' has not changed.
 (rerunfilecheck)             Checksum: D41D8CD98F00B204E9800998ECF8427E;0.
  ) 
 Here is how much of TeX's memory you used:
- 29828 strings out of 474222
- 562726 string characters out of 5748732
+ 29737 strings out of 474222
+ 561949 string characters out of 5748732
  2074975 words of memory out of 5000000
- 51325 multiletter control sequences out of 15000+600000
+ 51304 multiletter control sequences out of 15000+600000
  582023 words of font info for 81 fonts, out of 8000000 for 9000
  1141 hyphenation exceptions out of 8191
- 84i,12n,87p,736b,895s stack positions out of 10000i,1000n,20000p,200000b,200000s
+ 84i,12n,87p,736b,892s stack positions out of 10000i,1000n,20000p,200000b,200000s
 </usr/share/texlive/texmf-dist/fonts/type1/public/amsfonts/cm/cmmi12.pfb></us
 r/share/texlive/texmf-dist/fonts/type1/public/amsfonts/cm/cmr12.pfb></usr/share
 /texlive/texmf-dist/fonts/type1/public/amsfonts/cm/cmsy10.pfb></usr/share/texmf
@@ -1927,10 +1694,76 @@ super/sfrm1200.pfb></usr/share/texmf/fonts/type1/public/cm-super/sfrm1440.pfb><
 /usr/share/texmf/fonts/type1/public/cm-super/sfti1200.pfb></usr/share/texmf/fon
 ts/type1/public/cm-super/sfti1440.pfb></usr/share/texmf/fonts/type1/public/cm-s
 uper/sftt0800.pfb></usr/share/texmf/fonts/type1/public/cm-super/sftt1200.pfb>
-Output written on main.pdf (75 pages, 1029244 bytes).
+Output written on main.pdf (37 pages, 929160 bytes).
 PDF statistics:
- 751 PDF objects out of 1000 (max. 8388607)
- 613 compressed objects within 7 object streams
- 279 named destinations out of 1000 (max. 500000)
- 43 words of extra memory for PDF output out of 10000 (max. 10000000)
+ 538 PDF objects out of 1000 (max. 8388607)
+ 441 compressed objects within 5 object streams
+ 209 named destinations out of 1000 (max. 500000)
+ 38 words of extra memory for PDF output out of 10000 (max. 10000000)
+
+ too wide) in paragraph at lines 2650--2651
+\T2A/cmtt/m/n/12 ww1 . microchip . com / downloads / en / DeviceDoc / Atmel-[]42735-[]8-[]bit-[]AVR-[]Microcontroller-[]ATmega328P _
+ []
+
+
+Overfull \hbox (3.83556pt too wide) in paragraph at lines 2656--2657
+[]$\T2A/cmtt/m/n/12 https : / / www . nxp . com / docs / en / user-[]guide / UM10204 . pdf$[] \T2A/cmr/m/n/12 [Accessed: 2026-02-16]. 
+ []
+
+[36]
+Overfull \hbox (9.2441pt too wide) in paragraph at lines 2662--2663
+[]\T2A/cmr/m/n/12 Arduino.cc. \T2A/cmr/m/it/12 LiquidCrystal Library\T2A/cmr/m/n/12 . Available: []$\T2A/cmtt/m/n/12 https : / / www . arduino . cc / reference /
+ []
+
+
+Overfull \hbox (0.52444pt too wide) in paragraph at lines 2664--2665
+[]\T2A/cmr/m/n/12 Horowitz, P., and Hill, W. \T2A/cmr/m/it/12 The Art of Electronics\T2A/cmr/m/n/12 . 3rd Edition, Cambridge University
+ []
+
+
+Overfull \hbox (63.40598pt too wide) in paragraph at lines 2666--2667
+[]\T2A/cmr/m/n/12 Wikipedia. \T2A/cmr/m/it/12 Finite-state machine\T2A/cmr/m/n/12 . Available: []$\T2A/cmtt/m/n/12 https : / / en . wikipedia . org / wiki / Finite-[]state _
+ []
+
+
+Overfull \hbox (29.6641pt too wide) in paragraph at lines 2668--2669
+[]\T2A/cmr/m/n/12 Wikipedia. \T2A/cmr/m/it/12 Debouncing\T2A/cmr/m/n/12 . Available: []$\T2A/cmtt/m/n/12 https : / / en . wikipedia . org / wiki / Switch # Contact _
+ []
+
+[37] (./main.aux)
+ ***********
+LaTeX2e <2023-11-01> patch level 1
+L3 programming layer <2024-01-22>
+ ***********
+
+
+LaTeX Warning: There were undefined references.
+
+
+LaTeX Warning: Label(s) may have changed. Rerun to get cross-references right.
+
+
+Package rerunfilecheck Warning: File `main.out' has changed.
+(rerunfilecheck)                Rerun to get outlines right
+(rerunfilecheck)                or use package `bookmark'.
+
+Package rerunfilecheck Info: Checksums for `main.out':
+(rerunfilecheck)             Before: <no file>
+(rerunfilecheck)             After:  D41D8CD98F00B204E9800998ECF8427E;0.
+ ) 
+Here is how much of TeX's memory you used:
+ 29733 strings out of 474222
+ 562091 string characters out of 5748732
+ 2074975 words of memory out of 5000000
+ 51303 multiletter control sequences out of 15000+600000
+ 582023 words of font info for 81 fonts, out of 8000000 for 9000
+ 1141 hyphenation exceptions out of 8191
+ 84i,12n,87p,803b,892s stack positions out of 10000i,1000n,20000p,200000b,200000s
+</usr/share/texlive/texmf-dist/fonts/type1/public/amsfonts/cm/cmmi12.pfb></usr/share/texlive/texmf-dist/fonts/type1/public/amsfonts/cm/cmr12.pfb></usr/share/texlive/texmf-dist/fonts/type1/public/amsfonts/cm/cmsy10.pfb></usr/share/texmf/fonts/type1/public/cm-super/sfbx1000.pfb></usr/share/texmf/fonts/type1/public/cm-super/sfbx1095.pfb></usr/share/texmf/fonts/type1/public/cm-super/sfbx1200.pfb></usr/share/texmf/fonts/type1/public/cm-super/sfbx1440.pfb></usr/share/texmf/fonts/type1/public/cm-super/sfbx1728.pfb></usr/share/texmf/fonts/type1/public/cm-super/sfbx2074.pfb></usr/share/texmf/fonts/type1/public/cm-super/sfcc1440.pfb></usr/share/texmf/fonts/type1/public/cm-super/sfcc1728.pfb></usr/share/texmf/fonts/type1/public/cm-super/sfrm0600.pfb></usr/share/texmf/fonts/type1/public/cm-super/sfrm0700.pfb></usr/share/texmf/fonts/type1/public/cm-super/sfrm0800.pfb></usr/share/texmf/fonts/type1/public/cm-super/sfrm1000.pfb></usr/share/texmf/fonts/type1/public/cm-super/sfrm1095.pfb></usr/share/texmf/fonts/type1/public/cm-super/sfrm1200.pfb></usr/share/texmf/fonts/type1/public/cm-super/sfrm1440.pfb></usr/share/texmf/fonts/type1/public/cm-super/sfti1200.pfb></usr/share/texmf/fonts/type1/public/cm-super/sfti1440.pfb></usr/share/texmf/fonts/type1/public/cm-super/sftt0800.pfb></usr/share/texmf/fonts/type1/public/cm-super/sftt1200.pfb>
+Output written on main.pdf (37 pages, 929160 bytes).
+PDF statistics:
+ 538 PDF objects out of 1000 (max. 8388607)
+ 441 compressed objects within 5 object streams
+ 209 named destinations out of 1000 (max. 500000)
+ 38 words of extra memory for PDF output out of 10000 (max. 10000000)
 

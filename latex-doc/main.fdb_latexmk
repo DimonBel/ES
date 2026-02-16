@@ -1,5 +1,5 @@
 # Fdb version 4
-["pdflatex"] 1771255346.42835 "/home/dumas/Documents/PlatformIO/Projects/Vibe-coding/ES/latex-doc/main.tex" "main.pdf" "main" 1771255349.79994 2
+["pdflatex"] 1771257323.13552 "/home/dumas/Documents/PlatformIO/Projects/Vibe-coding/ES/latex-doc/main.tex" "main.pdf" "main" 1771257325.31346 2
   "/etc/texmf/web2c/texmf.cnf" 1760221089.92272 475 c0e671620eb5563b2130f56340a5fde8 ""
   "/home/dumas/.texlive2023/texmf-var/fonts/tfm/lh/lh-t2a/labx1000.tfm" 1771250977.02204 3300 6abb8e321227ead2a8e929e5abc72bd3 ""
   "/home/dumas/.texlive2023/texmf-var/fonts/tfm/lh/lh-t2a/labx1095.tfm" 1771250971.96404 3336 216c27338cb0f11f0d2908d69ce3de23 ""
@@ -23,7 +23,7 @@
   "/home/dumas/.texlive2023/texmf-var/fonts/tfm/lh/lh-t2a/lati1440.tfm" 1770570302.23069 3528 460e6901416a816cf4afa844b5d54101 ""
   "/home/dumas/.texlive2023/texmf-var/fonts/tfm/lh/lh-t2a/latt0800.tfm" 1771249219.26047 1272 2a21550efcb075c108e98819097de5c8 ""
   "/home/dumas/.texlive2023/texmf-var/fonts/tfm/lh/lh-t2a/latt1200.tfm" 1770570324.42995 1272 bf3bb5cc29880b269c8bcb412a1ac6e2 ""
-  "/home/dumas/Documents/PlatformIO/Projects/Vibe-coding/ES/latex-doc/main.tex" 1771255331.46003 123633 7b3642f91511ac20ee9d605ee4b712a6 ""
+  "/home/dumas/Documents/PlatformIO/Projects/Vibe-coding/ES/latex-doc/main.tex" 1771257320.55352 106316 3aca078f3a029dbf664660122f21b5d8 ""
   "/usr/share/texlive/texmf-dist/fonts/map/fontname/texfonts.map" 1577235249 3524 cb3e574dea2d1052e39280babc910dc8 ""
   "/usr/share/texlive/texmf-dist/fonts/tfm/jknappen/ec/ecrm1200.tfm" 1136768653 3584 f80ddd985bd00e29e9a6047ebd9d4781 ""
   "/usr/share/texlive/texmf-dist/fonts/tfm/jknappen/ec/tcbx1200.tfm" 1136768653 1536 c09172c8f235393e6235bb4758357c41 ""
@@ -229,15 +229,14 @@
   "/usr/share/texmf/web2c/texmf.cnf" 1707919699 40399 f2c302f7d2af602abb742093540a5834 ""
   "/var/lib/texmf/fonts/map/pdftex/updmap/pdftex.map" 1760221116.7563 5472669 54eaf61a88b6b7896ebd0dac973cb29c ""
   "/var/lib/texmf/web2c/pdftex/pdflatex.fmt" 1760221189 8213065 419218516367cc15941b6cef1308aed4 ""
-  "img/console.jpg" 1770572873.74662 49148 2691fbe6eeb8f3fd0b3f09393fddcdb0 ""
   "lab1.2-img/Hardware-setup.jpg" 1771249873.79991 26844 bc5b6d9dd240721f333c6aa6fbc93db0 ""
   "lab1.2-img/corect-code.jpg" 1771248336.74135 106691 295396a0cf4a5db126e00b4fac7f63eb ""
   "lab1.2-img/dev-mode.jpg" 1771248320.12597 101425 1aad786f86886facf6604df8579b3ade ""
   "lab1.2-img/electrical_sketch.jpg" 1771249844.44864 51146 3d9861897213dfd38ada16ceaefbc0c0 ""
   "lab1.2-img/start-app.jpg" 1771248355.6042 101162 4ac94520b9e55b0aa4f206d13b0235b0 ""
-  "main.aux" 1771255349.35478 5445 675cc11916f44fbbfe30d6d81ced6777 "pdflatex"
-  "main.out" 1771255347.71481 0 d41d8cd98f00b204e9800998ecf8427e "pdflatex"
-  "main.tex" 1771255331.46003 123633 7b3642f91511ac20ee9d605ee4b712a6 ""
+  "main.aux" 1771257325.07332 4464 0823d1eea7d3fd1ba11759e7eea8a858 "pdflatex"
+  "main.out" 1771257324.06479 0 d41d8cd98f00b204e9800998ecf8427e "pdflatex"
+  "main.tex" 1771257320.55352 106316 3aca078f3a029dbf664660122f21b5d8 ""
   (generated)
   "main.aux"
   "main.log"

@@ -300,6 +300,9 @@ INPUT /usr/share/texlive/texmf-dist/tex/generic/pgf/frontendlayer/tikz/libraries
 INPUT /usr/share/texlive/texmf-dist/tex/generic/pgf/frontendlayer/tikz/libraries/tikzlibrarypositioning.code.tex
 INPUT /usr/share/texlive/texmf-dist/tex/latex/l3backend/l3backend-pdftex.def
 INPUT /usr/share/texlive/texmf-dist/tex/latex/l3backend/l3backend-pdftex.def
+INPUT ./main.aux
+INPUT ./main.aux
+INPUT main.aux
 OUTPUT main.aux
 INPUT /usr/share/texlive/texmf-dist/tex/context/base/mkii/supp-pdf.mkii
 INPUT /usr/share/texlive/texmf-dist/tex/context/base/mkii/supp-pdf.mkii
@@ -361,11 +364,6 @@ INPUT ./lab1.2-img/electrical_sketch.jpg
 INPUT ./lab1.2-img/electrical_sketch.jpg
 INPUT ./lab1.2-img/electrical_sketch.jpg
 INPUT /home/dumas/.texlive2023/texmf-var/fonts/tfm/lh/lh-t2a/larm0800.tfm
-INPUT ./img/console.jpg
-INPUT ./img/console.jpg
-INPUT ./img/console.jpg
-INPUT ./img/console.jpg
-INPUT ./img/console.jpg
 INPUT ./lab1.2-img/start-app.jpg
 INPUT ./lab1.2-img/start-app.jpg
 INPUT ./lab1.2-img/start-app.jpg
