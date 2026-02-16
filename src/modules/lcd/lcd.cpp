@@ -15,13 +15,12 @@ void LcdI2c::begin()
 void LcdI2c::print(const char *text)
 {
     _lcd.print(text);
-    fprintf(stderr, "[LCD] %s", text);
+    printf("[LCD] %s", text);
 }
-
 void LcdI2c::println(const char *text)
 {
     _lcd.print(text);
-    fprintf(stderr, "[LCD] %s\n", text);
+    printf("[LCD] %s\n", text);
 }
 
 void LcdI2c::setCursor(uint8_t col, uint8_t row)

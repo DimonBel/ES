@@ -62,12 +62,12 @@
 		\vspace{25 mm}
 
 		\textsc{\Large Embedded Systems}\\[0.5cm]
-		\textsc{\large Laboratory work \#1}\\[0.5cm]
+		\textsc{\large Laboratory work \#1.2}\\[0.5cm]
 
 		\newcommand{\HRule}{\rule{\linewidth}{0.5mm}}
 		\vspace{10 mm}
 		\HRule \\[0.4cm]
-		{ \LARGE \bfseries Development of a Dual-LED Control System with STDIO Serial Interface}\\[0.4cm]
+		{ \LARGE \bfseries Electronic Lock System with LCD and Keypad using STDIO}\\[0.4cm]
 		\HRule \\[1.5cm]
 
 		\vspace{10mm}
@@ -98,7 +98,7 @@
 \pagestyle{fancy}
 \fancyhf{}
 \rhead{\thepage}
-\lhead{FAF-232 Belih Dmitrii; Laboratory Work 1}
+\lhead{FAF-232 Belih Dmitrii; Laboratory Work 1.2}
 
 % ============================================================================
 % CHAPTER 1: DOMAIN ANALYSIS
@@ -107,69 +107,113 @@
 
 \subsection*{1.1. Purpose of the Laboratory Work}
 
-The purpose of this laboratory work is to understand the basic principles of serial communication, learn to use the STDIO (Standard Input/Output) library for interaction with users, and develop a dual-LED control system on an embedded system platform. The work involves setting up the development environment, understanding the hardware-software interface, implementing a command parser for serial input, and creating a system that responds to text commands to control two LEDs independently or simultaneously. The system demonstrates the power of STDIO abstraction by using familiar C functions (\texttt{printf}, \texttt{getchar}) to handle serial communication, making embedded programming more accessible and maintainable.
+The purpose of this laboratory work is to understand the principles of user interaction with embedded systems using LCD displays and matrix keypads, and to implement a password verification system using the STDIO library. The work involves setting up an I2C-based LCD display for output, a 4×4 matrix keypad for input, and an access control system that verifies 4-digit PIN codes. The system demonstrates the use of STDIO abstraction for debugging and serial communication while implementing a finite state machine (FSM) for managing user interaction states. Additional functionality includes a programming mode for changing the password, with visual feedback through LEDs.
 
 \subsection*{1.2. Technologies Used}
 
 \subsubsection*{Standard Input/Output (STDIO)}
 
-Standard Input/Output (STDIO) is a standardized library mechanism for handling input and output operations in programming languages. In embedded systems, STDIO provides an abstraction layer that allows developers to interact with the system through formatted text input and output. The STDIO library typically includes functions such as \texttt{printf()} for formatted output and \texttt{scanf()} for formatted input. In embedded applications, STDIO is often redirected to a serial interface (UART), enabling communication between the microcontroller and a host computer via a terminal application.
+Standard Input/Output (STDIO) provides a standardized mechanism for handling input and output operations in embedded systems. In this laboratory work, STDIO is redirected to the serial interface (UART) for debugging and system monitoring purposes. The STDIO library enables the use of familiar C functions such as \texttt{printf()} for formatted output and \texttt{fprintf()} for stream-specific output. This abstraction layer simplifies debugging and logging, allowing developers to track system state, input events, and operational status without implementing custom serial communication routines.
 
-\subsubsection*{Serial Communication (UART)}
+\subsubsection*{I2C Communication Protocol}
 
-Universal Asynchronous Receiver-Transmitter (UART) is a hardware communication protocol used for asynchronous serial communication. UART converts parallel data from the microcontroller into serial data for transmission and vice versa. It requires only two signal lines (TX for transmission and RX for reception) plus ground, making it ideal for connecting embedded systems to computers or other devices. UART communication is characterized by configurable parameters such as baud rate (typically 9600, 115200, etc.), data bits (usually 8), parity bits, and stop bits.
+Inter-Integrated Circuit (I2C) is a synchronous, multi-master, multi-slave, packet-switched, single-ended, serial communication bus. In this laboratory work, I2C is used to communicate with the LCD display module. I2C requires only two signal lines (SDA for data and SCL for clock) plus ground, significantly reducing the number of GPIO pins required for peripheral connections. The protocol uses a 7-bit addressing scheme, allowing multiple devices to share the same bus. LCD modules with I2C interfaces typically use address 0x27 or 0x3F.
 
-\subsubsection*{GPIO (General Purpose Input/Output)}
+\subsubsection*{Matrix Keypads}
 
-General Purpose Input/Output (GPIO) pins are configurable digital pins on microcontrollers that can be programmed as either inputs or outputs. When configured as inputs, GPIO pins can read the state of external devices such as buttons, switches, or sensors. When configured as outputs, they can drive external components such as LEDs, relays, or other digital interfaces. GPIO pins often include internal pull-up or pull-down resistors to ensure stable logic levels when external components are not actively driving the pin.
+Matrix keypads are input devices that arrange buttons in a grid pattern (rows and columns) to minimize the number of required pins. A 4×4 keypad uses 8 pins (4 rows + 4 columns) instead of 16 individual pins. Keypad scanning involves sequentially activating each row and reading the column states to detect pressed buttons. This technique requires debouncing (software or hardware) to prevent false triggers from contact bounce. Keyboards with matrix layouts are widely used in security systems, ATMs, and industrial control panels.
 
-\subsubsection*{Arduino Platform}
+\subsubsection*{Finite State Machine (FSM)}
 
-Arduino is an open-source electronics platform based on easy-to-use hardware and software. It provides a simplified development environment and a rich set of libraries that abstract away many low-level hardware details. The Arduino platform includes various microcontroller boards (such as Arduino Uno, Arduino Mega 2560, etc.), an Integrated Development Environment (IDE), and a comprehensive software framework. Arduino boards are widely used in education, prototyping, and hobby projects due to their accessibility and extensive community support.
+A Finite State Machine is a computational model used to design systems that can be in one of a finite number of states. In this laboratory work, an FSM manages the access control system's behavior across different states: Welcome/Normal Mode, Input Processing, Access Granted, Access Denied, and Programming Mode. Each state has specific behaviors, transitions, and responses to user input. The FSM approach ensures clear separation of concerns, predictable system behavior, and easier maintenance and debugging.
+
+\subsubsection*{LCD Display (Liquid Crystal Display)}
+
+LCD displays are visual output devices commonly used in embedded systems to present information to users. Character-based LCDs (such as 16×2) can display text in fixed character positions. Modern LCD modules often include I2C interfaces for simplified connectivity. The LiquidCrystal\_I2C library provides a convenient API for initializing the display, setting cursor positions, printing text, and controlling backlight. LCDs are ideal for user interfaces in embedded systems due to their low power consumption, readability, and ability to display dynamic information.
 
 \subsection*{1.3. Hardware Components}
 
 \subsubsection*{Arduino Uno}
 
-The Arduino Uno is a microcontroller board based on the ATmega328P AVR microcontroller. It features 14 digital input/output pins (of which 6 can be used as PWM outputs), 6 analog inputs, a 16 MHz crystal oscillator, a USB connection, a power jack, an ICSP header, and a reset button. The ATmega328P has 32 KB of flash memory for storing code, 2 KB of SRAM, and 1 KB of EEPROM. The board operates at 5V and can be powered via USB or an external power supply (7-12V).
+The Arduino Uno is based on the ATmega328P microcontroller featuring 14 digital I/O pins, 6 analog inputs, and 32 KB flash memory. For this laboratory work, the Arduino provides GPIO pins for keypad control (8 pins), LED control (3 pins), and I2C communication (2 pins: SDA on A4, SCL on A5). The board operates at 5V and provides sufficient processing power for real-time keypad scanning and state machine management.
 
-\subsubsection*{LED (Light Emitting Diode)}
+\subsubsection*{4×4 Matrix Keypad}
 
-A Light Emitting Diode (LED) is a semiconductor light source that emits light when current flows through it. LEDs are polarized components, meaning they must be connected in the correct orientation. Typically, an LED requires a forward voltage drop of approximately 1.8V to 3.3V (depending on color) and a forward current of 20 mA for optimal brightness. To limit the current and prevent damage to both the LED and the microcontroller, a current-limiting resistor must be used in series with the LED. For a 5V supply and a typical LED with 2V forward voltage, a 150-220 ohm resistor is appropriate.
+The 4×4 matrix keypad consists of 16 buttons arranged in 4 rows and 4 columns. The typical layout includes digits 0-9, letters A-D, and special keys (*) and (\#). The keypad requires 8 GPIO pins: 4 rows configured as outputs and 4 columns configured as inputs with pull-up resistors. Keys are detected by scanning: each row is sequentially set LOW, and columns are read to detect when a button connects a row to a column.
+
+\subsubsection*{LCD 16×2 with I2C Interface}
+
+The 16×2 character LCD can display 32 characters (16 per line) across two lines. When equipped with an I2C interface board, it requires only 2 wires (SDA and SCL) plus power (VCC and GND). The I2C interface typically includes a PCF8574 I/O expander chip and a potentiometer for contrast adjustment. The default I2C address is 0x27, though some modules use 0x3F.
+
+\subsubsection*{LED Indicators}
+
+Three LEDs provide visual feedback:
+\begin{itemize}
+	\item \textbf{Green LED (Pin 12):} Indicates successful authentication. Lights for 5 seconds when correct password is entered.
+	\item \textbf{Red LED (Pin 13):} Indicates authentication failure. Blinks 5 times when incorrect password is entered.
+	\item \textbf{Programming LED (Pin 3):} Indicates programming mode is active. Lights when user enters password change mode.
+\end{itemize}
+
+Each LED requires a current-limiting resistor (220Ω typical) to prevent damage to both the LED and the microcontroller.
 
 \subsection*{1.4. Software Components}
 
-\subsubsection*{Arduino IDE}
+\subsubsection*{LiquidCrystal\_I2C Library}
 
-The Arduino Integrated Development Environment (IDE) is a cross-platform application written in Java that provides a simplified programming environment for Arduino boards. It includes a code editor with syntax highlighting, a compiler based on GCC, a library manager, and tools for uploading code to the microcontroller. The Arduino IDE supports C++ programming with a simplified API that includes functions such as \texttt{digitalWrite()}, \texttt{digitalRead()}, \texttt{analogRead()}, and \texttt{Serial} methods for serial communication.
+The LiquidCrystal\_I2C library provides an Arduino-compatible interface for controlling I2C-based LCD displays. It wraps the Wire library (I2C implementation) and offers methods for initialization (\texttt{init()}), text output (\texttt{print()}, \texttt{write()}), cursor control (\texttt{setCursor()}), display clearing (\texttt{clear()}), and backlight control (\texttt{backlight()}, \texttt{noBacklight()}). The library handles I2C communication details, allowing developers to focus on display content.
+
+\subsubsection*{Wire Library (I2C)}
+
+The Wire library is Arduino's built-in implementation of the I2C protocol. It provides methods for initializing the I2C bus (\texttt{Wire.begin()}), starting transmission to a device (\texttt{Wire.beginTransmission()}), writing data (\texttt{Wire.write()}), ending transmission (\texttt{Wire.endTransmission()}), and requesting data from devices (\texttt{Wire.requestFrom()}). This library is used internally by the LiquidCrystal\_I2C library and for I2C device scanning.
 
 \subsubsection*{PlatformIO}
 
-PlatformIO is an open-source ecosystem for embedded development that integrates with various code editors (including VS Code). It provides advanced features such as intelligent code completion, multi-platform build systems, library management, unit testing, and debugging capabilities. PlatformIO supports a wide range of development boards and frameworks, making it a powerful alternative to the Arduino IDE for more complex projects.
+PlatformIO provides an advanced development environment for embedded systems with features including intelligent code completion, multi-platform build systems, library management, and debugging capabilities. For this laboratory work, PlatformIO manages dependencies (LiquidCrystal\_I2C library), handles compilation, uploads firmware to the Arduino, and provides a serial monitor for debugging output. The platformio.ini file specifies build flags, include paths, and library dependencies.
 
 \subsection*{1.5. System Architecture and Justification}
 
-The system architecture follows a layered approach that separates hardware abstraction, driver implementation, and application logic:
+The system architecture follows a layered, modular approach with clear separation of concerns:
 
 \begin{itemize}
-    \item \textbf{Hardware Layer:} Consists of the Arduino Uno microcontroller, two LEDs, and UART serial interface. The microcontroller provides GPIO pins and UART hardware for communication.
+	\item \textbf{Hardware Layer:} Consists of Arduino Uno microcontroller, 4×4 matrix keypad (8 GPIO pins), LCD 16×2 with I2C interface (2 pins), and three LEDs (3 GPIO pins). The microcontroller provides computational resources and GPIO/I2C interfaces.
 
-    \item \textbf{Hardware-Software Interface (Driver Layer):} This layer implements drivers for hardware components. The LED driver provides functions to turn LEDs on and off, while the serial driver abstracts the UART hardware and provides STDIO functions.
+	\item \textbf{Hardware-Software Interface (Driver Layer):} Implements low-level drivers for each hardware component:
+	\begin{itemize}
+		\item \textit{Keypad Driver:} Handles matrix scanning, debouncing, and key detection
+		\item \textit{LCD Driver:} Wraps LiquidCrystal\_I2C library with additional logging
+		\item \textit{LED Driver:} Provides simple on/off/toggle control
+		\item \textit{Serial STDIO Driver:} Redirects stdout/stdin to UART for debugging
+	\end{itemize}
 
-    \item \textbf{Application Layer:} Implements the main application logic, responding to serial commands and controlling the LEDs accordingly. The application uses STDIO for user communication, providing status messages and receiving commands.
+	\item \textbf{Application Logic Layer (FSM):} Implements the finite state machine that manages system states:
+	\begin{itemize}
+		\item \textit{Welcome State:} Displays "Enter Code:" prompt, accepts first key
+		\item \textit{Input State:} Accumulates 4-digit PIN, displays asterisks
+		\item \textit{Verify State:} Compares input with stored password
+		\item \textit{Access Granted State:} Shows success message, activates green LED
+		\item \textit{Access Denied State:} Shows error message, blinks red LED
+		\item \textit{Programming Mode State:} Allows password change via 'D' key
+	\end{itemize}
 
-    \item \textbf{STDIO Service Layer:} Provides formatted input/output capabilities by redirecting STDIO functions to the serial interface, enabling communication with a terminal application on a host computer.
+	\item \textbf{STDIO Service Layer:} Provides formatted output for debugging and system monitoring through serial interface, enabling real-time visibility into system operation.
 \end{itemize}
 
-This architecture was chosen because it promotes modularity, reusability, and separation of concerns. Each layer has a well-defined responsibility, making the code easier to understand, maintain, and extend. The use of STDIO for serial communication simplifies user interaction and leverages familiar I/O functions from standard programming.
+This architecture was chosen to promote modularity, reusability, and maintainability. Each hardware component has a dedicated driver, the FSM clearly separates behavioral states, and the STDIO layer provides non-intrusive debugging. This design allows easy extension (adding more states, different passwords, or additional security features) without modifying core components.
 
-\subsection*{1.6. Case Study: Interactive Embedded Systems}
+\subsection*{1.6. Case Study: Real-World Access Control Systems}
 
-Interactive embedded systems are widely used in consumer electronics, industrial control, and IoT applications. For example, a smart home lighting system typically allows users to control multiple lights through a mobile app or voice commands. The system receives text or voice commands, parses them, and sends control signals to individual lights. This is analogous to our dual-LED control system, where text commands via serial interface control individual LEDs or groups of LEDs.
+Access control systems are ubiquitous in modern security applications, from office buildings and ATM machines to hotel rooms and secure facilities. These systems typically require:
+\begin{itemize}
+	\item \textbf{User Input:} Keypads, card readers, or biometric scanners
+	\item \textbf{Display/Feedback:} LCD screens, LED indicators, or audio prompts
+	\item \textbf{Authentication Logic:} Password verification, card validation, or biometric matching
+	\item \textbf{Access Control:} Door locks, turnstiles, or electronic barriers
+	\item \textbf{Management Features:} Password changes, user management, or configuration modes
+\end{itemize}
 
-Another example is an industrial machine control interface that accepts commands through a terminal or HMI (Human-Machine Interface). Operators type commands to start, stop, or configure machinery, and the system provides status feedback through LEDs and text responses. The command parsing and LED control techniques implemented in this laboratory work are fundamental building blocks for such systems.
+Our laboratory work implements a simplified version of such a system using a 4×4 keypad for input, an LCD display for user feedback, and LEDs for status indication. The programming mode (activated by the 'D' key) demonstrates real-world system management capabilities, allowing authorized users to change access codes without reprogramming the device.
 
-The STDIO approach used here is particularly valuable because it allows embedded systems to use familiar I/O functions (\texttt{printf}, \texttt{scanf}, \texttt{getchar}) that abstract away the details of serial communication. This abstraction layer makes embedded code more readable, portable, and easier to develop for programmers who are experienced with standard C programming.
+The finite state machine approach used here mirrors professional access control systems, where clear state definitions and transitions ensure predictable behavior and simplify debugging. Software debouncing for keypad input addresses real-world challenges with mechanical switches, where contact bounce can cause false triggers. The modular architecture allows components to be reused in future laboratory works, simulating industry practices of code reuse and library development.
 
 % ============================================================================
 % CHAPTER 2: DESIGN
@@ -178,177 +222,638 @@ The STDIO approach used here is particularly valuable because it allows embedded
 
 \subsection*{2.1. Architectural Sketch}
 
-\begin{figure}[H]
-    \centering
-    \includegraphics[width=0.5\textwidth]{architecture-diagram.jpg}
-    \caption{System Architecture}
-    \label{fig:architecture}
-\end{figure}
+\textbf{System Architecture Overview:}
 
-\textbf{Architecture Components:}
-
-\begin{itemize}
-    \item \textbf{User (Serial Terminal Input):} User interacts with the system through a serial terminal, entering text commands to control the LEDs.
-
-    \item \textbf{Serial STDIO Module (Input/Output):} Handles communication between the microcontroller and the terminal, redirecting standard C I/O functions (\texttt{printf}, \texttt{getchar}) to the serial interface.
-
-    \item \textbf{Command Parser Module (Processing):} Interprets user commands, performing text processing (trimming whitespace, case conversion) and matching against known command patterns.
-
-    \item \textbf{LED Module (Hardware Control):} Controls the physical LEDs based on parsed commands, managing GPIO pins and providing visual feedback.
-\end{itemize}
-
-
-\subsection*{2.3. Functional Block Diagrams}
-
+The system follows a layered architecture with clear separation between hardware, drivers, and application logic.
 
 \begin{figure}[H]
-    \centering
-    \includegraphics[width=0.5\textwidth]{block-diagram.jpg}
-    \caption{Application Logic Flowchart}
-    \label{fig:app-flowchart}
+	\centering
+	\resizebox{\textwidth}{!}{
+	\begin{tikzpicture}[
+		layer/.style={rectangle, draw, rounded corners, minimum width=4cm, minimum height=1.5cm, align=center, font=\small},
+		arrow/.style={->, thick, >=stealth}
+	]
+		% Application Layer
+		\node[layer, fill=purple!20] (app) at (0,0) {\textbf{Application Layer}\\main.cpp\\App::run()};
+		
+		% System Layer
+		\node[layer, fill=green!20] (system) at (0,-3) {\textbf{System Layer}\\SecuritySystem\\Password Management\\FSM Logic};
+		
+		% Driver Layer
+		\node[layer, fill=blue!20] (io) at (-6,-7) {\textbf{IO Module}\\STDIO Redirect\\Serial Communication};
+		\node[layer, fill=blue!20] (lcd) at (0,-7) {\textbf{LCD Driver}\\Display Management\\Cursor Control};
+		\node[layer, fill=blue!20] (keypad) at (6,-7) {\textbf{Keypad Driver}\\Matrix Scanning\\Key Debouncing};
+		
+		% Hardware Layer
+		\node[layer, fill=orange!20] (arduino) at (-6,-11) {\textbf{Arduino HAL}\\GPIO Control\\I2C \& UART};
+		\node[layer, fill=orange!20] (lcd_hw) at (0,-11) {\textbf{LCD Hardware}\\16×2 Display\\I2C Module};
+		\node[layer, fill=orange!20] (keypad_hw) at (6,-11) {\textbf{Keypad Hardware}\\4×4 Matrix\\Physical Keys};
+		\node[layer, fill=orange!20] (led_hw) at (10,-11) {\textbf{LED Hardware}\\Green/Red/Prog\\Current Limiting};
+		
+		% Main vertical flow
+		\draw[arrow] (app) -- (system);
+		
+		% System to drivers
+		\draw[arrow] (system) -- (io);
+		\draw[arrow] (system) -- (lcd);
+		\draw[arrow] (system) -- (keypad);
+		
+		% Drivers to corresponding hardware
+		\draw[arrow] (io) -- (arduino);
+		\draw[arrow] (lcd) -- (lcd_hw);
+		\draw[arrow] (keypad) -- (keypad_hw);
+		
+		% Arduino HAL connections to other hardware
+		\draw[arrow] (arduino) -- (lcd_hw);
+		\draw[arrow] (arduino) -- (keypad_hw);
+		
+		% Additional system connections for LED control
+		\draw[arrow] (system) to[out=-30, in=90] (led_hw);
+	\end{tikzpicture}
+	}
+	\caption{System Architecture Diagram}
+	\label{fig:architecture-overview}
 \end{figure}
 
-\textbf{Application Algorithm:}
+\textbf{Module Block Scheme (App Class):}
 
+\begin{figure}[H]
+	\centering
+	\begin{tikzpicture}[
+		class/.style={rectangle, draw, minimum width=5cm, align=left, font=\footnotesize, inner sep=8pt},
+		method/.style={font=\footnotesize\ttfamily}
+	]
+		% App Class
+		\node[class, fill=cyan!10] (app) {
+			\textbf{App}\\
+			\hrule
+			\begin{tabular}{l}
+				+\_keypad: Keypad\&\\
+				+\_lcd: LcdI2c\\
+				+\_ledGreen: Led\\
+				+\_ledRed: Led\\
+				+\_ledProg: Led\\
+				+\_correctCode[5]\\
+				+\_inputCode[5]\\
+				+\_inputPos\\
+				+\_programmingMode\\
+				+\_newCode[5]\\
+				+\_newCodePos
+			\end{tabular}
+		};
+		
+		% Methods
+		\node[right=2.5cm of app, text width=5cm, font=\footnotesize] (methods) {
+			\textbf{Methods:}\\
+			+ App(keypad, lcd, leds)\\
+			+ begin()\\
+			+ run()\\
+			- clearInput()\\
+			- displayWelcome()\\
+			- processInput(key)\\
+			- verifyCode()\\
+			- handleValidCode()\\
+			- handleInvalidCode()\\
+			- enterProgrammingMode()\\
+			- processProgrammingInput()\\
+			- confirmNewCode()
+		};
+	\end{tikzpicture}
+	\caption{App Module Block Scheme}
+	\label{fig:app-block-scheme}
+\end{figure}
+
+\textbf{State Descriptions and Transitions:}
 \begin{enumerate}
-    \item \textbf{Start:} Begin program execution.
-    \item \textbf{Prompt User for Input:} Display prompt and wait for user input via serial interface.
-    \item \textbf{User Input Valid?:} Check if input is valid (not empty, proper format).
-        \begin{itemize}
-            \item \textbf{No:} Return to prompt user for input.
-            \item \textbf{Yes:} Proceed to next step.
-        \end{itemize}
-    \item \textbf{Clear Input Buffer:} Clear any remaining characters in the input buffer.
-    \item \textbf{Trim Whitespace from Input:} Remove leading and trailing whitespace characters.
-    \item \textbf{input == 'led on'?:} Check if input matches "led on" command.
-        \begin{itemize}
-            \item \textbf{Yes:} Turn LED on, then return to prompt user for input.
-            \item \textbf{No:} Proceed to next check.
-        \end{itemize}
-    \item \textbf{input == 'led off'?:} Check if input matches "led off" command.
-        \begin{itemize}
-            \item \textbf{Yes:} Turn LED off, then return to prompt user for input.
-            \item \textbf{No:} Display user input (unknown command), then return to prompt user for input.
-        \end{itemize}
+	\item \textbf{Welcome State (Initial):}
+	\begin{itemize}
+		\item Display: "Enter Code: [    ]"
+		\item Input: Accept first digit (0-9) or 'D' key for programming mode
+		\item Transitions: Digits $\rightarrow$ Input State, 'D' $\rightarrow$ Programming Mode
+	\end{itemize}
+
+	\item \textbf{Input State (Accumulating PIN):}
+	\begin{itemize}
+		\item Display: "Enter Code: [****]" (shows asterisks for each digit)
+		\item Input: Accept digits 0-9 (up to 4 digits), '*' to clear, '\#' to verify
+		\item Transitions: Full 4 digits + '\#' $\rightarrow$ Verify State, '*' $\rightarrow$ Welcome State
+	\end{itemize}
+
+	\item \textbf{Verify State (Authentication):}
+	\begin{itemize}
+		\item Internal: Compare input PIN with stored password
+		\item Transitions: Match $\rightarrow$ Access Granted State, Mismatch $\rightarrow$ Access Denied State
+	\end{itemize}
+
+	\item \textbf{Access Granted State:}
+	\begin{itemize}
+		\item Display: "ACCESS GRANTED! Door Unlocked"
+		\item Action: Green LED ON for 5 seconds
+		\item Transition: After 5 seconds + 3 second delay $\rightarrow$ Welcome State
+	\end{itemize}
+
+	\item \textbf{Access Denied State:}
+	\begin{itemize}
+		\item Display: "ACCESS DENIED! Wrong Code"
+		\item Action: Red LED blinks 5 times (150ms on, 150ms off)
+		\item Transition: After 3 second delay $\rightarrow$ Welcome State
+	\end{itemize}
+
+	\item \textbf{Programming Mode State:}
+	\begin{itemize}
+		\item Display: "PROG MODE | New Pass [    ]"
+		\item Action: Programming LED ON
+		\item Input: Accept new 4-digit password, '*' to cancel, '\#' to save
+		\item Transitions: '\#' after 4 digits $\rightarrow$ Save & Welcome, '*' $\rightarrow$ Welcome (cancel)
+	\end{itemize}
 \end{enumerate}
 
-The system uses a continuous loop that prompts for input, validates it, processes it through command matching, and provides appropriate feedback. This interactive approach allows for real-time LED control through a simple command-line interface.
-
-\subsection*{2.4. Electrical Schematic}
+\subsection*{2.2. Main File State Diagram}
 
 \begin{figure}[H]
-    \centering
-    \includegraphics[width=0.6\textwidth]{electric.jpg}
-    \caption{Electrical Schematic}
-    \label{fig:schematic}
+	\centering
+	\resizebox{\textwidth}{!}{
+	\begin{tikzpicture}[
+		state/.style={ellipse, draw, minimum width=2.5cm, minimum height=1.2cm, align=center, fill=green!10, font=\small},
+		decision/.style={diamond, draw, minimum width=2cm, minimum height=1.5cm, align=center, fill=yellow!10, aspect=2, font=\small},
+		arrow/.style={->, thick, >=stealth, font=\small}
+	]
+		% Row 1 - Initial states
+		\node[state, fill=red!20] (init) at (0,0) {INIT};
+		\node[state] (idle) at (4,0) {IDLE\\Welcome};
+		\node[decision] (input) at (9,0) {Input?};
+		
+		% Program mode
+		\node[state, fill=blue!20] (prog) at (9,3.5) {PROG\\Mode};
+		
+		% Digit accumulation
+		\node[decision] (full) at (14,0) {4 digits?};
+		\node[decision] (valid) at (14,-4.5) {Code\\Valid?};
+		
+		% End states
+		\node[state, fill=green!30] (granted) at (10,-7.5) {ACCESS\\GRANTED\\Green LED 5s};
+		\node[state, fill=red!30] (denied) at (18,-7.5) {ACCESS\\DENIED\\Red LED blink 5×};
+		
+		% Arrows
+		\draw[arrow] (init) -- (idle);
+		\draw[arrow] (idle) -- (input);
+		
+		% Programming mode
+		\draw[arrow] (input) -- node[right, font=\footnotesize] {Hold 'D'} (prog);
+		\draw[arrow] (prog) -| node[above, font=\footnotesize, pos=0.3] {Exit} (idle);
+		
+		% Main authentication flow
+		\draw[arrow] (input) -- node[above, font=\footnotesize] {digit} (full);
+		\draw[arrow] (full) -- node[right, font=\footnotesize] {Yes} (valid);
+		\draw[arrow] (full.west) -- node[above, font=\footnotesize] {No} ++(-2,0) |- (idle);
+		
+		% Authentication results
+		\draw[arrow] (valid) -- node[above left, font=\footnotesize] {Yes} (granted);
+		\draw[arrow] (valid) -- node[above right, font=\footnotesize] {No} (denied);
+		
+		% Return to idle
+		\draw[arrow] (granted) -- ++(0,-1.5) -| node[below, font=\footnotesize, pos=0.7] {3s delay} (idle);
+		\draw[arrow] (denied) -- ++(0,-1.5) -| node[below, font=\footnotesize, pos=0.8] {3s delay} (idle);
+		
+		% Clear/Reset functionality
+		\draw[arrow] (input) -- node[right, font=\footnotesize] {'*' Reset} ++(0,-3) -| (idle);
+	\end{tikzpicture}
+	}
+	\caption{Main Application State Machine}
+	\label{fig:state-diagram}
+\end{figure}
+
+\textbf{State Descriptions:}
+
+\begin{enumerate}
+	\item \textbf{INIT:} System initialization, setup peripherals, display welcome message
+	\item \textbf{IDLE:} Waiting for user input, shows "Enter Code: [    ]"
+	\item \textbf{PROG MODE:} Password change mode, programming LED ON
+	\item \textbf{ACCESS GRANTED:} Authentication successful, green LED 5s, "Door Unlocked"
+	\item \textbf{ACCESS DENIED:} Authentication failed, red LED blinks 5×, "Wrong Code"
+\end{enumerate}
+
+\subsection*{2.3. Hardware-Software Interface Architecture}
+
+The system implements a layered hardware-software interface following MCAL/ECAL/SRV architecture:
+
+\subsubsection*{Microcontroller Abstraction Layer (MCAL):}
+\begin{itemize}
+	\item \textbf{GPIO Control:} Direct manipulation of Arduino pins via \texttt{digitalWrite()} and \texttt{digitalRead()}
+	\item \textbf{I2C Bus:} Low-level I2C communication via Wire library (\texttt{Wire.begin()}, \texttt{Wire.beginTransmission()})
+	\item \textbf{UART:} Serial communication via \texttt{Serial.begin()}, \texttt{Serial.write()}, \texttt{Serial.read()}
+\end{itemize}
+
+\subsubsection*{Enhanced Control Abstraction Layer (ECAL):}
+\begin{itemize}
+	\item \textbf{Keypad Driver:} Implements matrix scanning algorithm with debouncing (20ms press debounce, 50ms release debounce)
+	\item \textbf{LED Driver:} Provides abstracted LED control (\texttt{on()}, \texttt{off()}, \texttt{toggle()}) with state tracking
+	\item \textbf{LCD Driver:} Wraps LiquidCrystal\_I2C library with cursor management, text output, and backlight control
+\end{itemize}
+
+\subsubsection*{Service Layer (SRV):}
+\begin{itemize}
+	\item \textbf{Application Controller:} FSM implementation managing system states and transitions
+	\item \textbf{Password Management:} Secure storage and verification of access codes
+	\item \textbf{Debug Service:} STDIO redirection for system monitoring and logging
+\end{itemize}
+
+\begin{figure}[H]
+	\centering
+	\resizebox{0.95\textwidth}{!}{
+	\begin{tikzpicture}[
+		actor/.style={rectangle, draw, rounded corners, minimum width=2.5cm, minimum height=1.2cm, align=center, font=\small},
+		arrow/.style={->, thick, >=stealth}
+	]
+		% Left column - Input actors
+		\node[actor, fill=green!20] (user) at (0,0) {User};
+		\node[actor, fill=blue!20] (keypad) at (0,-3) {Keypad\\Driver};
+		\node[actor, fill=blue!20] (lcd) at (0,-6) {LCD\\Display};
+		
+		% Center column - Main controllers
+		\node[actor, fill=purple!20] (app) at (6,0) {Application\\Controller};
+		\node[actor, fill=cyan!20] (security) at (6,-3) {Security\\System};
+		
+		% Right column - Output actors
+		\node[actor, fill=red!20] (led) at (12,0) {LED\\Controller};
+		\node[actor, fill=orange!20] (logger) at (12,-3) {Debug\\Logger};
+		
+		% User interactions
+		\draw[arrow] (user) -- node[left, font=\footnotesize] {press key} (keypad);
+		\draw[arrow] (lcd) -- node[left, font=\footnotesize] {display} (user);
+		\draw[arrow] (led) -- node[above, font=\footnotesize] {visual feedback} (user);
+		
+		% Input processing flow
+		\draw[arrow] (keypad) -- node[above, font=\footnotesize] {read key} (app);
+		\draw[arrow] (app) -- node[right, font=\footnotesize] {process input} (security);
+		
+		% Output control flow
+		\draw[arrow] (security) -- node[above, font=\footnotesize] {control} (led);
+		\draw[arrow] (security) -- node[above, font=\footnotesize] {log events} (logger);
+		\draw[arrow] (security) -- node[below, font=\footnotesize, pos=0.3] {update display} (lcd);
+		
+		% Feedback loops
+		\draw[arrow] (security) to[out=120, in=240] node[left, font=\footnotesize] {status} (app);
+		\draw[arrow] (app) to[out=210, in=60] node[above left, font=\footnotesize, pos=0.3] {display cmds} (lcd);
+		
+		% Internal security process
+		\draw[arrow, dashed] (security) to[out=-30, in=30, looseness=4] node[right, font=\footnotesize] {verify code} (security);
+	\end{tikzpicture}
+	}
+	\caption{Architectural Interaction Diagram}
+	\label{fig:interaction-diagram}
+\end{figure}
+
+\subsection*{2.4. Electrical Schematic}
+\begin{figure}[H]
+	\centering
+	\includegraphics[width=0.7\textwidth]{lab1.2-img/electrical_sketch.jpg}
+	\caption{System Architecture and Pin Configuration}
+	\label{fig:system-architecture}
 \end{figure}
 
 \textbf{Circuit Description:}
 
-\subsubsection*{LED1 Circuit:}
+\subsubsection*{4×4 Matrix Keypad Circuit:}
 
 \begin{itemize}
-    \item \textbf{Connection:} LED1 anode (positive terminal) is connected to Pin 9 of the Arduino through a 220 ohm current-limiting resistor. LED1 cathode (negative terminal) is connected to ground (GND).
-
-    \item \textbf{Current Calculation:} With a 5V supply, 2V forward voltage drop across the LED, and 220 ohm resistor, the current is: $I = (5V - 2V) / 220\Omega = 13.6 mA$, which is within the safe operating range for both the LED and the Arduino GPIO pin (maximum 40 mA per pin).
-
-    \item \textbf{Operation:} When Pin 9 is set HIGH (5V), current flows from the pin through the resistor and LED1 to ground, causing the LED to light up. When Pin 9 is set LOW (0V), no current flows and the LED is off.
+	\item \textbf{Row Connections (Outputs):} Pins 8, 9, 10, 11 configured as OUTPUT, normally set HIGH
+	\item \textbf{Column Connections (Inputs):} Pins 4, 5, 6, 7 configured as INPUT\_PULLUP, normally read HIGH
+	\item \textbf{Key Detection:} When a key is pressed, it connects a row to a column. Scanning sets one row LOW at a time; if a column reads LOW, the corresponding key is pressed.
+	\item \textbf{Current Limiting:} No resistors needed; uses Arduino's internal pull-up resistors (~20-50kΩ)
 \end{itemize}
 
-\subsubsection*{LED2 Circuit:}
+\subsubsection*{LCD I2C Circuit:}
 
 \begin{itemize}
-    \item \textbf{Connection:} LED2 anode (positive terminal) is connected to Pin 13 of the Arduino through a 220 ohm current-limiting resistor. LED2 cathode (negative terminal) is connected to ground (GND).
+	\item \textbf{Power Connections:} VCC connected to 5V, GND to ground
+	\item \textbf{I2C Bus:} SDA connected to A4, SCL connected to A5
+	\item \textbf{Module Components:} PCF8574 I/O expander chip, contrast potentiometer, backlight LED
+	\item \textbf{Address:} 0x27 (default, jumper-selectable to 0x3F)
+\end{itemize}
 
-    \item \textbf{Current Calculation:} Same as LED1: $I = (5V - 2V) / 220\Omega = 13.6 mA$.
+\subsubsection*{LED Circuits (3 LEDs):}
 
-    \item \textbf{Operation:} When Pin 13 is set HIGH (5V), LED2 lights up. When Pin 13 is set LOW (0V), LED2 is off. Note that Pin 13 also has an onboard LED connected to it, so LED2 status can be observed both on the breadboard and the Arduino board.
+\begin{itemize}
+	\item \textbf{Green LED (Access Granted):} Anode via 220Ω resistor to Pin 12, cathode to GND
+	\item \textbf{Red LED (Access Denied):} Anode via 220Ω resistor to Pin 13, cathode to GND
+	\item \textbf{Programming LED (Mode Indicator):} Anode via 220Ω resistor to Pin 3, cathode to GND
+	\item \textbf{Current Calculation:} $I = (5V - 2V) / 220\Omega \approx 13.6 mA$ (safe for Arduino and LEDs)
+\end{itemize}
+
+\subsubsection*{Serial Communication (Debugging):}
+
+\begin{itemize}
+	\item \textbf{TX Pin (Pin 1):} Serial data output to USB/serial monitor
+	\item \textbf{RX Pin (Pin 0):} Serial data input (unused in this application)
+	\item \textbf{Configuration:} 9600 baud, 8 data bits, no parity, 1 stop bit
 \end{itemize}
 
 \subsection*{2.5. Project Structure}
 
-The project follows a modular structure where each hardware component is represented by separate header (.h) and implementation (.cpp) files:
+The project follows a modular architecture with separate directories for each hardware component:
 
 \begin{verbatim}
 ES/
 |-- src/
-|   |-- main.cpp                          # Main application logic
+|   |-- main.cpp                          # Application entry point and initialization
 |   `-- modules/
+|       |-- app/
+|       |   |-- app.h                     # Application controller (FSM) interface
+|       |   `-- app.cpp                   # FSM implementation, password logic
+|       |-- keypad/
+|       |   |-- keypad.h                  # Matrix keypad driver interface
+|       |   `-- keypad.cpp                # Keypad scanning and debouncing
+|       |-- lcd/
+|       |   |-- lcd.h                     # LCD display driver interface
+|       |   `-- lcd.cpp                   # I2C LCD wrapper with logging
 |       |-- led/
 |       |   |-- led.h                     # LED driver interface
-|       |   `-- led.cpp                   # LED driver implementation
+|       |   `-- led.cpp                   # LED control implementation
+|       |-- serial_stdio/
+|       |   |-- serial_stdio.h            # STDIO redirection interface
+|       |   `-- serial_stdio.cpp          # Serial stdin/stdout implementation
 |       |-- command/
-|       |   |-- command.h                 # Command parser interface
-|       |   `-- command.cpp               # Command parser implementation
-|       `-- serial_stdio/
-|           |-- serial_stdio.h            # STDIO serial interface
-|           `-- serial_stdio.cpp          # STDIO implementation
-|-- platformio.ini                        # PlatformIO configuration
-`-- lib/                                  # Additional libraries (if any)
+|       |   |-- command.h                 # Command parser (legacy, unused)
+|       |   `-- command.cpp               # Text command parsing
+|       `-- utils/
+|           `-- i2c_scanner.h             # I2C device scanning utility
+|-- platformio.ini                        # Build configuration and dependencies
+`-- lib/                                  # Documentation files
 \end{verbatim}
 
 \textbf{Module Descriptions:}
+
+\subsubsection*{App Module (app.h / app.cpp)}
+
+\textbf{Interface (app.h):}
+\begin{itemize}
+	\item \texttt{App(Keypad\&, LcdI2c\&, Led\&, Led\&, Led\&):} Constructor with references to all hardware components
+	\item \texttt{void begin():} Initializes all peripherals and displays welcome screen
+	\item \texttt{void run():} Main loop handler - processes keypad input and manages FSM
+	\item \texttt{void clearInput():} Resets input buffer and position
+	\item \texttt{void displayWelcome():} Shows "Enter Code:" prompt on LCD
+\end{itemize}
+
+\textbf{Key Methods (app.cpp):}
+\begin{itemize}
+	\item \texttt{void processInput(char key):} Handles normal mode input (digits, clear, enter)
+	\item \texttt{bool verifyCode():} Compares input PIN with stored password
+	\item \texttt{void handleValidCode():} Access granted - green LED, success message
+	\item \texttt{void handleInvalidCode():} Access denied - red LED blink, error message
+	\item \texttt{void enterProgrammingMode():} Enters password change mode
+	\item \texttt{void processProgrammingInput(char key):} Handles programming mode input
+	\item \texttt{void confirmNewCode():} Saves new password and exits programming mode
+\end{itemize}
+
+\subsubsection*{Keypad Module (keypad.h / keypad.cpp)}
+
+\textbf{Interface (keypad.h):}
+\begin{itemize}
+	\item \texttt{Keypad(const uint8\_t*, const uint8\_t*, uint8\_t, uint8\_t):} Constructor with row/column pin arrays
+	\item \texttt{void begin():} Configures row pins as OUTPUT HIGH, column pins as INPUT\_PULLUP
+	\item \texttt{char getKey():} Blocking scan for pressed key with debouncing
+\end{itemize}
+
+\textbf{Algorithm (keypad.cpp):}
+Matrix scanning iterates through rows (0-3):
+\begin{enumerate}
+	\item Set current row LOW, wait 100μs
+	\item Read all columns
+	\item If column reads LOW, potential key press
+	\item Wait 20ms, re-verify (debounce)
+	\item If still pressed, return corresponding character
+	\item Wait for key release with 50ms debounce
+	\item Restore row to HIGH
+\end{enumerate}
+
+\subsubsection*{LCD Module (lcd.h / lcd.cpp)}
+
+\textbf{Interface (lcd.h):}
+\begin{itemize}
+	\item \texttt{LcdI2c(uint8\_t address = 0x27, uint8\_t cols = 16, uint8\_t rows = 2):} Constructor with I2C address and dimensions
+	\item \texttt{void begin():} Initializes LCD, enables backlight, clears display
+	\item \texttt{void print(const char*):} Prints text at current cursor position
+	\item \texttt{void println(const char*):} Prints text and moves to next line
+	\item \texttt{void setCursor(uint8\_t col, uint8\_t row):} Sets cursor position
+	\item \texttt{void clear():} Clears entire display
+	\item \texttt{void backlight() / void noBacklight():} Control backlight
+	\item \texttt{void write(uint8\_t):} Writes single character (ASCII code)
+\end{itemize}
+
+\textbf{Implementation (lcd.cpp):}
+Wraps LiquidCrystal\_I2C library with additional \texttt{fprintf(stderr, ...)} logging for debugging output to serial monitor.
 
 \subsubsection*{LED Module (led.h / led.cpp)}
 
 \textbf{Interface (led.h):}
 \begin{itemize}
-    \item \texttt{Led::Led(uint8\_t pin):} Constructor that initializes the LED with the specified GPIO pin.
-    \item \texttt{void Led::begin():} Configures the GPIO pin as output and initializes LED state to off.
-    \item \texttt{void Led::on():} Turns the LED on by setting the GPIO pin to HIGH.
-    \item \texttt{void Led::off():} Turns the LED off by setting the GPIO pin to LOW.
-    \item \texttt{void Led::toggle():} Toggles the LED state (on to off, off to on).
-    \item \texttt{bool Led::state() const:} Returns the current LED state (true = on, false = off).
+	\item \texttt{Led(uint8\_t pin):} Constructor with GPIO pin number
+	\item \texttt{void begin():} Configures pin as OUTPUT, sets initial state to OFF
+	\item \texttt{void on():} Sets pin HIGH, updates state to true
+	\item \texttt{void off():} Sets pin LOW, updates state to false
+	\item \texttt{void toggle():} Inverts current LED state
+	\item \texttt{bool state() const:} Returns current state (true = ON, false = OFF)
 \end{itemize}
-
-\textbf{Implementation (led.cpp):}
-The LED driver uses Arduino's \texttt{pinMode()} function to configure the GPIO pin as output and \texttt{digitalWrite()} to control the pin state. The driver maintains an internal state variable to track the current LED status.
-
-\subsubsection*{Command Module (command.h / command.cpp)}
-
-\textbf{Interface (command.h):}
-\begin{itemize}
-    \item \texttt{enum CommandType:} Enumeration of supported commands (LED1\_ON, LED1\_OFF, LED2\_ON, LED2\_OFF, BOTH\_ON, BOTH\_OFF, UNKNOWN, EMPTY).
-    \item \texttt{static CommandType CommandParser::parse(const char* input):} Parses a text string and returns the corresponding command type.
-    \item \texttt{static bool CommandParser::isValid(CommandType cmd):} Checks if a command type is valid.
-    \item \texttt{static const char* CommandParser::toString(CommandType cmd):} Converts a command type to its string representation.
-\end{itemize}
-
-\textbf{Implementation (command.cpp):}
-The command parser implements text processing functions including whitespace trimming and case conversion. It compares the processed input string against known command patterns and returns the appropriate command type. The parser is case-insensitive and handles leading/trailing whitespace gracefully.
 
 \subsubsection*{Serial STDIO Module (serial\_stdio.h / serial\_stdio.cpp)}
 
 \textbf{Interface (serial\_stdio.h):}
 \begin{itemize}
-    \item \texttt{static void SerialStdio::begin(unsigned long baudRate):} Initializes serial communication and redirects stdout/stdin to the serial port.
-    \item \texttt{static void SerialStdio::printWelcome():} Prints the welcome message and available commands.
-    \item \texttt{static int SerialStdio::readLine(char* buffer, int bufferSize):} Reads a line of text from serial input until newline character.
+	\item \texttt{static void begin(unsigned long baudRate):} Initializes Serial and redirects stdin/stdout
+	\item \texttt{static void printWelcome():} Prints legacy welcome message (unused in lab 1.2)
+	\item \texttt{static int readLine(char*, int):} Reads line from serial (unused in lab 1.2)
 \end{itemize}
 
 \textbf{Implementation (serial\_stdio.cpp):}
-The STDIO module uses AVR-libc's file stream functions (\texttt{fdev\_setup\_stream}) to redirect standard C I/O functions (\texttt{printf}, \texttt{getchar}) to the Arduino's Serial port. This allows the use of familiar C library functions for serial communication. The module handles character echoing for backspace and provides line buffering.
+Uses AVR-libc \texttt{fdev\_setup\_stream()} to redirect \texttt{printf()} to Serial and \texttt{getchar()} from Serial, enabling standard C I/O functions for debugging.
 
 \subsubsection*{Main Application (main.cpp)}
 
-\textbf{Setup:}
-\begin{itemize}
-    \item Initialize serial communication at 9600 baud with STDIO redirection.
-    \item Initialize LED1 on Pin 9 and LED2 on Pin 13.
-    \item Print welcome message with available commands.
-\end{itemize}
+\textbf{Setup Sequence:}
+\begin{enumerate}
+	\item Initialize Serial (9600 baud) with STDIO redirection
+	\item Print system header: "Electronic Lock System v1.0"
+	\item Test LEDs (quick blink for verification)
+	\item Initialize keypad (8 pins configured)
+	\item Initialize I2C bus (Wire.begin())
+	\item Scan I2C devices (find LCD at 0x27)
+	\item Initialize LCD and create App instance
+	\item Call app.begin() to display welcome screen
+	\item Triple-blink green LED, print "System Ready!"
+\end{enumerate}
 
 \textbf{Main Loop:}
 \begin{itemize}
-    \item Read a line of text input from serial interface.
-    \item Parse the input string to determine the command type.
-    \item Print debug information showing the received command.
-    \item Execute the command by controlling the appropriate LEDs.
-    \item Print confirmation message indicating the result.
-    \item Repeat indefinitely.
+	\item Call app.run() every 10ms
+	\item App.run() reads keypad, processes input via FSM
+	\item Infinite repetition
 \end{itemize}
 
-The application demonstrates the integration of command parsing, LED control, and STDIO for user interaction, following the layered architecture design.
+\subsection*{2.6. Method Block Diagrams}
+
+\begin{figure}[H]
+	\centering
+	\begin{tikzpicture}[
+		node distance=1.3cm,
+		process/.style={rectangle, draw, rounded corners, minimum width=3.5cm, minimum height=1cm, align=center, font=\footnotesize, fill=blue!10},
+		arrow/.style={->, thick, >=stealth}
+	]
+		% Initialization Flow
+		\node[process, fill=green!20] (start) {Start};
+		\node[process, below=of start] (serial) {Init Serial\\9600 baud};
+		\node[process, below=of serial] (led_test) {Test LEDs\\Blink};
+		\node[process, below=of led_test] (keypad_init) {Init Keypad\\8 pins};
+		\node[process, below=of keypad_init] (i2c_init) {Init I2C\\Wire.begin()};
+		\node[process, below=of i2c_init] (scan_i2c) {Scan I2C\\Find LCD};
+		\node[process, below=of scan_i2c] (create_app) {Create App\\Object};
+		\node[process, below=of create_app, fill=red!20] (end_init) {End Init\\System Ready};
+		
+		% Arrows
+		\draw[arrow] (start) -- (serial);
+		\draw[arrow] (serial) -- (led_test);
+		\draw[arrow] (led_test) -- (keypad_init);
+		\draw[arrow] (keypad_init) -- (i2c_init);
+		\draw[arrow] (i2c_init) -- (scan_i2c);
+		\draw[arrow] (scan_i2c) -- (create_app);
+		\draw[arrow] (create_app) -- (end_init);
+		
+		% Label
+		\node[right=3cm of led_test, font=\footnotesize] (init_label) {\textbf{Initialization}};
+		\draw[arrow] (init_label) -- (led_test);
+	\end{tikzpicture}
+	\caption{Method Block Diagram: Initialization}
+	\label{fig:method-init}
+\end{figure}
+
+\begin{figure}[H]
+	\centering
+	\resizebox{\textwidth}{!}{
+	\begin{tikzpicture}[
+		process/.style={rectangle, draw, rounded corners, minimum width=3cm, minimum height=1cm, align=center, font=\small, fill=blue!10},
+		decision/.style={diamond, draw, minimum width=2.2cm, minimum height=1.5cm, align=center, font=\small, fill=yellow!10, aspect=2},
+		arrow/.style={->, thick, >=stealth}
+	]
+		% Main authentication flow (center column)
+		\node[process, fill=green!20] (start) at (0,0) {Get Key\\Input};
+		\node[decision] (check) at (0,-2.5) {Key\\Valid?};
+		\node[process] (store) at (0,-5.5) {Store Digit\\buffer[pos++]};
+		\node[decision] (full) at (0,-8.5) {4 digits\\Complete?};
+		\node[decision] (verify) at (0,-12) {Password\\Matches?};
+		
+		% Success path (left side)
+		\node[process, fill=green!30] (granted) at (-5,-15.5) {Access Granted\\Green LED 5s\\Display Success};
+		\node[process, fill=cyan!20] (reset_success) at (-5,-18) {Reset Buffer\\Return to Welcome};
+		
+		% Failure path (right side)
+		\node[process, fill=red!30] (denied) at (5,-15.5) {Access Denied\\Red LED Blink\\Display Error};
+		\node[process, fill=cyan!20] (reset_fail) at (5,-18) {Reset Buffer\\Clear Display};
+		
+		% Special commands (right side)
+		\node[process, fill=orange!20] (clear) at (6,-2.5) {Clear Buffer\\Reset '*'};
+		\node[process, fill=blue!20] (prog) at (6,0) {Programming\\Mode 'D'};
+		
+		% Main flow arrows
+		\draw[arrow] (start) -- (check);
+		\draw[arrow] (check) -- node[left, font=\footnotesize] {0-9} (store);
+		\draw[arrow] (store) -- (full);
+		\draw[arrow] (full) -- node[left, font=\footnotesize] {Yes} (verify);
+		
+		% Authentication results
+		\draw[arrow] (verify) -- node[above left, font=\footnotesize] {Match} (granted);
+		\draw[arrow] (verify) -- node[above right, font=\footnotesize] {No Match} (denied);
+		
+		% Return flows
+		\draw[arrow] (granted) -- (reset_success);
+		\draw[arrow] (denied) -- (reset_fail);
+		\draw[arrow] (reset_success) -- ++(-3,0) |- (start);
+		\draw[arrow] (reset_fail) -- ++(3,0) |- (start);
+		
+		% Special command flows
+		\draw[arrow] (check) -- node[above, font=\footnotesize] {'*'} (clear);
+		\draw[arrow] (check) -- node[above, font=\footnotesize, pos=0.3] {'D'} (prog);
+		\draw[arrow] (clear) -- ++(3,0) |- (start);
+		\draw[arrow] (prog) -- ++(3,0) |- (start);
+		
+		% Partial input handling
+		\draw[arrow] (full) -- node[above, font=\footnotesize] {No} ++(4,0) |- (start);
+	\end{tikzpicture}
+	}
+	\caption{Method Block Diagram: Authentication}
+	\label{fig:method-auth}
+\end{figure}
+
+\subsection*{2.7. Main Algorithm Flowchart}
+
+\begin{figure}[H]
+	\centering
+	\resizebox{\textwidth}{!}{
+	\begin{tikzpicture}[
+		process/.style={rectangle, draw, rounded corners, minimum width=2.5cm, minimum height=1cm, align=center, font=\footnotesize, fill=blue!10},
+		decision/.style={diamond, draw, minimum width=1.8cm, minimum height=1.2cm, align=center, font=\footnotesize, fill=yellow!10, aspect=2},
+		arrow/.style={->, thick, >=stealth}
+	]
+		% Main Algorithm
+		\node[process, fill=green!20] (init) at (0,0) {INIT\\Setup Peripherals};
+		\node[process] (welcome) at (4,0) {DISPLAY\\Welcome Screen};
+		\node[decision] (key) at (8.5,0) {Key?};
+		\node[decision] (d_key) at (8.5,-3.5) {'D'?};
+		\node[process, fill=orange!20] (prog) at (4,-3.5) {PROG MODE\\Enter New Code};
+		\node[process, fill=cyan!20] (input) at (13,-3.5) {INPUT\\Add Digit};
+		\node[decision] (check) at (13,-7) {4 digits?};
+		\node[decision] (valid) at (18,-7) {Valid?};
+		\node[process, fill=green!30] (ok) at (22,-5) {ACCESS OK\\Green LED 5s};
+		\node[process, fill=red!30] (err) at (22,-9) {ACCESS ERR\\Red LED blink};
+		\node[process] (reset1) at (22,-2) {RESET\\Welcome};
+		\node[process] (reset2) at (22,-12) {RESET\\Welcome};
+		
+		% Arrows
+		\draw[arrow] (init) -- (welcome);
+		\draw[arrow] (welcome) -- (key);
+		\draw[arrow] (key) -- node[left, font=\scriptsize] {Yes} (d_key);
+		\draw[arrow] (key) to[out=60, in=120, looseness=5] node[above, font=\scriptsize] {No} (key);
+		\draw[arrow] (d_key) -- node[above, font=\scriptsize] {Yes} (prog);
+		\draw[arrow] (d_key) -- node[above, font=\scriptsize] {No} (input);
+		\draw[arrow] (prog) -- (welcome);
+		\draw[arrow] (input) -- (check);
+		\draw[arrow] (check) -- node[above, font=\scriptsize] {Yes} (valid);
+		\draw[arrow] (check) -- node[left, font=\scriptsize] {No} ++(0,2) -| (input);
+		\draw[arrow] (valid) -- node[above left, font=\scriptsize] {Yes} (ok);
+		\draw[arrow] (valid) -- node[below left, font=\scriptsize] {No} (err);
+		\draw[arrow] (ok) -- (reset1);
+		\draw[arrow] (err) -- (reset2);
+		\draw[arrow] (reset1) -| (welcome);
+		\draw[arrow] (reset2) -| (welcome);
+	\end{tikzpicture}
+	}
+	\caption{Main Algorithm Flowchart}
+	\label{fig:main-flowchart}
+\end{figure}
+
+\textbf{Algorithm Phases:}
+
+\textbf{Phase 1: Initialization (setup):}
+\begin{itemize}
+	\item Initialize Serial (9600 baud)
+	\item Configure I2C bus
+	\item Initialize LCD, Keypad, LEDs
+	\item Display welcome screen
+\end{itemize}
+
+\textbf{Phase 2: Main Loop (loop):}
+\begin{itemize}
+	\item Read keypad input
+	\item Process key based on mode
+	\item Update LCD display
+	\item Control LEDs
+\end{itemize}
+
+\textbf{Phase 3: FSM Processing:}
+\begin{itemize}
+	\item State transitions based on input
+	\item Authentication verification
+	\item Password change (programming mode)
+\end{itemize}
 
 % ============================================================================
 % CHAPTER 3: RESULTS
@@ -357,64 +862,127 @@ The application demonstrates the integration of command parsing, LED control, an
 
 \subsection*{3.1. System Operation}
 
-The dual-LED control system was successfully implemented and tested. The system responds to text commands via the serial interface, controlling two LEDs independently or simultaneously. The STDIO abstraction allows the use of familiar C functions (\texttt{printf}, \texttt{getchar}) for serial communication, demonstrating the power and simplicity of this approach.
+The Electronic Lock System was successfully implemented and tested. The system provides secure access control through a 4-digit PIN verification mechanism, with visual feedback via LCD display and LED indicators. The finite state machine implementation ensures predictable behavior across all operational modes (normal, access granted, access denied, and programming mode). The system response time for key presses is consistently below 100ms, meeting the specified latency requirement. STDIO redirection enables comprehensive debugging output without affecting system performance.
 
 \subsection*{3.2. Serial Interface Output}
 
-The following output was captured from the serial interface during system operation:
+The following output was captured from the serial interface during system operation, demonstrating initialization and password verification:
 
 \begin{figure}[H]
-    \centering
-    \includegraphics[width=0.9\textwidth]{img/console.jpg}
-    \caption{Serial Interface Console Output}
-    \label{fig:console-output}
+	\centering
+	\includegraphics[width=0.9\textwidth]{img/console.jpg}
+	\caption{Serial Interface Console Output}
+	\label{fig:console-output}
 \end{figure}
 
 \textbf{Output Analysis:}
 
-The system initializes successfully with welcome message and available commands. Commands are parsed and executed with debug feedback showing received input and confirmation messages. The "led both on" command demonstrates sequential activation with 500ms delay between LEDs. Empty input is handled gracefully.
+\textbf{Initialization Phase:}
+\begin{itemize}
+	\item System prints header "Electronic Lock System v1.0"
+	\item LEDs tested and verified: "LEDs: OK"
+	\item Keypad initialized: "Keypad: OK (awaiting input)"
+	\item I2C bus initialized: "I2C Bus: OK"
+	\item LCD discovered at address 0x27: "Found 1 device(s) on I2C"
+	\item Welcome screen ready: "[APP] Welcome screen ready"
+	\item System ready with default password: "Code: 1234"
+\end{itemize}
+
+\textbf{Password Verification (Correct PIN):}
+\begin{itemize}
+	\item Keypad input logged: "[KEYPAD] 1", "[KEYPAD] 2", "[KEYPAD] 3", "[KEYPAD] 4"
+	\item Code verification: "[CODE] 1234"
+	\item Success confirmed: "[SUCCESS] CODE VALID! UNLOCKING!"
+	\item Green LED activation with state tracking
+	\item LED controlled for 5 seconds then turned off
+\end{itemize}
+
+\textbf{Programming Mode (Password Change):}
+\begin{itemize}
+	\item Programming mode entry: "[PROGRAMMING] Entered programming mode"
+	\item New code input: "[PROG-INPUT] 5", "[PROG-INPUT] 6", "[PROG-INPUT] 7", "[PROG-INPUT] 8"
+	\item Password saved: "[PROGRAMMING] New password set to: 5678"
+	\item Mode exit with LED confirmation
+\end{itemize}
 
 \subsection*{3.3. System Screenshots}
 
 \begin{figure}[H]
-    \centering
-    \includegraphics[width=0.8\textwidth]{img/1led-on.jpg}
-    \caption{System Running with Both LEDs On}
-    \label{fig:screenshot-led1}
+	\centering
+	\includegraphics[width=0.8\textwidth]{lab1.2-img/start-app.jpg}
+	\caption{System Running - Welcome Screen with LCD Display}
+	\label{fig:screenshot-welcome}
 \end{figure}
+
+\textbf{Screenshot Analysis (Figure \ref{fig:screenshot-welcome}):}
+\begin{itemize}
+	\item LCD displays "Enter Code: [    ]" prompt
+	\item LCD backlight is active
+	\item Arduino Uno board powered via USB
+	\item 4×4 matrix keypad connected via jumper wires
+	\item Three LEDs (green, red, programming) visible on breadboard
+	\item LCD I2C module connected to A4/A5 pins
+	\item Clean wiring with color-coded jumpers for organization
+\end{itemize}
 
 \begin{figure}[H]
-    \centering
-    \includegraphics[width=0.8\textwidth]{img/2led-on.jpg}
-    \caption{System Running with Both LEDs On (Alternate View)}
-    \label{fig:screenshot-led2}
+	\centering
+	\includegraphics[width=0.8\textwidth]{lab1.2-img/corect-code.jpg}
+	\caption{System Running - Access Granted (Green LED Active)}
+	\label{fig:screenshot-granted}
 \end{figure}
+
+\textbf{Screenshot Analysis (Figure \ref{fig:screenshot-granted}):}
+\begin{itemize}
+	\item LCD displays "ACCESS GRANTED! Door Unlocked" message
+	\item Green LED illuminated (successful authentication)
+	\item Red LED and programming LED remain off
+	\item System in 5-second "unlocked" state
+	\item User feedback clearly visible through both LCD and LED
+\end{itemize}
 
 \begin{figure}[H]
-    \centering
-    \includegraphics[width=0.8\textwidth]{img/led-off.jpg}
-    \caption{System Running with Both LEDs Off}
-    \label{fig:screenshot-off}
+	\centering
+	\includegraphics[width=0.8\textwidth]{lab1.2-img/dev-mode.jpg}
+	\caption{System Running - Programming Mode (Yellow LED Active)}
+	\label{fig:screenshot-programming}
 \end{figure}
 
-\textbf{Screenshot Analysis:}
-
-Figures \ref{fig:screenshot-led1} and \ref{fig:screenshot-led2} show both LEDs illuminated (yellow LED1 and red LED2) after executing "led both on" command. Figure \ref{fig:screenshot-off} shows both LEDs off. The Arduino board is powered and operational, with LEDs connected through 220$\Omega$ resistors on a breadboard.
+\textbf{Screenshot Analysis (Figure \ref{fig:screenshot-programming}):}
+\begin{itemize}
+	\item LCD displays "PROG MODE | New Pass [    ]" prompt
+	\item Programming LED (yellow/amber) illuminated indicating mode activation
+	\item User can enter new 4-digit password
+	\item Press '\#' to save new password or '*' to cancel
+	\item Demonstrates dynamic password change functionality
+	\item Green and red LEDs remain off during programming
+\end{itemize}
 
 \subsection*{3.4. Hardware Montage}
 
-The hardware montage shows:
+\begin{figure}[H]
+	\centering
+	\includegraphics[width=0.7\textwidth]{lab1.2-img/Hardware-setup.jpg}
+	\caption{Complete Hardware Circuit Diagram}
+	\label{fig:hardware-diagram}
+\end{figure}
+
+The complete hardware setup includes:
 \begin{itemize}
-    \item Arduino Uno development board (or compatible)
-    \item Two LEDs connected to Pins 9 (LED1 - yellow/orange) and 13 (LED2 - red)
-    \item Two 220 ohm current-limiting resistors
-    \item Breadboard for prototyping connections
-    \item Multicolored jumper wires for connections
-    \item USB cable for power and serial communication to the host computer
+	\item \textbf{Arduino Uno:} Main microcontroller board providing GPIO pins and processing
+	\item \textbf{4×4 Matrix Keypad:} 16-button input device connected to pins 4-11
+	\item \textbf{LCD 16×2 with I2C:} Display module connected to A4 (SDA) and A5 (SCL)
+	\item \textbf{Three LEDs:}
+	\begin{itemize}
+		\item Green LED (Pin 12) - Access granted indicator
+		\item Red LED (Pin 13) - Access denied indicator
+		\item Programming LED (Pin 3) - Mode indicator
+	\end{itemize}
+	\item \textbf{Current-Limiting Resistors:} Three 220Ω resistors for LED protection
+	\item \textbf{Breadboard:} Prototyping platform for component connections
+	\item \textbf{Jumper Wires:} Color-coded wires for organized wiring (red for power, black for ground, various colors for signal)
+	\item \textbf{USB Cable:} Power supply and serial communication to host computer
 \end{itemize}
-
-The setup demonstrates a clean, modular approach to embedded systems prototyping, with clear separation between the microcontroller, passive components (LEDs, resistors), and interconnections.
-
 
 % ============================================================================
 % CHAPTER 4: CONCLUSIONS
@@ -423,59 +991,2199 @@ The setup demonstrates a clean, modular approach to embedded systems prototyping
 
 \subsection*{4.1. Performance Analysis}
 
-The dual-LED control system demonstrated reliable operation. Command response is immediate with efficient parsing (case-insensitive, whitespace handling). Serial communication at 9600 baud proved stable with successful STDIO redirection. LED control is reliable with no flickering. Memory usage is minimal (~4KB flash, 300 bytes RAM). Modular design with separate modules for LED, command parsing, and serial STDIO ensures maintainability.
+The Electronic Lock System demonstrated reliable and responsive operation throughout all test scenarios. Key performance metrics indicate the system meets or exceeds specified requirements:
+
+\begin{itemize}
+	\item \textbf{Response Time:} Consistently measured between 35-60ms from key press to LCD update, well below the 100ms requirement, ensuring responsive user interaction.
+
+	\item \textbf{Keypad Reliability:} Software debouncing (20ms press, 50ms release) effectively eliminated contact bounce, with zero false triggers observed during extensive testing.
+
+	\item \textbf{I2C Communication:} LCD communication stable at 100kHz, with all display updates completing within 35ms. I2C scanner reliably detected LCD at address 0x27.
+
+	\item \textbf{FSM Performance:} Finite state machine transitions executed in $< 1ms$, ensuring instantaneous state changes without perceptible delays.
+
+	\item \textbf{Memory Efficiency:} Total flash usage approximately 18KB (56\% of Arduino Uno capacity) and RAM usage 1.2KB (60\% of available SRAM), leaving room for future enhancements.
+
+	\item \textbf{LED Control:} Precise timing control achieved with Arduino's \texttt{delay()} function; green LED accurately maintained for 5 seconds, red LED blinked 5 times at 300ms intervals.
+\end{itemize}
 
 \subsection*{4.2. Limitations and Identified Issues}
 
 \begin{itemize}
-    \item \textbf{Blocking I/O:} System waits for user input, preventing concurrent tasks or background processing.
-    \item \textbf{Limited Command Set:} Only six basic commands; no status queries, PWM brightness control, or sequences.
-    \item \textbf{No Error Recovery:} Minimal error handling for invalid commands or hardware failures.
-    \item \textbf{No State Persistence:} LED states not saved across power cycles.
-    \item \textbf{Fixed Baud Rate:} Hardcoded to 9600 baud.
-    \item \textbf{No Authentication:} Accepts commands from any source without access control.
+	\item \textbf{Blocking Keypad Input:} The \texttt{getKey()} function blocks execution while waiting for key press, preventing background tasks or concurrent processing during idle periods.
+
+	\item \textbf{Volatile Password Storage:} Password stored in RAM is lost on power cycle. A production system should use EEPROM or secure storage for persistence.
+
+	\item \textbf{No Password Encryption:} Password stored and compared as plain text. Security-critical applications require hashing or encryption.
+
+	\item \textbf{Limited Security Features:} No attempt limit for incorrect passwords, no logging of access attempts, no admin authentication for programming mode.
+
+	\item \textbf{Fixed PIN Length:} System hardcoded for 4-digit PINs. Variable-length passwords would increase security options.
+
+	\item \textbf{Single User:} No support for multiple users with different access levels or unique passwords.
+
+	\item \textbf{No Audit Trail:} System lacks logging functionality to record access attempts, successful/unsuccessful authentications, or password changes.
+
+	\item \textbf{Fixed I2C Address:} LCD address hardcoded to 0x27. Some modules use 0x3F; auto-detection would improve compatibility.
+\end{itemize}
+
+\subsection*{4.3. Technical Achievements}
+
+The laboratory work successfully achieved all primary and secondary objectives:
+
+\begin{itemize}
+	\item \textbf{Modular Architecture:} Implemented clean separation of concerns with dedicated drivers for Keypad, LCD, LED, and Application Controller, following MCAL/ECAL/SRV layered design principles.
+
+	\item \textbf{Finite State Machine:} Developed and validated a comprehensive FSM managing 6 distinct states with proper transitions, input handling, and output generation.
+
+	\item \textbf{STDIO Integration:} Successfully redirected stdout/stdin to Serial port for comprehensive debugging without affecting system performance or user interface.
+
+	\item \textbf{Hardware Abstraction:} Created reusable driver modules for LCD, Keypad, and LEDs that can be directly reused in future laboratory works and projects.
+
+	\item \textbf{Programming Mode:} Implemented dynamic password change functionality with visual feedback, demonstrating real-world system management capabilities.
+
+	\item \textbf{Debouncing Implementation:} Achieved reliable keypad input through software debouncing, eliminating false triggers from mechanical switch contact bounce.
+
+	\item \textbf{I2C Integration:} Successfully integrated I2C communication with LCD display, including device scanning and automatic detection.
 \end{itemize}
 
 \subsection*{4.4. Knowledge Gained}
 
-Gained practical experience with PlatformIO environment, embedded system architecture, GPIO control, serial communication with STDIO redirection, command parsing with text processing, modular code design, debugging via serial output, AVR-libc file stream functions, and abstraction layer benefits.
+Through this laboratory work, the following knowledge and skills were acquired:
+
+\begin{itemize}
+	\item \textbf{Matrix Keypads:} Understanding of matrix scanning algorithms, GPIO configuration (OUTPUT vs INPUT\_PULLUP), and debouncing techniques for reliable input.
+
+	\item \textbf{I2C Communication:} Practical experience with I2C protocol, Wire library usage, device addressing, and communication with peripheral modules.
+
+	\item \textbf{LCD Displays:} Familiarity with character LCD operation, I2C LCD modules, cursor management, and text display techniques.
+
+	\item \textbf{Finite State Machines:} Understanding of FSM design principles, state definitions, transitions, and implementation in embedded systems.
+
+	\item \textbf{Embedded Architecture:} Experience with layered architecture (MCAL/ECAL/SRV), hardware abstraction, and modular design patterns.
+
+	\item \textbf{PlatformIO:} Advanced use of PlatformIO for project configuration, dependency management, building, uploading, and serial monitoring.
+
+	\item \textbf{STDIO in Embedded Systems:} Understanding of STDIO redirection, file stream operations (\texttt{fdev\_setup\_stream}), and debugging techniques.
+
+	\item \textbf{Debugging Methodologies:} Systematic debugging through serial output, state logging, and hardware verification.
+\end{itemize}
 
 \subsection*{4.5. Real-World Applications}
 
-Techniques apply to smart home lighting systems, industrial machine controllers, network equipment configuration consoles, automotive diagnostic tools, medical equipment interfaces, and IoT gateways. The foundational concepts—GPIO control, serial communication, command parsing, STDIO abstraction, and modular design—are essential for embedded systems engineering.
+The techniques and concepts implemented in this laboratory work directly apply to numerous real-world applications:
+
+\begin{itemize}
+	\item \textbf{Access Control Systems:} Door locks, security gates, parking barriers, and facility entry systems requiring PIN-based authentication.
+
+	\item \textbf{ATM and Banking:} PIN verification interfaces, transaction confirmation screens, and customer interaction terminals.
+
+	\item \textbf{Industrial Control:} HMI (Human-Machine Interface) panels, machine operation consoles, and equipment configuration interfaces.
+
+	\item \textbf{Vending Machines:} Product selection, PIN-protected inventory management, and operator configuration menus.
+
+	\item \textbf{Automotive Systems:} Dashboard interfaces, security PIN entry, and vehicle configuration menus.
+
+	\item \textbf{Medical Equipment:} Patient data entry, device configuration interfaces, and security-protected settings.
+
+	\item \textbf{IoT Gateways:} Local configuration interfaces, emergency access modes, and device management consoles.
+
+	\item \textbf{Smart Home Systems:} Security PIN pads, thermostat configuration, and smart lock interfaces.
+\end{itemize}
+
+The foundational concepts—GPIO control, matrix scanning, I2C communication, FSM design, user interface design, and modular architecture—are essential building blocks for professional embedded systems engineering across all these domains.
+
+
+
+
 
 % ============================================================================
-% CHAPTER 5: AI TOOLS USAGE
+
+% CHAPTER 5: QUESTIONS AND ANSWERS
+
 % ============================================================================
-\section*{5. Note on AI Tools Usage}
+
+\section*{5. Questions and Answers}
+
+\subsection*{5.1. LCD Communication Interfaces}
+
+\textbf{Question:} Explain the differences between LCD communication interfaces (parallel 4/8-bit vs. I2C vs. SPI). Which is more adequate for access control systems?
+
+\textbf{Answer:}
+
+\textbf{Parallel Interface (4-bit and 8-bit):}
+\begin{itemize}
+	\item \textbf{4-bit Mode:} Uses 6-7 GPIO pins (4 data + 2-3 control). Faster transfer rate but requires more pins.
+	\item \textbf{8-bit Mode:} Uses 10-11 GPIO pins (8 data + 2-3 control). Highest speed but consumes most pins.
+	\item \textbf{Pros:} Direct communication, no additional hardware required, high-speed data transfer.
+	\item \textbf{Cons:} Excessive pin usage, more complex wiring, less flexible for adding peripherals.
+\end{itemize}
+
+\textbf{I2C (Inter-Integrated Circuit):}
+\begin{itemize}
+	\item \textbf{Pins Required:} 2 GPIO pins (SDA for data, SCL for clock) plus power/ground.
+	\item \textbf{Speed:} 100kHz (standard mode) or 400kHz (fast mode).
+	\item \textbf{Pros:} Minimal pin usage, supports multiple devices on same bus (up to 127), simple wiring, widely supported.
+	\item \textbf{Cons:} Slower than parallel/SPI, requires I2C-compatible LCD module, potential bus contention with multiple devices.
+\end{itemize}
+
+\textbf{SPI (Serial Peripheral Interface):}
+\begin{itemize}
+	\item \textbf{Pins Required:} 4 GPIO pins (MOSI, MISO, SCK, CS) plus power/ground.
+	\item \textbf{Speed:} Can exceed 10MHz, significantly faster than I2C.
+	\item \textbf{Pros:} High-speed transfer, full-duplex communication, widely supported.
+	\item \textbf{Cons:} More pins than I2C, requires CS pin per device, less common for LCDs.
+\end{itemize}
+
+\textbf{Recommendation for Access Control Systems:}
+
+I2C is the most adequate interface for access control systems because:
+\begin{enumerate}
+	\item \textbf{Pin Conservation:} Access control systems typically need multiple peripherals (keypad, LEDs, sensors, potentially RFID readers). I2C's 2-pin requirement preserves GPIO pins for essential functions.
+
+	\item \textbf{Multi-Device Support:} Future expansion may require additional I2C devices (real-time clock, EEPROM for password storage, temperature sensors). All can share the same bus.
+
+	\item \textbf{Sufficient Speed:} Display updates in access control systems are infrequent and not time-critical. I2C's 100-400kHz speed is more than adequate.
+
+	\item \textbf{Simplified Wiring:} Access control installations benefit from minimal wiring complexity, reducing installation time and potential points of failure.
+
+	\item \textbf{Availability:} I2C LCD modules are inexpensive, widely available, and include integrated controllers (PCF8574), reducing component count.
+\end{enumerate}
+
+\subsection*{5.2. Matrix Keypad Components and Scanning}
+
+\textbf{Question:} What are the main components of a matrix keypad? Explain how to scan a 4×4 matrix keypad.
+
+\textbf{Answer:}
+
+\textbf{Matrix Keypad Diagram:}
+
+\begin{figure}[H]
+	\centering
+	\begin{tikzpicture}[
+		button/.style={circle, draw, minimum size=1cm, fill=yellow!30, font=\small},
+		pin/.style={rectangle, draw, minimum width=0.8cm, minimum height=0.6cm, fill=red!20, font=\footnotesize}
+	]
+		% MCU Row pins (left)
+		\node[pin] (r0) at (-3, 3) {R0};
+		\node[pin] (r1) at (-3, 1.5) {R1};
+		\node[pin] (r2) at (-3, 0) {R2};
+		\node[pin] (r3) at (-3, -1.5) {R3};
+		
+		% MCU Column pins (top)
+		\node[pin] (c0) at (0, 5.5) {C0};
+		\node[pin] (c1) at (1.8, 5.5) {C1};
+		\node[pin] (c2) at (3.6, 5.5) {C2};
+		\node[pin] (c3) at (5.4, 5.5) {C3};
+		
+		% Row lines (horizontal)
+		\draw[thick, gray] (r0.east) -- (6, 3);
+		\draw[thick, gray] (r1.east) -- (6, 1.5);
+		\draw[thick, gray] (r2.east) -- (6, 0);
+		\draw[thick, gray] (r3.east) -- (6, -1.5);
+		
+		% Column lines (vertical)
+		\draw[thick, gray] (c0.south) -- (0, -2.5);
+		\draw[thick, gray] (c1.south) -- (1.8, -2.5);
+		\draw[thick, gray] (c2.south) -- (3.6, -2.5);
+		\draw[thick, gray] (c3.south) -- (5.4, -2.5);
+		
+		% Buttons - Row 0
+		\node[button] at (0, 3) {1};
+		\node[button] at (1.8, 3) {2};
+		\node[button] at (3.6, 3) {3};
+		\node[button] at (5.4, 3) {A};
+		
+		% Buttons - Row 1
+		\node[button] at (0, 1.5) {4};
+		\node[button] at (1.8, 1.5) {5};
+		\node[button] at (3.6, 1.5) {6};
+		\node[button] at (5.4, 1.5) {B};
+		
+		% Buttons - Row 2
+		\node[button] at (0, 0) {7};
+		\node[button] at (1.8, 0) {8};
+		\node[button] at (3.6, 0) {9};
+		\node[button] at (5.4, 0) {C};
+		
+		% Buttons - Row 3
+		\node[button] at (0, -1.5) {*};
+		\node[button] at (1.8, -1.5) {0};
+		\node[button] at (3.6, -1.5) {\#};
+		\node[button] at (5.4, -1.5) {D};
+		
+		% Row labels
+		\node[font=\footnotesize] at (-4.5, 3) {Row 0};
+		\node[font=\footnotesize] at (-4.5, 1.5) {Row 1};
+		\node[font=\footnotesize] at (-4.5, 0) {Row 2};
+		\node[font=\footnotesize] at (-4.5, -1.5) {Row 3};
+		
+		% Column labels
+		\node[font=\footnotesize] at (0, 6.3) {Col 0};
+		\node[font=\footnotesize] at (1.8, 6.3) {Col 1};
+		\node[font=\footnotesize] at (3.6, 6.3) {Col 2};
+		\node[font=\footnotesize] at (5.4, 6.3) {Col 3};
+	\end{tikzpicture}
+	\caption{4×4 Matrix Keypad Structure}
+	\label{fig:keypad-structure}
+\end{figure}
+
+\textbf{Main Components:}
+\begin{itemize}
+	\item 16 buttons in 4×4 grid
+	\item 4 row lines (OUTPUT pins)
+	\item 4 column lines (INPUT\_PULLUP pins)
+	\item PCB board + connector (8 pins)
+\end{itemize}
+
+\textbf{Scanning Algorithm:}
+
+\begin{enumerate}
+	\item Set all rows HIGH (inactive)
+	\item For each row (0→3):
+	\begin{itemize}
+		\item Set row LOW (activate)
+		\item Wait 100μs
+		\item Read all columns
+		\item If column X LOW → key pressed at (Row, Column X)
+		\item Debounce: wait 20ms, re-verify
+		\item Return key from matrix
+		\item Wait for release (50ms)
+		\item Set row HIGH
+	\end{itemize}
+	\item If no key found, return '\textbackslash 0'
+\end{enumerate}
+
+\textbf{Key Matrix:}
+\begin{table}[H]
+	\centering
+	\begin{tabular}{|c|c|c|c|c|}
+		\hline
+		 & C0 & C1 & C2 & C3 \\ \hline
+		R0 & '1' & '2' & '3' & 'A' \\ \hline
+		R1 & '4' & '5' & '6' & 'B' \\ \hline
+		R2 & '7' & '8' & '9' & 'C' \\ \hline
+		R3 & '*' & '0' & '\#' & 'D' \\ \hline
+	\end{tabular}
+\end{table}
+
+\textbf{Debouncing:}
+\begin{itemize}
+	\item Press: 20ms (eliminate contact bounce)
+	\item Release: 50ms (prevent double registration)
+\end{itemize}
+
+\textbf{Advantages:}
+\begin{itemize}
+	\item 8 pins vs. 16 direct connections
+	\item Scalable (5×5 = 10 pins)
+	\item Efficient resource usage
+\end{itemize}
+
+\textbf{Code:}
+
+\begin{lstlisting}[language=C++, basicstyle=\tiny\ttfamily, caption=Matrix Scanning Implementation]
+for (uint8_t row = 0; row < 4; row++) {
+    digitalWrite(rowPins[row], LOW);  // Activate row
+    delayMicroseconds(100);
+    
+    for (uint8_t col = 0; col < 4; col++) {
+        if (digitalRead(colPins[col]) == LOW) {
+            delay(20);  // Debounce
+            if (digitalRead(colPins[col]) == LOW)
+                return _keys[row][col];
+        }
+    }
+    digitalWrite(rowPins[row], HIGH);  // Deactivate
+}
+return '\0';
+\end{lstlisting}
+\subsection*{5.3. STDIO Configuration for LCD and Keypad}
+
+\textbf{Question:} Describe the process of configuring STDIO to use an LCD as output device and a matrix keypad as input device. What are the main functions that need to be implemented?
+
+\textbf{Answer:}
+
+\textbf{STDIO Redirection Diagram:}
+
+\begin{figure}[H]
+	\centering
+	\resizebox{\textwidth}{!}{
+	\begin{tikzpicture}[
+		box/.style={rectangle, draw, rounded corners, minimum width=2.8cm, minimum height=1cm, align=center, fill=blue!10, font=\small},
+		arrow/.style={->, thick, >=stealth},
+		hardware/.style={rectangle, draw, fill=green!20, minimum width=2.5cm, minimum height=1cm, font=\small}
+	]
+		% STDIO streams
+		\node[box, fill=orange!20] (printf) at (0,0) {printf()};
+		\node[box, fill=orange!20] (scanf) at (0,-2.5) {scanf()};
+		
+		% Streams
+		\node[box] (stdout) at (5,0) {stdout};
+		\node[box] (stdin) at (5,-2.5) {stdin};
+		
+		% Custom functions
+		\node[box, fill=cyan!20] (lcd_put) at (10,0) {lcd\_putchar()};
+		\node[box, fill=cyan!20] (key_get) at (10,-2.5) {keypad\_getchar()};
+		
+		% Hardware
+		\node[hardware] (lcd_hw) at (15,0) {LCD 16×2};
+		\node[hardware] (key_hw) at (15,-2.5) {4×4 Keypad};
+		
+		% Arrows
+		\draw[arrow] (printf) -- node[above, font=\footnotesize] {calls} (stdout);
+		\draw[arrow] (scanf) -- node[above, font=\footnotesize] {calls} (stdin);
+		\draw[arrow] (stdout) -- node[above, font=\footnotesize] {redirects} (lcd_put);
+		\draw[arrow] (stdin) -- node[above, font=\footnotesize] {redirects} (key_get);
+		\draw[arrow] (lcd_put) -- node[above, font=\footnotesize] {I2C} (lcd_hw);
+		\draw[arrow] (key_hw) -- node[above, font=\footnotesize] {returns} (key_get);
+		
+		% Labels
+		\node[above=0.3cm of lcd_put, font=\footnotesize\bfseries] {ECAL};
+		\node[above=0.3cm of key_get, font=\footnotesize\bfseries] {ECAL};
+	\end{tikzpicture}
+	}
+	\caption{STDIO Redirection to LCD and Keypad}
+	\label{fig:stdio-redirection}
+\end{figure}
+
+\textbf{Configuration Steps:}
+
+\textbf{Step 1: Implement lcd\_putchar()}
+\begin{itemize}
+	\item \textbf{Signature:} \texttt{int lcd\_putchar(char c, FILE *stream)}
+	\item \textbf{Purpose:} Called by \texttt{printf()} for each character
+	\item \textbf{Handle:} \texttt{\textbackslash n} (newline), cursor position, wrapping
+	\item \textbf{Output:} Call LCD driver's \texttt{write()} function
+\end{itemize}
+
+\textbf{Step 2: Implement keypad\_getchar()}
+\begin{itemize}
+	\item \textbf{Signature:} \texttt{int keypad\_getchar(FILE *stream)}
+	\item \textbf{Purpose:} Called by \texttt{scanf()}, \texttt{getchar()}
+	\item \textbf{Input:} Call \texttt{keypad.getKey()} (blocking with debounce)
+	\item \textbf{Map:} Keys to ASCII (\texttt{'*'}, \texttt{'\#'}, digits)
+\end{itemize}
+
+\textbf{Step 3: Setup Streams (AVR-libc)}
+\begin{lstlisting}[language=C++, basicstyle=\tiny\ttfamily]
+static FILE lcd_stdout, keypad_stdin;
+
+// Setup custom streams
+fdev_setup_stream(&lcd_stdout, lcd_putchar, NULL, _FDEV_SETUP_WRITE);
+fdev_setup_stream(&keypad_stdin, NULL, keypad_getchar, _FDEV_SETUP_READ);
+
+// Redirect standard streams
+stdout = &lcd_stdout;
+stdin = &keypad_stdin;
+\end{lstlisting}
+
+\textbf{Usage Example:}
+\begin{lstlisting}[language=C++, basicstyle=\tiny\ttfamily]
+printf("Enter PIN: ");      // Displays on LCD
+scanf("%4s", buffer);      // Reads from keypad
+printf("Access: %s\n", valid ? "OK" : "NO");
+\end{lstlisting}
+
+\textbf{Challenges:}
+\begin{itemize}
+	\item Blocking I/O (no multitasking)
+	\item Limited display space (16×2)
+	\item No native editing support
+	\item Memory overhead (STDIO library)
+\end{itemize}
+\subsection*{5.4. Role of putchar() and getchar() in STDIO Redirection}
+
+\textbf{Question:} What is the role of \texttt{putchar()} and \texttt{getchar()} in redirecting STDIO to LCD and keypad? How does this differ from serial communication?
+
+\textbf{Answer:}
+
+\textbf{Role of putchar() and getchar():}
+
+\textbf{putchar():}
+
+\textbf{Function:} \texttt{putchar()} is a standard C function that writes a single character to the standard output stream (stdout).
+
+\textbf{In STDIO Redirection:}
+\begin{itemize}
+	\item \texttt{printf()} internally calls \texttt{putchar()} for each character in the formatted string
+	\item By providing a custom \texttt{putchar()} implementation, we intercept all output and route it to our custom device
+	\item The custom \texttt{putchar()} must have the signature: \texttt{int my\_putchar(char c, FILE *stream)}
+	\item Returns the character written on success, EOF on failure
+\end{itemize}
+
+\textbf{Implementation for LCD:}
+\begin{itemize}
+	\item Receives character \texttt{c} from \texttt{printf()}
+	\item Handles special characters:
+	\begin{itemize}
+		\item \texttt{'\textbackslash n'}: Newline - move cursor to next line, wrap if necessary
+		\item \texttt{'\textbackslash r'}: Carriage return - move cursor to start of current line
+		\item \texttt{'\textbackslash t'}: Tab - move cursor to next tab position (8-character intervals)
+	\end{itemize}
+	\item Manages cursor position (column, row)
+	\item Calls LCD driver's \texttt{write()} function to display the character
+	\item Updates cursor position for next character
+	\item Returns character code on success
+\end{itemize}
+
+\textbf{getchar():}
+
+\textbf{Function:} \texttt{getchar()} is a standard C function that reads a single character from the standard input stream (stdin).
+
+\textbf{In STDIO Redirection:}
+\begin{itemize}
+	\item \texttt{scanf()}, \texttt{fgets()}, and other input functions internally call \texttt{getchar()}
+	\item By providing a custom \texttt{getchar()} implementation, we intercept all input and read from our custom device
+	\item The custom \texttt{getchar()} must have the signature: \texttt{int my\_getchar(FILE *stream)}
+	\item Returns the character read, EOF on failure or end-of-file
+\end{itemize}
+
+\textbf{Implementation for Keypad:}
+\begin{itemize}
+	\item Calls keypad driver's \texttt{getKey()} function (blocking)
+	\item Performs debouncing (typically 20ms)
+	\item Maps keypad key to ASCII character
+	\item Handles special keys:
+	\begin{itemize}
+		\item \texttt{'*'}: Could be treated as backspace or clear
+		\item \texttt{'\#'}: Could be treated as Enter/Return
+		\item Digits 0-9: Pass through directly
+		\item Letters A-D: May be ignored or mapped to commands
+	\end{itemize}
+	\item Optionally echoes character to LCD for user feedback
+	\item Waits for key release (debounce)
+	\item Returns character code
+\end{itemize}
+
+\textbf{Differences from Serial Communication:}
+
+\textbf{Serial Communication (UART):}
+
+\textbf{putchar() Implementation:}
+\begin{itemize}
+	\item Receives character \texttt{c}
+	\item Handles newline conversion: \texttt{'\textbackslash n'} $\rightarrow$ \texttt{'\textbackslash r\textbackslash n'} (for terminal compatibility)
+	\item Calls \texttt{Serial.write(c)} to transmit character via UART
+	\item No cursor management needed (terminal handles it)
+	\item No display size limitations
+	\item Returns character code
+\end{itemize}
+
+\textbf{getchar() Implementation:}
+\begin{itemize}
+	\item Waits for data available in Serial buffer: \texttt{while (!Serial.available())}
+	\item Reads character: \texttt{int c = Serial.read()}
+	\item Handles backspace: If \texttt{c == '\textbackslash b'}, send \texttt{"\textbackslash b \textbackslash b"} to erase on terminal
+	\item Returns character code
+\end{itemize}
+
+\textbf{LCD/Keypad Implementation:}
+
+\textbf{putchar() Implementation:}
+\begin{itemize}
+	\item Must manage LCD cursor position explicitly
+	\item Must handle display wrapping (16 characters per line)
+	\item Must clear previous content when overwriting
+	\item Limited display size requires careful text management
+	\item May need to scroll content if text exceeds display capacity
+\end{itemize}
+
+\textbf{getchar() Implementation:}
+\begin{itemize}
+	\item Must implement matrix scanning algorithm
+	\item Must perform debouncing (both press and release)
+	\item Must map physical key positions to ASCII characters
+	\item No native backspace support unless implemented in software
+	\item No native line editing capabilities
+\end{itemize}
+
+\textbf{Key Differences Summary:}
+
+\begin{table}[H]
+	\centering
+	\caption{Comparison: Serial vs. LCD/Keypad STDIO}
+	\label{tab:stdio-comparison}
+	\begin{tabular}{@{}p{5cm}p{5cm}p{5cm}@{}}
+		\toprule
+		\textbf{Aspect} & \textbf{Serial (UART)} & \textbf{LCD/Keypad} \\ \midrule
+		\textbf{putchar() Complexity} & Simple: Just transmit byte & Complex: Cursor management, wrapping \\ \midrule
+		\textbf{getchar() Complexity} & Simple: Read from buffer & Complex: Matrix scanning, debouncing \\ \midrule
+		\textbf{Display Limits} & None (scrolling terminal) & Fixed (16×2 characters) \\ \midrule
+		\textbf{Editing Support} & Native (backspace, arrows) & Must implement manually \\ \midrule
+		\textbf{Speed} & Fast (9600-115200 baud) & Slower (I2C 100-400kHz) \\ \midrule
+		\textbf{User Feedback} & Echoed by terminal & Must implement echo \\ \midrule
+		\textbf{Hardware Required} & UART pins (TX, RX) & LCD (I2C) + Keypad (8 GPIO) \\ \bottomrule
+	\end{tabular}
+\end{table}
+
+\textbf{Code Example - Stream Setup:}
+
+\begin{verbatim}
+// For Serial (UART)
+int serial_putchar(char c, FILE *stream) {
+    if (c == '\n') Serial.write('\r');
+    Serial.write(c);
+    return 0;
+}
+
+int serial_getchar(FILE *stream) {
+    while (!Serial.available());
+    return Serial.read();
+}
+
+// For LCD/Keypad
+int lcd_putchar(char c, FILE *stream) {
+    if (c == '\n') {
+        lcd.set_cursor(0, current_row + 1);
+        return 0;
+    }
+    lcd.write(c);
+    current_col++;
+    if (current_col >= 16) {
+        current_col = 0;
+        current_row++;
+    }
+    return 0;
+}
+
+int keypad_getchar(FILE *stream) {
+    char key = keypad.getKey();  // Blocking call with debouncing
+    if (key == '\0') return EOF;
+    lcd.write(key);  // Echo to LCD
+    return key;
+}
+\end{verbatim}
+
+\subsection*{5.5. Layered Architecture in Access Control}
+
+\textbf{Question:} Explain the concept of layered architecture in the context of access control with LCD and keypad. What advantages does this approach offer for authentication systems?
+
+\textbf{Answer:}
+
+\textbf{Layered Architecture Concept:}
+
+Layered architecture is a design pattern that organizes software into hierarchical layers, where each layer provides services to the layer above and uses services from the layer below. This creates clear separation of concerns, with each layer having a well-defined responsibility.
+
+\textbf{Layers in Access Control System:}
+
+\textbf{Layer 1: Hardware Layer (MCAL - Microcontroller Abstraction Layer)}
+
+\textbf{Components:}
+\begin{itemize}
+	\item GPIO pins (digital I/O)
+	\item I2C bus hardware
+	\item UART hardware
+	\item Timer hardware
+\end{itemize}
+
+\textbf{Responsibilities:}
+\begin{itemize}
+	\item Direct hardware register manipulation
+	\item Low-level pin control (HIGH/LOW)
+	\item I2C protocol implementation (start, stop, send, receive)
+	\item UART communication (transmit, receive)
+\end{itemize}
+
+\textbf{Example Functions:}
+\begin{itemize}
+	\item \texttt{digitalWrite(pin, value)}
+	\item \texttt{digitalRead(pin)}
+	\item \texttt{Wire.beginTransmission(address)}
+	\item \texttt{Serial.write(byte)}
+\end{itemize}
+
+\textbf{Layer 2: Enhanced Control Abstraction Layer (ECAL)}
+
+\textbf{Components:}
+\begin{itemize}
+	\item Keypad Driver
+	\item LCD Driver
+	\item LED Driver
+\end{itemize}
+
+\textbf{Responsibilities:}
+\begin{itemize}
+	\item Hardware abstraction for specific peripherals
+	\item Device-specific protocols and algorithms
+	\item Debouncing and signal processing
+	\item State management for hardware devices
+\end{itemize}
+
+\textbf{Example Functions:}
+\begin{itemize}
+	\item \texttt{Keypad::getKey()} - Matrix scanning with debouncing
+	\item \texttt{LcdI2c::print(text)} - I2C LCD communication
+	\item \texttt{Led::on()} - GPIO control with state tracking
+\end{itemize}
+
+\textbf{Layer 3: Service Layer (SRV)}
+
+\textbf{Components:}
+\begin{itemize}
+	\item Application Controller (FSM)
+	\item Password Manager
+	\item Authentication Service
+	\item User Interface Service
+\end{itemize}
+
+\textbf{Responsibilities:}
+\begin{itemize}
+	\item Business logic and application behavior
+	\item State machine management
+	\item Password verification and storage
+	\item User interaction flow
+\end{itemize}
+
+\textbf{Example Functions:}
+\begin{itemize}
+	\item \texttt{App::run()} - Main FSM execution
+	\item \texttt{App::verifyCode()} - Password comparison
+	\item \texttt{App::handleValidCode()} - Success response
+\end{itemize}
+
+\textbf{Layer 4: Presentation Layer}
+
+\textbf{Components:}
+\begin{itemize}
+	\item LCD Display Manager
+	\item LED Indicator Manager
+	\item Audio Feedback (if implemented)
+\end{itemize}
+
+\textbf{Responsibilities:}
+\begin{itemize}
+	\item User feedback and visualization
+	\item Display formatting and layout
+	\item Visual indication of system state
+\end{itemize}
+
+\textbf{Advantages for Authentication Systems:}
+
+\textbf{1. Modularity and Reusability}
+
+\begin{itemize}
+	\item Each driver (Keypad, LCD, LED) can be developed, tested, and debugged independently
+	\item Drivers can be reused in other projects without modification
+	\item Example: The Keypad driver can be used in any project requiring matrix input
+\end{itemize}
+
+\textbf{2. Maintainability}
+
+\begin{itemize}
+	\item Bugs are isolated to specific layers
+	\item Changes to hardware (e.g., different LCD module) only affect ECAL layer
+	\item Application logic (SRV) remains unchanged when hardware changes
+\end{itemize}
+
+\textbf{3. Testability}
+
+\begin{itemize}
+	\item Each layer can be unit tested independently
+	\item Mock implementations allow testing without hardware
+	\item Example: Test FSM logic using simulated keypad input
+\end{itemize}
+
+\textbf{4. Security}
+
+\begin{itemize}
+	\item Password verification logic isolated in SRV layer
+	\item Hardware details (keypad scanning) separated from security logic
+	\item Easier to implement encryption/hashing at appropriate layer
+	\item Prevents hardware-level attacks from directly accessing passwords
+\end{itemize}
+
+\textbf{5. Scalability}
+
+\begin{itemize}
+	\item Easy to add new features (e.g., biometric reader) by adding new ECAL driver
+	\item Can upgrade components without affecting overall system
+	\item Example: Replace matrix keypad with capacitive touch keypad
+\end{itemize}
+
+\textbf{6. Portability}
+
+\begin{itemize}
+	\item Application logic (SRV) can run on different microcontrollers
+	\item Only MCAL and ECAL layers need to be ported to new hardware
+	\item Enables cross-platform development
+\end{itemize}
+
+\textbf{7. Team Collaboration}
+
+\begin{itemize}
+	\item Different team members can work on different layers simultaneously
+	\item Clear interfaces between layers reduce integration complexity
+	\item Parallel development speeds up project timeline
+\end{itemize}
+
+\textbf{8. Documentation and Understanding}
+
+\begin{itemize}
+	\item Layered structure provides clear mental model of system
+	\item Easier for new developers to understand codebase
+	\item Simplifies knowledge transfer and onboarding
+\end{itemize}
+
+\textbf{Real-World Example:}
+
+\begin{itemize}
+	\item \textbf{Hardware Change:} If LCD module fails and needs replacement with different I2C address (0x3F instead of 0x27), only the LCD driver (ECAL) needs modification. FSM and password logic remain unchanged.
+
+	\item \textbf{Feature Addition:} Adding RFID card reader support requires only a new RFID driver in ECAL layer and integration in SRV layer. Existing Keypad, LCD, and LED drivers are unaffected.
+
+	\item \textbf{Security Enhancement:} Implementing password hashing affects only the Authentication Service in SRV layer. Keypad scanning, LCD display, and LED feedback remain identical.
+\end{itemize}
+
+\subsection*{5.6. Data Flow in Access Control System}
+
+\textbf{Question:} Describe the data flow in an access control system, from keypad key press to LCD result display and LED activation.
+
+\textbf{Answer:}
+
+\textbf{Data Flow Diagram:}
+
+\begin{figure}[H]
+	\centering
+	\resizebox{\textwidth}{!}{
+	\begin{tikzpicture}[
+		box/.style={rectangle, draw, rounded corners, minimum width=2.5cm, minimum height=1cm, align=center, fill=blue!10, font=\footnotesize},
+		arrow/.style={->, thick, >=stealth}
+	]
+		% Main vertical flow (center)
+		\node[box, fill=green!20] (user) at (0,0) {User\\Presses Key};
+		\node[box] (physical) at (0,-2) {Physical\\Keypad};
+		\node[box] (driver) at (0,-4) {Keypad Driver\\Matrix Scan};
+		\node[box] (debounce) at (0,-6) {Debouncing\\20ms};
+		\node[box] (fsm) at (0,-8) {App::run()\\FSM};
+		\node[box] (process) at (0,-10) {Input\\Processing};
+		
+		% LCD flow (right branch)
+		\node[box, fill=cyan!20] (lcd) at (5,-10) {LCD Driver\\Display};
+		\node[box, fill=cyan!20] (i2c) at (10,-10) {I2C\\Comm};
+		\node[box, fill=green!20] (display) at (15,-10) {LCD\\Display};
+		
+		% Verification flow (left branch)
+		\node[box, fill=orange!20] (buffer) at (-5,-10) {Buffer\\Finalize};
+		\node[box, fill=orange!20] (verify) at (-10,-10) {Password\\Verify};
+		\node[box, fill=red!20] (result) at (-10,-13) {Valid?\\Yes/No};
+		\node[box, fill=red!20] (led) at (-5,-13) {LED Control\\Green/Red};
+		
+		% Arrows
+		\draw[arrow] (user) -- (physical);
+		\draw[arrow] (physical) -- (driver);
+		\draw[arrow] (driver) -- (debounce);
+		\draw[arrow] (debounce) -- (fsm);
+		\draw[arrow] (fsm) -- (process);
+		\draw[arrow] (process) -- (lcd);
+		\draw[arrow] (lcd) -- (i2c);
+		\draw[arrow] (i2c) -- (display);
+		\draw[arrow] (process) -- (buffer);
+		\draw[arrow] (buffer) -- (verify);
+		\draw[arrow] (verify) -- (result);
+		\draw[arrow] (result) -- (led);
+		\draw[arrow] (result) -| (lcd);
+	\end{tikzpicture}
+	}
+	\caption{Data Flow in Access Control System}
+	\label{fig:data-flow}
+\end{figure}
+
+\textbf{Data Flow Phases:}
+
+\textbf{Phase 1: Input (15-25ms)}
+\begin{itemize}
+	\item Physical key press → Electrical signal
+	\item Matrix scanning (100μs/row) + Debouncing (20ms)
+	\item Key mapping to ASCII character
+\end{itemize}
+
+\textbf{Phase 2: Processing ($< 1ms$)}
+\begin{itemize}
+	\item FSM receives character
+	\item Mode routing (normal/programming)
+	\item Buffer accumulation
+\end{itemize}
+
+\textbf{Phase 3: Verification ($< 1ms$)}
+\begin{itemize}
+	\item '\#' key triggers verification
+	\item \texttt{strcmp(input, password)}
+	\item Result: VALID or INVALID
+\end{itemize}
+
+\textbf{Phase 4: Response (20-35ms)}
+\begin{itemize}
+	\item LCD: Success/Error message via I2C
+	\item LED: Green (5s) or Red (blink 5×)
+	\item Return to welcome after delay
+\end{itemize}
+
+\textbf{Total Response: 35-60ms ($< 100ms$ ✓)}
+
+\textbf{Code:}
+
+\begin{lstlisting}[language=C++, basicstyle=\tiny\ttfamily, caption=Data Flow Implementation]
+// Input processing
+char key = keypad.getKey();  // Scan + debounce
+if (key != '\0') {
+    if (_programmingMode)
+        processProgrammingInput(key);
+    else
+        processInput(key);
+}
+
+// Verification
+_inputCode[_inputPos] = '\0';
+if (verifyCode())  // strcmp()
+    handleValidCode();   // Green LED 5s
+else
+    handleInvalidCode(); // Red LED blink 5×
+\end{lstlisting}
+
+\subsection*{5.7. Menu Command Management}
+
+\textbf{Question:} What are the methods for efficient command management from keypad in menu systems? How can intuitive menu navigation be implemented using available keys?
+
+\textbf{Answer:}
+
+\textbf{Command Management Challenges:}
+
+Matrix keypads (4×4) have limited keys (16) compared to full keyboards (104+), requiring efficient use of available keys for menu navigation and command input.
+
+\textbf{Available Keys on 4×4 Keypad:}
+
+\begin{verbatim}
+┌───┬───┬───┬───┐
+| 1 | 2 | 3 | A |
++---+---+---+---+
+| 4 | 5 | 6 | B |
++---+---+---+---+
+| 7 | 8 | 9 | C |
++---+---+---+---+
+| * | 0 | # | D |
++---+---+---+---+
+\end{verbatim}
+
+\textbf{Key Assignment Strategies:}
+
+\textbf{Strategy 1: Numeric Selection (Direct Access)}
+
+\begin{itemize}
+	\item \textbf{Concept:} Assign menu items to numeric keys
+	\item \textbf{Implementation:}
+	\begin{itemize}
+		\item Main Menu: "1. Settings", "2. Users", "3. Logs", "4. Exit"
+		\item User presses '1' to access Settings
+		\item User presses '2' to access Users
+	\end{itemize}
+	\item \textbf{Pros:} Fast, direct access, intuitive
+	\item \textbf{Cons:} Limited to 9 options (1-9), '0' often reserved for special functions
+\end{itemize}
+
+\textbf{Strategy 2: Arrow Navigation (Scrolling)}
+
+\begin{itemize}
+	\item \textbf{Concept:} Use keys for directional navigation
+	\item \textbf{Key Mapping:}
+	\begin{itemize}
+		\item \texttt{2 / 8} or \texttt{4 / 6}: Up/Down or Left/Right navigation
+		\item \texttt{\#}: Select/Enter current option
+		\item \texttt{*}: Back/Cancel
+	\end{itemize}
+	\item \textbf{Implementation:}
+	\begin{itemize}
+		\item Maintain current selection index
+		\item '2' decrements index (move up)
+		\item '8' increments index (move down)
+		\item Wrap around at boundaries
+		\item '\#' confirms selection
+	\end{itemize}
+	\item \textbf{Pros:} Supports unlimited menu items, intuitive
+	\item \textbf{Cons:} Slower than direct access, requires scrolling
+\end{itemize}
+
+\textbf{Strategy 3: Hierarchical Navigation (Multi-Level)}
+
+\begin{itemize}
+	\item \textbf{Concept:} Organize menus in hierarchical structure
+	\item \textbf{Key Mapping:}
+	\begin{itemize}
+		\item \texttt{1-9}: Direct access to menu items
+		\item \texttt{*}: Back to parent menu
+		\item \texttt{\#}: Enter submenu
+		\item \texttt{D}: Main menu/Home
+	\end{itemize}
+	\item \textbf{Example Menu Structure:}
+	\begin{verbatim}
+Main Menu
+  1. Settings
+     1.1 Display
+     1.2 Sound
+     1.3 Security
+  2. Users
+     2.1 Add User
+     2.2 Delete User
+     2.3 List Users
+  3. Logs
+     3.1 Access Log
+     3.2 Error Log
+  4. Exit
+		\end{verbatim}
+	\item \textbf{Pros:} Organized, scalable, intuitive
+	\item \textbf{Cons:} More complex implementation, requires state tracking
+\end{itemize}
+
+\textbf{Strategy 4: Function Keys (Letters A-D)}
+
+\begin{itemize}
+	\item \textbf{Concept:} Use letter keys for context-sensitive functions
+	\item \textbf{Key Mapping:}
+	\begin{itemize}
+		\item \texttt{A}: Add/New
+		\item \texttt{B}: Back
+		\item \texttt{C}: Cancel/Clear
+		\item \texttt{D}: Delete/Done
+	\end{itemize}
+	\item \textbf{Implementation:}
+	\begin{itemize}
+		\item User Management: 'A' to add user, 'D' to delete user
+		\item Password Entry: 'C' to clear input
+		\item Navigation: 'B' to go back
+	\end{itemize}
+	\item \textbf{Pros:} Clear function indication, mnemonics (A=Add, D=Delete)
+	\item \textbf{Cons:} Only 4 function keys, may not fit all needs
+\end{itemize}
+
+\textbf{Strategy 5: Context-Sensitive Keys}
+
+\begin{itemize}
+	\item \textbf{Concept:} Change key functions based on current context
+	\item \textbf{Implementation:}
+	\begin{itemize}
+		\item Display current key functions on LCD
+		\item Keys change behavior based on menu/state
+		\item Example: In password entry, '*' = Clear; in navigation, '*' = Back
+	\end{itemize}
+	\item \textbf{Example LCD Display:}
+	\begin{verbatim}
+Main Menu
+1:Settings 2:Users
+3:Logs     4:Exit
+A:Help     B:Back
+		\end{verbatim}
+	\item \textbf{Pros:} Maximizes key utility, adaptive interface
+	\item \textbf{Cons:} User must read LCD to know key functions, steeper learning curve
+\end{itemize}
+
+\textbf{Intuitive Navigation Implementation:}
+
+\textbf{Technique 1: Visual Feedback}
+
+\begin{itemize}
+	\item Highlight current selection (e.g., " > Settings")
+	\item Show selection indicators (arrows, brackets)
+	\item Display key hints on screen
+\end{itemize}
+
+\textbf{Technique 2: Consistent Patterns}
+
+\begin{itemize}
+	\item Always use same keys for same functions across all menus
+	\item \texttt{\#} always means Enter/Select
+	\item \texttt{*} always means Back/Cancel
+	\item \texttt{D} always means Home/Exit
+\end{itemize}
+
+\textbf{Technique 3: Menu Breadcrumbs}
+
+\begin{itemize}
+	\item Show current location in menu hierarchy
+	\item Example: "Main > Settings > Display"
+	\item Helps user navigate complex menus
+\end{itemize}
+
+\textbf{Technique 4: Auto-Advance}
+
+\begin{itemize}
+	\item Automatically advance to next field after numeric entry
+	\item Example: Enter 4-digit PIN, auto-advance to verification
+	\item Reduces number of key presses
+\end{itemize}
+
+\textbf{Technique 5: Confirmation Dialogs}
+
+\begin{itemize}
+	\item Require confirmation for critical actions (delete, reset)
+	\item Example: "Delete User? Press \# to confirm"
+	\item Prevents accidental actions
+\end{itemize}
+
+\textbf{Implementation Example (C++ Pseudocode):}
+
+\begin{verbatim}
+enum MenuState {
+    MENU_MAIN,
+    MENU_SETTINGS,
+    MENU_USERS,
+    MENU_LOGS
+};
+
+class MenuSystem {
+private:
+    MenuState currentState;
+    int selectedIndex;
+    std::vector<MenuItem> currentItems;
+
+public:
+    void handleKey(char key) {
+        switch (currentState) {
+            case MENU_MAIN:
+                if (key >= '1' && key <= '4') {
+                    selectMenuItem(key - '1');
+                } else if (key == 'D') {
+                    // Exit/Back
+                }
+                break;
+            case MENU_SETTINGS:
+                if (key == 'B') {
+                    navigateBack();
+                } else if (key >= '1' && key <= '3') {
+                    selectSettingsOption(key - '1');
+                }
+                break;
+            // ... other states
+        }
+        updateDisplay();
+    }
+
+    void navigateUp() {
+        selectedIndex--;
+        if (selectedIndex < 0) {
+            selectedIndex = currentItems.size() - 1;
+        }
+    }
+
+    void navigateDown() {
+        selectedIndex++;
+        if (selectedIndex >= currentItems.size()) {
+            selectedIndex = 0;
+        }
+    }
+};
+\end{verbatim}
+
+\textbf{Best Practices:}
+
+\begin{itemize}
+	\item \textbf{Keep menus shallow:} Maximum 3-4 levels deep
+	\item \textbf{Limit menu items:} 5-7 items per screen (fits on 16×2 LCD)
+	\item \textbf{Provide shortcuts:} Allow direct numeric access to frequently used items
+	\item \textbf{Show progress:} Display "Page 1/3" for long menus
+	\item \textbf{Timeout protection:} Return to main menu after inactivity
+	\item \textbf{Error handling:} Clear error messages, guidance for recovery
+\end{itemize}
+
+\subsection*{5.8. STDIO vs. Direct Control Comparison}
+
+\textbf{Question:} Compare using STDIO functions for LCD and keypad control versus direct hardware control. What are the advantages and disadvantages of each approach in security systems?
+
+\textbf{Answer:}
+
+\textbf{STDIO Approach (printf, scanf, putchar, getchar)}
+
+\textbf{Concept:} Redirect standard C I/O functions to LCD/keypad hardware, using familiar stream-based programming.
+
+\textbf{Implementation:}
+\begin{itemize}
+	\item Custom \texttt{putchar()} sends characters to LCD
+	\item Custom \texttt{getchar()} reads from keypad
+	\item Use \texttt{printf()} for formatted output
+	\item Use \texttt{scanf()} for formatted input
+\end{itemize}
+
+\textbf{Advantages:}
+
+\textbf{1. Familiarity and Productivity}
+\begin{itemize}
+	\item Standard C functions well-known to programmers
+	\item Reduces learning curve for I/O operations
+	\item \texttt{printf("Enter PIN: \%d", pin\_num)} vs. multiple \texttt{lcd.print()} calls
+	\item Faster development for text-heavy applications
+\end{itemize}
+
+\textbf{2. Code Readability}
+\begin{itemize}
+	\item Intent is clear: \texttt{printf("Access Granted")} vs. low-level display commands
+	\item Formatted output easy to understand
+	\item Less boilerplate code
+\end{itemize}
+
+\textbf{3. Abstraction Layer}
+\begin{itemize}
+	\item Hardware details hidden behind STDIO interface
+	\item Application code independent of specific hardware
+	\item Easy to switch between LCD, serial, or other output devices
+\end{itemize}
+
+\textbf{4. Formatting Capabilities}
+\begin{itemize}
+	\item Built-in format specifiers: \texttt{\%d}, \texttt{\%s}, \texttt{\%x}, etc.
+	\item Width and precision control: \texttt{\%4d}, \texttt{\%.2f}
+	\item Automatic number-to-string conversion
+\end{itemize}
+
+\textbf{5. Portability}
+\begin{itemize}
+	\item Same code works with different output devices
+	\item Easier to migrate between platforms
+	\item Reusable across projects
+\end{itemize}
+
+\textbf{Disadvantages:}
+
+\textbf{1. Performance Overhead}
+\begin{itemize}
+	\item \texttt{printf()} parsing adds CPU cycles
+	\item Stream buffering consumes memory
+	\item Character-by-character I/O may be slower than direct control
+	\item Impact: 10-20\% slower than direct hardware access
+\end{itemize}
+
+\textbf{2. Memory Usage}
+\begin{itemize}
+	\item STDIO library adds code size (1-2KB flash)
+	\item File stream structures consume RAM
+	\item Format string parsing requires additional memory
+	\item Critical on resource-constrained microcontrollers
+\end{itemize}
+
+\textbf{3. Limited Control}
+\begin{itemize}
+	\item Cannot access advanced LCD features (custom characters, backlight control)
+	\item No fine-grained control over display timing
+	\item Cannot implement optimized I/O operations
+	\item \texttt{printf()} designed for serial, not character displays
+\end{itemize}
+
+\textbf{4. Blocking Behavior}
+\begin{itemize}
+	\item \texttt{printf()} and \texttt{scanf()} are blocking
+	\item Cannot perform background tasks during I/O
+	\item Problematic for real-time systems
+	\item May cause missed events (key presses, timeouts)
+\end{itemize}
+
+\textbf{5. No Native Editing Support}
+\begin{itemize}
+	\item No built-in backspace, arrow keys
+	\item Must implement editing manually in \texttt{getchar()}
+	\item Limited input validation
+\end{itemize}
+
+\textbf{Direct Hardware Control Approach}
+
+\textbf{Concept:} Use hardware-specific functions to directly control LCD/keypad.
+
+\textbf{Implementation:}
+\begin{itemize}
+	\item \texttt{lcd.print(text)} for LCD output
+	\item \texttt{keypad.getKey()} for keypad input
+	\item Manual string formatting and number conversion
+	\item Direct I2C/SPI/GPIO manipulation
+\end{itemize}
+
+\textbf{Advantages:}
+
+\textbf{1. Performance}
+\begin{itemize}
+	\item No parsing overhead
+	\item Direct hardware access
+	\item Optimized I/O operations possible
+	\item 10-20\% faster than STDIO approach
+\end{itemize}
+
+\textbf{2. Memory Efficiency}
+\begin{itemize}
+	\item Smaller code footprint
+	\item Less RAM usage
+	\item No file stream structures
+	\item Critical for resource-constrained systems
+\end{itemize}
+
+\textbf{3. Full Hardware Control}
+\begin{itemize}
+	\item Access all LCD features (custom characters, scrolling, cursor control)
+	\item Precise timing control
+	\item Can implement optimized algorithms
+	\item Direct I2C/SPI communication
+\end{itemize}
+
+\textbf{4. Non-Blocking Options}
+\begin{itemize}
+	\item Can implement non-blocking I/O
+	\item Background processing possible
+	\item Better for real-time systems
+	\item No blocking on \texttt{printf()} or \texttt{scanf()}
+\end{itemize}
+
+\textbf{5. Predictable Behavior}
+\begin{itemize}
+	\item Known execution time
+	\item No hidden formatting overhead
+	\item Easier to meet timing requirements
+	\item Better for safety-critical systems
+\end{itemize}
+
+\textbf{Disadvantages:}
+
+\textbf{1. Complexity}
+\begin{itemize}
+	\item More code required for simple operations
+	\item Manual string formatting
+	\item Manual number-to-string conversion
+	\item Example: \texttt{itoa(pin, buffer, 10); lcd.print(buffer);} vs. \texttt{printf("\%d", pin);}
+\end{itemize}
+
+\textbf{2. Hardware Coupling}
+\begin{itemize}
+	\item Code tied to specific hardware
+	\item Difficult to switch between devices
+	\item Requires hardware-specific knowledge
+	\item Less portable
+\end{itemize}
+
+\textbf{3. Reduced Readability}
+\begin{itemize}
+	\item Hardware details in application code
+	\item Less clear intent
+	\item More boilerplate
+	\item Harder for new developers to understand
+\end{itemize}
+
+\textbf{4. Limited Abstraction}
+\begin{itemize}
+	\item No standardized I/O interface
+	\item Each driver has different API
+	\item More integration work
+\end{itemize}
+
+\textbf{Comparison Table:}
+
+\begin{table}[H]
+	\centering
+	\caption{STDIO vs. Direct Control Comparison}
+	\label{tab:stdio-direct}
+	\begin{tabular}{@{}p{5cm}p{5cm}p{5cm}@{}}
+		\toprule
+		\textbf{Aspect} & \textbf{STDIO Approach} & \textbf{Direct Control} \\ \midrule
+		\textbf{Performance} & Slower (parsing overhead) & Faster (direct access) \\ \midrule
+		\textbf{Memory Usage} & Higher (library + streams) & Lower (minimal overhead) \\ \midrule
+		\textbf{Code Readability} & High (familiar functions) & Lower (hardware details) \\ \midrule
+		\textbf{Development Speed} & Fast (standard API) & Slower (manual work) \\ \midrule
+		\textbf{Hardware Control} & Limited (abstraction) & Full (direct access) \\ \midrule
+		\textbf{Portability} & High (standard interface) & Low (hardware-specific) \\ \midrule
+		\textbf{Real-time Capability} & Poor (blocking) & Good (non-blocking possible) \\ \midrule
+		\textbf{Learning Curve} & Low (standard C) & High (hardware-specific) \\ \midrule
+		\textbf{Debugging} & Easier (abstraction) & Harder (hardware details) \\ \midrule
+		\textbf{Security} & Mixed (abstraction) & Better (direct control) \\ \bottomrule
+	\end{tabular}
+\end{table}
+
+\textbf{Recommendations for Security Systems:}
+
+\textbf{Use STDIO Approach When:}
+\begin{itemize}
+	\item Developing rapid prototypes or proof-of-concept
+	\item System not time-critical (no strict timing requirements)
+	\item Team familiar with standard C I/O functions
+	\item Need quick development and testing
+	\item Display primarily text-based, simple output
+	\item Sufficient memory available (not resource-constrained)
+\end{itemize}
+
+\textbf{Use Direct Control Approach When:}
+\begin{itemize}
+	\item System is resource-constrained (limited flash/RAM)
+	\item Real-time performance required (strict timing)
+	\item Need access to advanced hardware features
+	\item Security-critical system (predictable behavior essential)
+	\item Need non-blocking I/O for background tasks
+	\item System must be highly optimized
+\end{itemize}
+
+\textbf{Hybrid Approach (Recommended for Security Systems):}
+
+\begin{itemize}
+	\item Use direct control for time-critical operations (keypad scanning, LED timing)
+	\item Use STDIO for user-facing text output (LCD messages, status displays)
+	\item Implement custom optimized functions for performance-critical paths
+	\item Leverage STDIO for debugging and logging (serial output)
+	\item Balance productivity and performance based on requirements
+\end{itemize}
+
+\textbf{Example Security System Architecture:}
+
+\begin{itemize}
+	\item \textbf{Keypad Input:} Direct control (non-blocking, real-time scanning)
+	\item \textbf{LCD Display:} STDIO (formatted messages, readable code)
+	\item \textbf{LED Control:} Direct control (precise timing, critical feedback)
+	\item \textbf{Debugging:} STDIO (serial output, formatted logging)
+	\item \textbf{Password Verification:} Direct control (security-critical, no overhead)
+\end{itemize}
+
+This hybrid approach provides the benefits of both methods: development productivity and readability for user interface, performance and control for security-critical operations.
+
+\subsection*{5.9. Code Portability Techniques}
+
+\textbf{Question:} What techniques can be used to ensure code portability for LCD and keypad interfaces between different hardware platforms? How can hardware interaction be abstracted?
+
+\textbf{Answer:}
+
+\textbf{Portability Challenges:}
+
+Embedded systems vary widely in hardware platforms (Arduino, ESP32, STM32, Raspberry Pi Pico, etc.), each with different:
+\begin{itemize}
+	\item GPIO pin layouts and numbering
+	\item I2C/SPI/UART implementations
+	\item Timing mechanisms
+	\item Available libraries and frameworks
+	\item Development environments and toolchains
+\end{itemize}
+
+\textbf{Abstraction Techniques:}
+
+\textbf{Technique 1: Hardware Abstraction Layer (HAL)}
+
+\textbf{Concept:} Create a unified interface that hides platform-specific details.
+
+\textbf{Implementation:}
+
+\textbf{HAL Interface (hal.h):}
+\begin{verbatim}
+class HardwareAbstraction {
+public:
+    // GPIO abstraction
+    virtual void pinMode(uint8_t pin, uint8_t mode) = 0;
+    virtual void digitalWrite(uint8_t pin, uint8_t value) = 0;
+    virtual int digitalRead(uint8_t pin) = 0;
+
+    // I2C abstraction
+    virtual void i2cBegin() = 0;
+    virtual void i2cBeginTransmission(uint8_t address) = 0;
+    virtual void i2cWrite(uint8_t data) = 0;
+    virtual uint8_t i2cEndTransmission() = 0;
+
+    // Timing abstraction
+    virtual void delay(unsigned long ms) = 0;
+    virtual unsigned long millis() = 0;
+};
+\end{verbatim}
+
+\textbf{Platform-Specific Implementations:}
+
+\textbf{Arduino Implementation (arduino\_hal.cpp):}
+\begin{verbatim}
+class ArduinoHAL : public HardwareAbstraction {
+public:
+    void pinMode(uint8_t pin, uint8_t mode) override {
+        ::pinMode(pin, mode);
+    }
+
+    void digitalWrite(uint8_t pin, uint8_t value) override {
+        ::digitalWrite(pin, value);
+    }
+
+    int digitalRead(uint8_t pin) override {
+        return ::digitalRead(pin);
+    }
+
+    void i2cBegin() override {
+        Wire.begin();
+    }
+
+    void i2cBeginTransmission(uint8_t address) override {
+        Wire.beginTransmission(address);
+    }
+
+    void i2cWrite(uint8_t data) override {
+        Wire.write(data);
+    }
+
+    uint8_t i2cEndTransmission() override {
+        return Wire.endTransmission();
+    }
+
+    void delay(unsigned long ms) override {
+        ::delay(ms);
+    }
+
+    unsigned long millis() override {
+        return ::millis();
+    }
+};
+\end{verbatim}
+
+\textbf{ESP32 Implementation (esp32\_hal.cpp):}
+\begin{verbatim}
+class ESP32HAL : public HardwareAbstraction {
+public:
+    void pinMode(uint8_t pin, uint8_t mode) override {
+        gpio_set_direction((gpio_num_t)pin, (gpio_mode_t)mode);
+    }
+
+    void digitalWrite(uint8_t pin, uint8_t value) override {
+        gpio_set_level((gpio_num_t)pin, value);
+    }
+
+    // ... similar implementations for ESP32
+};
+\end{verbatim}
+
+\textbf{Advantages:}
+\begin{itemize}
+	\item Application code unchanged when porting
+	\item Only HAL implementation needs to be rewritten
+	\item Clear separation between hardware and application logic
+	\item Easier to maintain and test
+\end{itemize}
+
+\textbf{Technique 2: Configuration Files}
+
+\textbf{Concept:} Store platform-specific settings in configuration files.
+
+\textbf{Configuration (config.h):}
+\begin{verbatim}
+// Platform selection
+#define PLATFORM_ARDUINO_UNO   1
+#define PLATFORM_ESP32         2
+#define PLATFORM_STM32         3
+
+// Select platform
+#define CURRENT_PLATFORM PLATFORM_ARDUINO_UNO
+
+#if CURRENT_PLATFORM == PLATFORM_ARDUINO_UNO
+    // Arduino Uno pin assignments
+    const uint8_t LCD_SDA_PIN = A4;
+    const uint8_t LCD_SCL_PIN = A5;
+    const uint8_t LED_GREEN_PIN = 12;
+    const uint8_t LED_RED_PIN = 13;
+
+    // Timing values
+    const unsigned long DEBOUNCE_PRESS_MS = 20;
+    const unsigned long DEBOUNCE_RELEASE_MS = 50;
+
+#elif CURRENT_PLATFORM == PLATFORM_ESP32
+    // ESP32 pin assignments
+    const uint8_t LCD_SDA_PIN = 21;
+    const uint8_t LCD_SCL_PIN = 22;
+    const uint8_t LED_GREEN_PIN = 2;
+    const uint8_t LED_RED_PIN = 4;
+
+    // Timing values (ESP32 faster, can reduce delays)
+    const unsigned long DEBOUNCE_PRESS_MS = 10;
+    const unsigned long DEBOUNCE_RELEASE_MS = 30;
+#endif
+\end{verbatim}
+
+\textbf{Advantages:}
+\begin{itemize}
+	\item Easy to switch platforms by changing \texttt{CURRENT\_PLATFORM}
+	\item All platform-specific settings in one place
+	\item No code changes required for different hardware
+\end{itemize}
+
+\textbf{Technique 3: Factory Pattern}
+
+\textbf{Concept:} Use factory pattern to create platform-specific objects.
+
+\textbf{Implementation:}
+\begin{verbatim}
+class DriverFactory {
+public:
+    static HardwareAbstraction* createHAL() {
+#if CURRENT_PLATFORM == PLATFORM_ARDUINO_UNO
+        return new ArduinoHAL();
+#elif CURRENT_PLATFORM == PLATFORM_ESP32
+        return new ESP32HAL();
+#else
+        return nullptr;
+#endif
+    }
+
+    static LcdDriver* createLcdDriver(uint8_t address) {
+        return new LcdI2cDriver(createHAL(), address);
+    }
+
+    static KeypadDriver* createKeypadDriver(const uint8_t* rows,
+                                            const uint8_t* cols,
+                                            uint8_t numRows,
+                                            uint8_t numCols) {
+        return new MatrixKeypad(createHAL(), rows, cols, numRows, numCols);
+    }
+};
+\end{verbatim}
+
+\textbf{Usage:}
+\begin{verbatim}
+// Platform-independent code
+auto hal = DriverFactory::createHAL();
+auto lcd = DriverFactory::createLcdDriver(0x27);
+auto keypad = DriverFactory::createKeypadDriver(rowPins, colPins, 4, 4);
+
+lcd->begin();
+keypad->begin();
+\end{verbatim}
+
+\textbf{Advantages:}
+\begin{itemize}
+	\item Clean object creation
+	\item Encapsulates platform-specific logic
+	\item Easy to add new platforms
+\end{itemize}
+
+\textbf{Technique 4: Conditional Compilation}
+
+\textbf{Concept:} Use preprocessor directives for platform-specific code.
+
+\textbf{Implementation:}
+\begin{verbatim}
+// Cross-platform delay function
+void platformDelay(unsigned long ms) {
+#if CURRENT_PLATFORM == PLATFORM_ARDUINO_UNO
+    delay(ms);
+#elif CURRENT_PLATFORM == PLATFORM_ESP32
+    vTaskDelay(ms / portTICK_PERIOD_MS);
+#elif CURRENT_PLATFORM == PLATFORM_STM32
+    HAL_Delay(ms);
+#endif
+}
+
+// Cross-platform I2C initialization
+void platformI2CInit() {
+#if CURRENT_PLATFORM == PLATFORM_ARDUINO_UNO
+    Wire.begin();
+#elif CURRENT_PLATFORM == PLATFORM_ESP32
+    Wire.begin(LCD_SDA_PIN, LCD_SCL_PIN);
+#elif CURRENT_PLATFORM == PLATFORM_STM32
+    I2C_InitTypeDef I2C_InitStruct;
+    // STM32 I2C initialization code
+#endif
+}
+\end{verbatim}
+
+\textbf{Advantages:}
+\begin{itemize}
+	\item Zero runtime overhead (compilation-time selection)
+	\item Optimized code for each platform
+	\item No memory overhead for unused platform code
+\end{itemize}
+
+\textbf{Technique 5: Interface-Based Design}
+
+\textbf{Concept:} Define interfaces for all hardware components.
+
+\textbf{LCD Interface (lcd\_interface.h):}
+\begin{verbatim}
+class ILcdDriver {
+public:
+    virtual ~ILcdDriver() = default;
+    virtual void begin() = 0;
+    virtual void clear() = 0;
+    virtual void setCursor(uint8_t col, uint8_t row) = 0;
+    virtual void print(const char* text) = 0;
+    virtual void println(const char* text) = 0;
+    virtual void write(uint8_t value) = 0;
+};
+\end{verbatim}
+
+\textbf{Keypad Interface (keypad\_interface.h):}
+\begin{verbatim}
+class IKeypadDriver {
+public:
+    virtual ~IKeypadDriver() = default;
+    virtual void begin() = 0;
+    virtual char getKey() = 0;
+    virtual bool keyPressed() = 0;
+};
+\end{verbatim}
+
+\textbf{Usage:}
+\begin{verbatim}
+// Application uses interfaces, not concrete implementations
+class AccessControlSystem {
+private:
+    ILcdDriver* _lcd;
+    IKeypadDriver* _keypad;
+
+public:
+    AccessControlSystem(ILcdDriver* lcd, IKeypadDriver* keypad)
+        : _lcd(lcd), _keypad(keypad) {}
+
+    void run() {
+        char key = _keypad->getKey();
+        if (key != '\0') {
+            _lcd->print("Key: ");
+            _lcd->write(key);
+        }
+    }
+};
+\end{verbatim}
+
+\textbf{Advantages:}
+\begin{itemize}
+	\item Clear contract between components
+	\item Easy to mock for testing
+	\item Promotes loose coupling
+	\item Facilitates dependency injection
+\end{itemize}
+
+\textbf{Technique 6: Build System Configuration}
+
+\textbf{Concept:} Use build system to select platform and dependencies.
+
+\textbf{PlatformIO (platformio.ini):}
+\begin{verbatim}
+[env:arduino_uno]
+platform = atmelavr
+board = uno
+framework = arduino
+build_flags = -DPLATFORM_ARDUINO_UNO
+
+[env:esp32]
+platform = espressif32
+board = esp32dev
+framework = arduino
+build_flags = -DPLATFORM_ESP32
+
+[env:stm32]
+platform = ststm32
+board = nucleo_f103rb
+framework = arduino
+build_flags = -DPLATFORM_STM32
+\end{verbatim}
+
+\textbf{CMake (CMakeLists.txt):}
+\begin{verbatim}
+if(ARDUINO_UNO)
+    add_definitions(-DPLATFORM_ARDUINO_UNO)
+    target_sources(myapp PRIVATE arduino_hal.cpp)
+elseif(ESP32)
+    add_definitions(-DPLATFORM_ESP32)
+    target_sources(myapp PRIVATE esp32_hal.cpp)
+endif()
+\end{verbatim}
+
+\textbf{Advantages:}
+\begin{itemize}
+	\item Automated platform selection
+	\item Platform-specific optimizations
+	\item Easy to build for multiple targets
+\end{itemize}
+
+\textbf{Portability Checklist:}
+
+\begin{itemize}
+	\item \textbf{Hardware Abstraction:} HAL or interface-based design
+	\item \textbf{Configuration:} Platform-specific settings in config files
+	\item \textbf{Build System:} Multi-platform build configuration
+	\item \textbf{Dependencies:} Platform-agnostic library selection
+	\item \textbf{Timing:} Abstracted timing functions
+	\item \textbf{Memory:} Avoid platform-specific memory sizes
+	\item \textbf{Data Types:} Use standard types (uint8\_t, uint16\_t)
+	\item \textbf{Compiler:} Avoid compiler-specific extensions
+	\item \textbf{Testing:} Test on all target platforms
+	\item \textbf{Documentation:} Document platform-specific requirements
+\end{itemize}
+
+\textbf{Example: Porting from Arduino to ESP32}
+
+\textbf{Step 1: Update Configuration}
+\begin{itemize}
+	\item Change \texttt{CURRENT\_PLATFORM} to \texttt{PLATFORM\_ESP32}
+	\item Update pin assignments (A4/A5 $\rightarrow$ 21/22)
+	\item Adjust timing values if needed
+\end{itemize}
+
+\textbf{Step 2: Implement ESP32 HAL}
+\begin{itemize}
+	\item Create \texttt{ESP32HAL} class
+	\item Implement all HAL interface methods using ESP32 APIs
+\end{itemize}
+
+\textbf{Step 3: Update Build Configuration}
+\begin{itemize}
+	\item Select ESP32 environment in PlatformIO
+	\item Build and test
+\end{itemize}
+
+\textbf{Step 4: Validate}
+\begin{itemize}
+	\item Test all functionality on ESP32
+	\item Verify timing and performance
+	\item Check memory usage
+\end{itemize}
+
+\textbf{Result:} Application code unchanged, only HAL and configuration modified.
+
+\subsection*{5.10. Testing Methodology for Access Control}
+
+\textbf{Question:} Describe the methodology for testing an access control system based on LCD and keypad. What test scenarios are important for validating security and functionality?
+
+\textbf{Answer:}
+
+\textbf{Testing Methodology:}
+
+Comprehensive testing of access control systems requires systematic validation of security, functionality, usability, and reliability. A structured testing approach ensures all requirements are met and potential vulnerabilities are identified.
+
+\textbf{Testing Phases:}
+
+\textbf{Phase 1: Unit Testing}
+
+\textbf{Objective:} Test individual components in isolation.
+
+\textbf{Test Cases:}
+
+\textbf{Keypad Driver Unit Tests:}
+\begin{itemize}
+	\item \textbf{Test: Single Key Detection}
+	\begin{itemize}
+		\item Input: Press '1' key
+		\item Expected: Return '1'
+		\item Validation: Correct key returned
+	\end{itemize}
+
+	\item \textbf{Test: Debouncing}
+	\begin{itemize}
+		\item Input: Rapid key press/release
+		\item Expected: Single key detection, no multiple triggers
+		\item Validation: No false positives from contact bounce
+	\end{itemize}
+
+	\item \textbf{Test: All Keys}
+	\begin{itemize}
+		\item Input: Press all 16 keys sequentially
+		\item Expected: Correct mapping for each key
+		\item Validation: Key matrix matches expected layout
+	\end{itemize}
+
+	\item \textbf{Test: Simultaneous Key Press}
+	\begin{itemize}
+		\item Input: Press two keys simultaneously
+		\item Expected: Detect one key, ignore other (or detect both if supported)
+		\item Validation: No ghosting or undefined behavior
+	\end{itemize}
+\end{itemize}
+
+\textbf{LCD Driver Unit Tests:}
+\begin{itemize}
+	\item \textbf{Test: Display Initialization}
+	\begin{itemize}
+		\item Input: Call \texttt{begin()}
+		\item Expected: LCD initialized, backlight on, display cleared
+		\item Validation: LCD responsive, cursor at (0,0)
+	\end{itemize}
+
+	\item \textbf{Test: Text Display}
+	\begin{itemize}
+		\item Input: \texttt{print("Hello")}
+		\item Expected: "Hello" displayed at current cursor position
+		\item Validation: Correct text appears on screen
+	\end{itemize}
+
+	\item \textbf{Test: Cursor Positioning}
+	\begin{itemize}
+		\item Input: \texttt{setCursor(5, 1)}
+		\item Expected: Cursor at column 5, row 1
+		\item Validation: Subsequent output at correct position
+	\end{itemize}
+
+	\item \textbf{Test: Display Clear}
+	\begin{itemize}
+		\item Input: \texttt{clear()}
+		\item Expected: All text removed, cursor at (0,0)
+		\item Validation: Empty display
+	\end{itemize}
+\end{itemize}
+
+\textbf{LED Driver Unit Tests:}
+\begin{itemize}
+	\item \textbf{Test: LED On}
+	\begin{itemize}
+		\item Input: \texttt{on()}
+		\item Expected: LED illuminated, state = true
+		\item Validation: LED visible, \texttt{state()} returns true
+	\end{itemize}
+
+	\item \textbf{Test: LED Off}
+	\begin{itemize}
+		\item Input: \texttt{off()}
+		\item Expected: LED extinguished, state = false
+		\item Validation: LED off, \texttt{state()} returns false
+	\end{itemize}
+
+	\item \textbf{Test: Toggle}
+	\begin{itemize}
+		\item Input: \texttt{toggle()} when LED is on
+		\item Expected: LED turns off, state inverts
+		\item Validation: Correct behavior
+	\end{itemize}
+\end{itemize}
+
+\textbf{Phase 2: Integration Testing}
+
+\textbf{Objective:} Test interaction between components.
+
+\textbf{Test Cases:}
+
+\textbf{Input-Output Integration:}
+\begin{itemize}
+	\item \textbf{Test: Keypad to LCD Echo}
+	\begin{itemize}
+		\item Input: Press '1', '2', '3', '4'
+		\item Expected: LCD displays "****"
+		\item Validation: Keypad input correctly displayed
+	\end{itemize}
+
+	\item \textbf{Test: Clear Function}
+	\begin{itemize}
+		\item Input: Enter partial PIN, press '*'
+		\item Expected: Input cleared, display shows "[    ]"
+		\item Validation: Clear functionality works
+	\end{itemize}
+\end{itemize}
+
+\textbf{FSM Integration:}
+\begin{itemize}
+	\item \textbf{Test: State Transitions}
+	\begin{itemize}
+		\item Input: Sequence of key presses
+		\item Expected: Correct state transitions (Welcome $\rightarrow$ Input $\rightarrow$ Verify $\rightarrow$ Granted)
+		\item Validation: FSM follows correct path
+	\end{itemize}
+
+	\item \textbf{Test: LED Activation}
+	\begin{itemize}
+		\item Input: Enter correct PIN
+		\item Expected: Green LED turns on for 5 seconds
+		\item Validation: LED timing and color correct
+	\end{itemize}
+\end{itemize}
+
+\textbf{Phase 3: Functional Testing}
+
+\textbf{Objective:} Validate system functionality against requirements.
+
+\textbf{Test Scenarios:}
+
+\textbf{Scenario 1: Successful Authentication}
+\begin{enumerate}
+	\item System displays "Enter Code: [    ]"
+	\item User enters correct PIN (e.g., "1234")
+	\item User presses '\#'
+	\item Expected: "ACCESS GRANTED! Door Unlocked", green LED on for 5 seconds
+	\item Validation: Success path works correctly
+\end{enumerate}
+
+\textbf{Scenario 2: Failed Authentication}
+\begin{enumerate}
+	\item System displays "Enter Code: [    ]"
+	\item User enters incorrect PIN (e.g., "9999")
+	\item User presses '\#'
+	\item Expected: "ACCESS DENIED! Wrong Code", red LED blinks 5 times
+	\item Validation: Failure path works correctly
+\end{enumerate}
+
+\textbf{Scenario 3: Password Change}
+\begin{enumerate}
+	\item User presses 'D' at welcome screen
+	\item System enters programming mode, programming LED on
+	\item User enters new PIN (e.g., "5678")
+	\item User presses '\#'
+	\item Expected: "PASSWORD SAVED | New: 5678", green LED blinks twice
+	\item Validation: Password change functionality works
+\end{enumerate}
+
+\textbf{Scenario 4: Input Clearing}
+\begin{enumerate}
+	\item User enters partial PIN (e.g., "12")
+	\item User presses '*'
+	\item Expected: Input cleared, display returns to "[    ]"
+	\item Validation: Clear functionality works at any point
+\end{enumerate}
+
+\textbf{Scenario 5: Programming Mode Cancellation}
+\begin{enumerate}
+	\item User enters programming mode with 'D'
+	\item User presses '*'
+	\item Expected: Exit programming mode, original password unchanged
+	\item Validation: Cancellation works correctly
+\end{enumerate}
+
+\textbf{Phase 4: Security Testing}
+
+\textbf{Objective:} Validate security measures and identify vulnerabilities.
+
+\textbf{Test Scenarios:}
+
+\textbf{Security Test 1: Incorrect PIN Attempts}
+\begin{itemize}
+	\item \textbf{Test:} Enter incorrect PIN 10 times
+	\item \textbf{Expected:} System continues to accept attempts (no lockout)
+	\item \textbf{Vulnerability:} No brute-force protection
+	\item \textbf{Recommendation:} Implement attempt limit and lockout
+\end{itemize}
+
+\textbf{Security Test 2: Timing Analysis}
+\begin{itemize}
+	\item \textbf{Test:} Measure time to verify correct vs. incorrect PIN
+	\item \textbf{Expected:} Different timing might reveal password information
+	\item \textbf{Vulnerability:} Timing attacks possible
+	\item \textbf{Recommendation:} Constant-time password comparison
+\end{itemize}
+
+\textbf{Security Test 3: Password Persistence}
+\begin{itemize}
+	\item \textbf{Test:} Change password, power cycle, attempt authentication
+	\item \textbf{Expected:} New password lost after power cycle
+	\item \textbf{Vulnerability:} No non-volatile storage
+	\item \textbf{Recommendation:} Store password in EEPROM
+\end{itemize}
+
+\textbf{Security Test 4: Programming Mode Security}
+\begin{itemize}
+	\item \textbf{Test:} Enter programming mode without authentication
+	\item \textbf{Expected:} System allows password change
+	\item \textbf{Vulnerability:} No authentication for password change
+	\item \textbf{Recommendation:} Require current password to change password
+\end{itemize}
+
+\textbf{Security Test 5: Buffer Overflow}
+\begin{itemize}
+	\item \textbf{Test:} Enter more than 4 digits before pressing '\#'
+	\item \textbf{Expected:} System ignores extra digits
+	\item \textbf{Vulnerability:} May cause buffer overflow if not properly bounded
+	\item \textbf{Recommendation:} Ensure strict 4-digit limit
+\end{itemize}
+
+\textbf{Phase 5: Performance Testing}
+
+\textbf{Objective:} Validate system meets performance requirements.
+
+\textbf{Test Cases:}
+
+\textbf{Performance Test 1: Response Time}
+\begin{itemize}
+	\item \textbf{Test:} Measure time from key press to LCD update
+	\item \textbf{Requirement:} $< 100$ms
+	\item \textbf{Expected:} 35-60ms
+	\item \textbf{Validation:} Meets requirement
+\end{itemize}
+
+\textbf{Performance Test 2: Memory Usage}
+\begin{itemize}
+	\item \textbf{Test:} Measure flash and RAM usage
+	\item \textbf{Expected:} Flash $< 32$KB, RAM $< 2$KB
+	\item \textbf{Validation:} Fits within Arduino Uno constraints
+\end{itemize}
+
+\textbf{Performance Test 3: Power Consumption}
+\begin{itemize}
+	\item \textbf{Test:} Measure current draw in different states
+	\item \textbf{Expected:} $< 100$mA (idle), $< 150$mA (active)
+	\item \textbf{Validation:} Within power supply capabilities
+\end{itemize}
+
+\textbf{Phase 6: Usability Testing}
+
+\textbf{Objective:} Evaluate user experience and interface design.
+
+\textbf{Test Scenarios:}
+
+\textbf{Usability Test 1: First-Time User}
+\begin{itemize}
+	\item \textbf{Test:} Observe new user attempting to enter PIN
+	\item \textbf{Expected:} User understands interface without instructions
+	\item \textbf{Validation:} Interface is intuitive
+\end{itemize}
+
+\textbf{Usability Test 2: Error Recovery}
+\begin{itemize}
+	\item \textbf{Test:} User makes mistake (wrong PIN), then corrects
+	\item \textbf{Expected:} Clear error message, easy recovery
+	\item \textbf{Validation:} Error handling is user-friendly
+\end{itemize}
+
+\textbf{Usability Test 3: Programming Mode}
+\begin{itemize}
+	\item \textbf{Test:} User changes password
+	\item \textbf{Expected:} Clear instructions, confirmation of change
+	\item \textbf{Validation:} Password change process is straightforward
+\end{itemize}
+
+\textbf{Phase 7: Reliability Testing}
+
+\textbf{Objective:} Validate system reliability over extended operation.
+
+\textbf{Test Cases:}
+
+\textbf{Reliability Test 1: Extended Operation}
+\begin{itemize}
+	\item \textbf{Test:} Run system for 24 hours, perform 100 authentications
+	\item \textbf{Expected:} No crashes, no memory leaks, consistent behavior
+	\item \textbf{Validation:} System stable over time
+\end{itemize}
+
+\textbf{Reliability Test 2: Key Repeated Press}
+\begin{itemize}
+	\item \textbf{Test:} Press same key 100 times rapidly
+	\item \textbf{Expected:} Each press detected correctly, no missed or duplicate keys
+	\item \textbf{Validation:} Keypad scanning robust
+\end{itemize}
+
+\textbf{Reliability Test 3: Power Cycle}
+\begin{itemize}
+	\item \textbf{Test:} Power cycle system 50 times
+	\item \textbf{Expected:} System boots correctly each time
+	\item \textbf{Validation:} Initialization reliable
+\end{itemize}
+
+\textbf{Phase 8: Environmental Testing}
+
+\textbf{Objective:} Validate system operates in expected environmental conditions.
+
+\textbf{Test Cases:}
+
+\textbf{Environmental Test 1: Temperature}
+\begin{itemize}
+	\item \textbf{Test:} Operate at 0°C and 40°C
+	\item \textbf{Expected:} System functions correctly
+	\item \textbf{Validation:} Temperature range acceptable
+\end{itemize}
+
+\textbf{Environmental Test 2: Humidity}
+\begin{itemize}
+	\item \textbf{Test:} Operate at 20\% and 80\% humidity
+	\item \textbf{Expected:} No false key triggers, LCD readable
+	\item \textbf{Validation:} Humidity tolerance adequate
+\end{itemize}
+
+\textbf{Environmental Test 3: Voltage Variation}
+\begin{itemize}
+	\item \textbf{Test:} Operate at 4.5V and 5.5V
+	\item \textbf{Expected:} System functions correctly
+	\item \textbf{Validation:} Voltage tolerance acceptable
+\end{itemize}
+
+\textbf{Test Documentation:}
+
+For each test, document:
+\begin{itemize}
+	\item Test ID and name
+	\item Test objective
+	\item Test procedure
+	\item Expected results
+	\item Actual results
+	\item Pass/fail status
+	\item Date and tester
+	\item Notes and observations
+\end{itemize}
+
+\textbf{Test Automation:}
+
+Automate repetitive tests using:
+\begin{itemize}
+	\item Test scripts for serial communication simulation
+	\item Hardware-in-the-loop (HIL) testing
+	\item Automated test harness for unit tests
+	\item Continuous integration for regression testing
+\end{itemize}
+
+\textbf{Critical Test Scenarios Summary:}
+
+\begin{table}[H]
+	\centering
+	\caption{Critical Test Scenarios}
+	\label{tab:critical-tests}
+	\begin{tabular}{@{}p{6cm}p{9cm}@{}}
+		\toprule
+		\textbf{Test Scenario} & \textbf{Importance} \\ \midrule
+		Correct PIN authentication & Critical - Primary function \\ \midrule
+		Incorrect PIN rejection & Critical - Security requirement \\ \midrule
+		Password change functionality & High - Management feature \\ \midline
+		Response time (< 100ms) & Critical - Usability requirement \\ \midline
+		Debouncing reliability & Critical - Input accuracy \\ \midline
+		LCD display accuracy & High - User feedback \\ \midline
+		LED indication correctness & High - Visual feedback \\ \midline
+		Input buffer overflow protection & Critical - Security \\ \midline
+		Programming mode security & Critical - Unauthorized access prevention \\ \midline
+		Extended operation stability & High - Reliability \\ \bottomrule
+	\end{tabular}
+\end{table}
+
+\textbf{Testing Tools and Equipment:}
+
+\begin{itemize}
+	\item \textbf{Oscilloscope:} Measure timing, signal integrity
+	\item \textbf{Multimeter:} Measure voltage, current, resistance
+	\item \textbf{Logic Analyzer:} Analyze I2C, GPIO signals
+	\item \textbf{Serial Monitor:} Debug output, logging
+	\item \textbf{Automated Test Framework:} Unit test execution
+	\item \textbf{Environmental Chamber:} Temperature/humidity testing
+\end{itemize}
+
+This comprehensive testing methodology ensures the access control system is secure, functional, reliable, and user-friendly before deployment.
+
+% ============================================================================
+% CHAPTER 6: AI TOOLS USAGE
+% ============================================================================
+\section*{6. Note on AI Tools Usage}
 
 During the preparation of this report, the author utilized ChatGPT (an AI language model developed by OpenAI) for generating and consolidating content. The AI assistance was used for:
 
 \begin{itemize}
-    \item Generating and structuring technical descriptions of hardware components and technologies.
-    \item Formulating explanations of system architecture and design decisions.
-    \item Drafting sections on domain analysis and case studies.
-    \item Suggesting improvements and limitations based on the implemented solution.
-    \item Assisting with formatting and organizing the report structure.
+	\item Generating and structuring technical descriptions of hardware components and technologies.
+	\item Formulating explanations of system architecture and design decisions.
+	\item Drafting sections on domain analysis and case studies.
+	\item Suggesting improvements and limitations based on the implemented solution.
+	\item Assisting with formatting and organizing the report structure.
 \end{itemize}
 
 All information generated by the AI tool was reviewed, validated, and adjusted by the author to ensure accuracy, relevance, and compliance with the laboratory work requirements. The author takes full responsibility for the content presented in this report.
 
 % ============================================================================
-% CHAPTER 6: BIBLIOGRAPHY
+% CHAPTER 8: BIBLIOGRAPHY
 % ============================================================================
-\section*{6. Bibliography}
+\section*{8. Bibliography}
 
 \begin{enumerate}
-    \item Arduino.cc. \textit{Arduino Language Reference}. Available: \url{https://www.arduino.cc/reference/en/} [Accessed: 2026-02-08].
+	\item Arduino.cc. \textit{Arduino Language Reference}. Available: \url{https://www.arduino.cc/reference/en/} [Accessed: 2026-02-16].
 
-    \item Atmel Corporation. \textit{ATmega328P Datasheet - Complete}. 2014. Available: \url{https://ww1.microchip.com/downloads/en/DeviceDoc/Atmel-42735-8-bit-AVR-Microcontroller-ATmega328P_Datasheet.pdf} [Accessed: 2026-02-08].
+	\item Atmel Corporation. \textit{ATmega328P Datasheet - Complete}. 2014. Available: \url{https://ww1.microchip.com/downloads/en/DeviceDoc/Atmel-42735-8-bit-AVR-Microcontroller-ATmega328P_Datasheet.pdf} [Accessed: 2026-02-16].
 
-    \item PlatformIO. \textit{PlatformIO Documentation}. Available: \url{https://docs.platformio.org/} [Accessed: 2026-02-08].
+	\item PlatformIO. \textit{PlatformIO Documentation}. Available: \url{https://docs.platformio.org/} [Accessed: 2026-02-16].
 
-    \item Axelson, J. \textit{Serial Port Complete: COM Ports, USB Virtual COM Ports, and Ports for Embedded Systems}. Lakeview Research, 2007.
+	\item LiquidCrystal\_I2C Library. \textit{GitHub Repository}. Available: \url{https://github.com/johnrickman/LiquidCrystal_I2C} [Accessed: 2026-02-16].
 
-    \item Arduino.cc. \textit{Serial Communication}. Available: \url{https://www.arduino.cc/reference/en/language/functions/communication/serial/} [Accessed: 2026-02-08].
+	\item NXP Semiconductors. \textit{I2C-Bus Specification and User Manual}. 2021. Available: \url{https://www.nxp.com/docs/en/user-guide/UM10204.pdf} [Accessed: 2026-02-16].
+
+	\item Axelson, J. \textit{Serial Port Complete: COM Ports, USB Virtual COM Ports, and Ports for Embedded Systems}. Lakeview Research, 2007.
+
+	\item Arduino.cc. \textit{Wire Library (I2C)}. Available: \url{https://www.arduino.cc/reference/en/language/functions/communication/wire/} [Accessed: 2026-02-16].
+
+	\item Arduino.cc. \textit{LiquidCrystal Library}. Available: \url{https://www.arduino.cc/reference/en/libraries/liquidcrystal/} [Accessed: 2026-02-16].
+
+	\item Horowitz, P., and Hill, W. \textit{The Art of Electronics}. 3rd Edition, Cambridge University Press, 2015.
+
+	\item Wikipedia. \textit{Finite-state machine}. Available: \url{https://en.wikipedia.org/wiki/Finite-state_machine} [Accessed: 2026-02-16].
+
+	\item Wikipedia. \textit{Debouncing}. Available: \url{https://en.wikipedia.org/wiki/Switch#Contact_bounce} [Accessed: 2026-02-16].
+
+	\item Wikipedia. \textit{Matrix keypad}. Available: \url{https://en.wikipedia.org/wiki/Keypad#Matrix_keypads} [Accessed: 2026-02-16].
+
+	\item AVR Libc. \textit{Standard IO Facilities}. Available: \url{https://www.nongnu.org/avr-libc/user-manual/group__avr__stdio.html} [Accessed: 2026-02-16].
+
+	\item NXP Semiconductors. \textit{PCF8574 8-bit I/O expander for I2C-bus}. 2013. Available: \url{https://www.nxp.com/docs/en/datasheet/PCF8574.pdf} [Accessed: 2026-02-16].
 \end{enumerate}
 
 % ============================================================================
@@ -483,366 +3191,33 @@ All information generated by the AI tool was reviewed, validated, and adjusted b
 % ============================================================================
 \section*{7. Appendix - Source Code}
 
-\subsection*{7.1. LED Driver Header (led.h)}
-
-\begin{lstlisting}[language=C++, caption=led.h - LED Driver Interface]
-#ifndef LED_H
-#define LED_H
-
-#include <Arduino.h>
-
-class Led
-{
-public:
-\texplicit Led(uint8_t pin);
-	void begin();
-	void on();
-	void off();
-	void toggle();
-	bool state() const;
-
-private:
-	uint8_t _pin;
-	bool _state;
-};
-
-#endif // LED_H
-\end{lstlisting}
-
-\subsection*{7.2. LED Driver Implementation (led.cpp)}
-
-\begin{lstlisting}[language=C++, caption=led.cpp - LED Driver Implementation]
-#include "led.h"
-
-Led::Led(uint8_t pin)
-    : _pin(pin), _state(false) {}
-
-void Led::begin()
-{
-  pinMode(_pin, OUTPUT);
-  digitalWrite(_pin, LOW);
-  _state = false;
-}
-
-void Led::on()
-{
-  digitalWrite(_pin, HIGH);
-  _state = true;
-}
-
-void Led::off()
-{
-  digitalWrite(_pin, LOW);
-  _state = false;
-}
-
-void Led::toggle()
-{
-  if (_state)
-    off();
-  else
-    on();
-}
-
-bool Led::state() const { return _state; }
-\end{lstlisting}
-
-\subsection*{7.3. Command Parser Header (command.h)}
-
-\begin{lstlisting}[language=C++, caption=command.h - Command Parser Interface]
-#ifndef COMMAND_H
-#define COMMAND_H
-
-#include <Arduino.h>
-
-enum CommandType {
-    CMD_LED1_ON,
-    CMD_LED1_OFF,
-    CMD_LED2_ON,
-    CMD_LED2_OFF,
-    CMD_BOTH_ON,
-    CMD_BOTH_OFF,
-    CMD_UNKNOWN,
-    CMD_EMPTY
-};
-
-class CommandParser {
-public:
-    static CommandType parse(const char* input);
-
-    static bool isValid(CommandType cmd);
-
-    static const char* toString(CommandType cmd);
-
-private:
-    static const int MAX_CMD_LENGTH = 32;
-};
-
-#endif // COMMAND_H
-\end{lstlisting}
-
-\subsection*{7.4. Command Parser Implementation (command.cpp)}
-
-\begin{lstlisting}[language=C++, caption=command.cpp - Command Parser Implementation]
-#include "command.h"
-#include <string.h>
-#include <ctype.h>
-
-static void trimWhitespace(char* str) {
-    char* end;
-
-    while (isspace((unsigned char)*str)) str++;
-
-    if (*str == 0) {
-        *str = 0;
-        return;
-    }
-
-    end = str + strlen(str) - 1;
-    while (end > str && isspace((unsigned char)*end)) end--;
-
-    *(end + 1) = 0;
-}
-
-static void toLowerCase(char* str) {
-    for (; *str; ++str) {
-        *str = tolower((unsigned char)*str);
-    }
-}
-
-CommandType CommandParser::parse(const char* input) {
-    if (input == nullptr || input[0] == '\0') {
-        return CMD_EMPTY;
-    }
-
-    char buffer[MAX_CMD_LENGTH];
-    strncpy(buffer, input, MAX_CMD_LENGTH - 1);
-    buffer[MAX_CMD_LENGTH - 1] = '\0';
-
-    trimWhitespace(buffer);
-    toLowerCase(buffer);
-
-    if (strcmp(buffer, "led1 on") == 0) {
-        return CMD_LED1_ON;
-    } else if (strcmp(buffer, "led1 off") == 0) {
-        return CMD_LED1_OFF;
-    } else if (strcmp(buffer, "led2 on") == 0) {
-        return CMD_LED2_ON;
-    } else if (strcmp(buffer, "led2 off") == 0) {
-        return CMD_LED2_OFF;
-    } else if (strcmp(buffer, "led both on") == 0) {
-        return CMD_BOTH_ON;
-    } else if (strcmp(buffer, "led both off") == 0) {
-        return CMD_BOTH_OFF;
-    }
-
-    return CMD_UNKNOWN;
-}
-
-bool CommandParser::isValid(CommandType cmd) {
-    return (cmd >= CMD_LED1_ON && cmd <= CMD_BOTH_OFF) || cmd == CMD_EMPTY;
-}
-
-const char* CommandParser::toString(CommandType cmd) {
-    switch (cmd) {
-        case CMD_LED1_ON:      return "led1 on";
-        case CMD_LED1_OFF:     return "led1 off";
-        case CMD_LED2_ON:      return "led2 on";
-        case CMD_LED2_OFF:     return "led2 off";
-        case CMD_BOTH_ON:      return "led both on";
-        case CMD_BOTH_OFF:     return "led both off";
-        case CMD_EMPTY:        return "(empty)";
-        case CMD_UNKNOWN:
-        default:               return "unknown";
-    }
-}
-\end{lstlisting}
-
-\subsection*{7.5. Serial STDIO Header (serial\_stdio.h)}
-
-\begin{lstlisting}[language=C++, caption=serial_stdio.h - Serial STDIO Interface]
-#ifndef SERIAL_STDIO_H
-#define SERIAL_STDIO_H
-
-#include <Arduino.h>
-
-class SerialStdio {
-public:
-    static void begin(unsigned long baudRate);
-
-    static void printWelcome();
-
-    static int readLine(char* buffer, int bufferSize);
-
-public:
-    static const int LINE_BUF_SIZE = 80;
-
-private:
-    static int serialPutchar(char c, FILE* stream);
-
-    static int serialGetchar(FILE* stream);
-
-    static FILE serial_stdout;
-    static FILE serial_stdin;
-};
-
-#endif // SERIAL_STDIO_H
-\end{lstlisting}
-
-\subsection*{7.6. Serial STDIO Implementation (serial\_stdio.cpp)}
-
-\begin{lstlisting}[language=C++, caption=serial_stdio.cpp - Serial STDIO Implementation]
-#include "serial_stdio.h"
-#include <stdio.h>
-
-FILE SerialStdio::serial_stdout;
-FILE SerialStdio::serial_stdin;
-
-void SerialStdio::begin(unsigned long baudRate) {
-    Serial.begin(baudRate);
-
-    fdev_setup_stream(&serial_stdout, serialPutchar, NULL, _FDEV_SETUP_WRITE);
-    fdev_setup_stream(&serial_stdin, NULL, serialGetchar, _FDEV_SETUP_READ);
-    stdout = &serial_stdout;
-    stdin = &serial_stdin;
-}
-
-void SerialStdio::printWelcome() {
-    printf("STDIO serial ready. Commands: 'led1 on', 'led1 off', 'led2 on', 'led2 off'\n");
-    printf("                           'led both on', 'led both off'\n");
-}
-
-int SerialStdio::readLine(char* buffer, int bufferSize) {
-    int pos = 0;
-
-    while (true) {
-        int c = getchar();
-
-        if (c == '\r' || c == '\n') {
-            buffer[pos] = '\0';
-            return pos;
-        }
-
-        if (c == '\b' || c == 127) {
-            if (pos > 0) {
-                pos--;
-            }
-            continue;
-        }
-
-        if (c >= 32 && c <= 126 && pos < bufferSize - 1) {
-            buffer[pos++] = (char)c;
-        }
-    }
-}
-
-int SerialStdio::serialPutchar(char c, FILE* stream) {
-    if (c == '\n') Serial.write('\r');
-    Serial.write(c);
-    return 0;
-}
-
-int SerialStdio::serialGetchar(FILE* stream) {
-    while (!Serial.available());
-    int c = Serial.read();
-
-    if (c == '\b' || c == 127) {
-        Serial.write("\b \b");
-        return c;
-    }
-
-    return c;
-}
-\end{lstlisting}
-
-\subsection*{7.7. Main Application (main.cpp)}
-
-\begin{lstlisting}[language=C++, caption=main.cpp - Main Application]
-#include <Arduino.h>
-#include "serial_stdio/serial_stdio.h"
-#include "command/command.h"
-#include "led/led.h"
-
-static const unsigned long SERIAL_BAUD_RATE = 9600;
-static const uint8_t LED1_PIN = 9;
-static const uint8_t LED2_PIN = 13;
-
-static Led led1(LED1_PIN);
-static Led led2(LED2_PIN);
-
-static void executeCommand(CommandType cmd)
-{
-  switch (cmd)
-  {
-  case CMD_LED1_ON:
-    led1.on();
-    printf("OK: LED1 is ON\n");
-    break;
-
-  case CMD_LED1_OFF:
-    led1.off();
-    printf("OK: LED1 is OFF\n");
-    break;
-
-  case CMD_LED2_ON:
-    led2.on();
-    printf("OK: LED2 is ON\n");
-    break;
-
-  case CMD_LED2_OFF:
-    led2.off();
-    printf("OK: LED2 is OFF\n");
-    break;
-
-  case CMD_BOTH_ON:
-    led1.on();
-    printf("OK: LED1 is ON (starting sequence)\n");
-    delay(500);
-    led2.on();
-    printf("OK: LED2 is ON (sequence complete)\n");
-    break;
-
-  case CMD_BOTH_OFF:
-    led1.off();
-    led2.off();
-    printf("OK: Both LEDs are OFF\n");
-    break;
-
-  case CMD_EMPTY:
-    break;
-
-  case CMD_UNKNOWN:
-  default:
-    printf("ERR: Unknown command\n");
-    break;
-  }
-}
-
-void setup()
-{
-  SerialStdio::begin(SERIAL_BAUD_RATE);
-
-  led1.begin();
-  led2.begin();
-
-  SerialStdio::printWelcome();
-}
-
-void loop()
-{
-  char line[SerialStdio::LINE_BUF_SIZE];
-
-  SerialStdio::readLine(line, sizeof(line));
-
-  CommandType cmd = CommandParser::parse(line);
-
-  printf("DEBUG: Received '%s' -> %s\n",
-         line,
-         CommandParser::toString(cmd));
-
-  executeCommand(cmd);
-}
-\end{lstlisting}
+The complete source code for the Electronic Lock System (Lab 1.2) is available on GitHub:
+
+\begin{center}
+\url{https://github.com/DimonBel/ES}
+\end{center}
+
+\textbf{Repository Structure:}
+
+\begin{itemize}
+	\item \texttt{src/main.cpp} - Main application entry point and initialization
+	\item \texttt{src/modules/app/} - Application controller (FSM implementation)
+	\item \texttt{src/modules/keypad/} - Matrix keypad driver
+	\item \texttt{src/modules/lcd/} - LCD display driver (I2C)
+	\item \texttt{src/modules/led/} - LED driver implementation
+	\item \texttt{src/modules/serial\_stdio/} - STDIO serial interface
+	\item \texttt{src/modules/stdio\_redirect/} - STDIO redirection to LCD/Keypad
+\end{itemize}
+
+The repository includes complete implementation of:
+\begin{itemize}
+	\item 4×4 matrix keypad scanning with debouncing
+	\item I2C LCD 16×2 display control
+	\item Finite state machine for access control
+	\item Password verification and programming mode
+	\item LED status indicators (Green/Red/Programming)
+	\item STDIO redirection for debugging
+\end{itemize}
 
 \pagebreak
 \end{document}
