@@ -5,36 +5,23 @@ LcdI2c::LcdI2c(uint8_t address, uint8_t cols, uint8_t rows)
 
 void LcdI2c::begin()
 {
-    // Delay lung pentru stabilizare I2C
-    delay(500);
-
-    // Inițializare completă a LCD-ului
     _lcd.init();
-
-    // Setează backlight
     _lcd.backlight();
-    delay(50);
-
-    // Șterge display complet
     _lcd.clear();
-    delay(100);
-
-    // Setează cursor la 0,0
     _lcd.setCursor(0, 0);
-    delay(50);
-
-    printf("[LCD] Initialized with backlight ON\n");
+    fprintf(stderr, "[LCD] Hardware initialized at I2C\n");
 }
 
 void LcdI2c::print(const char *text)
 {
     _lcd.print(text);
+    fprintf(stderr, "[LCD] %s", text);
 }
 
 void LcdI2c::println(const char *text)
 {
-    print(text);
-    setCursor(0, 1);
+    _lcd.print(text);
+    fprintf(stderr, "[LCD] %s\n", text);
 }
 
 void LcdI2c::setCursor(uint8_t col, uint8_t row)
@@ -49,7 +36,7 @@ void LcdI2c::setCursor(uint8_t col, uint8_t row)
 void LcdI2c::clear()
 {
     _lcd.clear();
-    delay(2);
+    fprintf(stderr, "[LCD] CLEAR\n");
 }
 
 void LcdI2c::backlight()

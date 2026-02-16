@@ -2,11 +2,11 @@
 #include <stdio.h>
 #include <Wire.h>
 #include "serial_stdio/serial_stdio.h"
+#include "stdio_redirect/stdio_redirect.h"
 #include "keypad/keypad.h"
 #include "lcd/lcd.h"
 #include "led/led.h"
 #include "app/app.h"
-#include "utils/i2c_scanner.h"
 
 // ========== CONFIGURARE PINI ==========
 
@@ -18,9 +18,6 @@ static const uint8_t KEYPAD_ROW_PINS[4] = {4, 5, 6, 7};   // C1, C2, C3, C4
 static const uint8_t LED_GREEN_PIN = 12;
 static const uint8_t LED_RED_PIN = 13;
 static const uint8_t LED_PROGRAMMING_PIN = 3; // Programming mode indicator
-
-// Adresa I2C pentru LCD
-static uint8_t LCD_I2C_ADDRESS = 0x27; // Default address for 16x2 LCD with I2C module
 
 // Rata baud pentru serial
 static const unsigned long SERIAL_BAUD_RATE = 9600;
@@ -65,56 +62,20 @@ void setup()
   keypad.begin();
   printf("  Keypad: OK (awaiting input)\n");
 
-  // 3. Inițializez I2C
+  // 3. Initialize I2C
   printf("[3/4] Initializing I2C...\n");
   Wire.begin();
-  delay(500);
-  printf("  I2C Bus: OK\n");
+  delay(100);
+  printf("  I2C: OK\n");
 
-  // 4. Scann I2C devices
-  printf("[4/4] Scanning I2C devices...\n");
-  int nDevices = 0;
-  for (byte address = 1; address < 127; address++)
-  {
-    Wire.beginTransmission(address);
-    byte error = Wire.endTransmission();
-
-    if (error == 0)
-    {
-      printf("  -> Found device at 0x%02X\n", address);
-      nDevices++;
-    }
-  }
-
-  if (nDevices == 0)
-  {
-    printf("  WARNING: No I2C devices found!\n");
-    printf("  Verify connections:\n");
-    printf("    SDA -> A4 | SCL -> A5 | GND | VCC 5V\n");
-    LCD_I2C_ADDRESS = 0x27; // Try default anyway
-  }
-  else
-  {
-    printf("  Found %d device(s) on I2C\n", nDevices);
-  }
-
-  delay(500);
-
-  // Inițializez LCD și App
-  printf("\nSetting up LCD at 0x%02X...\n", LCD_I2C_ADDRESS);
-  lcd_ptr = new LcdI2c(LCD_I2C_ADDRESS, 16, 2);
+  // 4. Initialize LCD and Application
+  printf("[4/4] Initializing LCD & App...\n");
+  lcd_ptr = new LcdI2c(0x27, 16, 2);
   app_ptr = new App(keypad, *lcd_ptr, ledGreen, ledRed, ledProgramming);
-
-  printf("Initializing application...\n");
   app_ptr->begin();
+  printf("  App: OK\n");
 
   delay(500);
-
-  printf("\n=====================================\n");
-  printf("System Ready!\n");
-  printf("Code: 1234\n");
-  printf("*=Clear, #=Enter\n");
-  printf("=====================================\n\n");
 
   // Test blink LED
   printf("Testing LED blink...\n");
@@ -125,7 +86,16 @@ void setup()
     ledGreen.off();
     delay(100);
   }
-  printf("Running system loop...\n\n");
+
+  printf("\n=====================================\n");
+  printf("System Ready!\n");
+  printf("Code: 1234\n");
+  printf("*=Clear, #=Enter\n");
+  printf("=====================================\n\n");
+
+  // Redirect stdout -> LCD, stdin -> Keypad
+  // After this point: printf() -> LCD, fprintf(stderr,...) -> Serial
+  stdio_lcd_keypad_init(lcd_ptr, &keypad);
 }
 
 // ========== LOOP ==========

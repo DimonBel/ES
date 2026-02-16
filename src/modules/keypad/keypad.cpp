@@ -2,87 +2,95 @@
 
 Keypad::Keypad(const uint8_t *rowPins, const uint8_t *colPins,
                uint8_t rows, uint8_t cols)
-    : _rowPins(rowPins), _colPins(colPins), _rows(rows), _cols(cols) {}
+    : _rowPins(rowPins), _colPins(colPins), _rows(rows), _cols(cols),
+      _lastKeyTime(0), _lastKey('\0') {}
 
 void Keypad::begin()
 {
-    // Configurare pini randuri (OUTPUT)
-    for (uint8_t i = 0; i < _rows; i++)
+    // Configure row pins as OUTPUT (active LOW scan)
+    for (uint8_t r = 0; r < _rows; r++)
     {
-        pinMode(_rowPins[i], OUTPUT);
-        digitalWrite(_rowPins[i], HIGH);
+        pinMode(_rowPins[r], OUTPUT);
+        digitalWrite(_rowPins[r], HIGH);
     }
+    // Configure column pins as INPUT_PULLUP
+    for (uint8_t c = 0; c < _cols; c++)
+    {
+        pinMode(_colPins[c], INPUT_PULLUP);
+    }
+    fprintf(stderr, "[KEYPAD] Initialized (matrix scan + serial fallback)\n");
+}
 
-    // Configurare pini coloane (INPUT_PULLUP)
-    for (uint8_t i = 0; i < _cols; i++)
+bool Keypad::isValidKey(char c)
+{
+    for (uint8_t row = 0; row < 4; row++)
     {
-        pinMode(_colPins[i], INPUT_PULLUP);
+        for (uint8_t col = 0; col < 4; col++)
+        {
+            if (_keys[row][col] == c)
+                return true;
+        }
     }
+    return false;
+}
+
+char Keypad::scanMatrix()
+{
+    for (uint8_t r = 0; r < _rows; r++)
+    {
+        // Drive current row LOW
+        digitalWrite(_rowPins[r], LOW);
+
+        for (uint8_t c = 0; c < _cols; c++)
+        {
+            if (digitalRead(_colPins[c]) == LOW)
+            {
+                // Wait for key release
+                while (digitalRead(_colPins[c]) == LOW)
+                    ;
+                digitalWrite(_rowPins[r], HIGH);
+                return _keys[r][c];
+            }
+        }
+
+        // Restore row HIGH
+        digitalWrite(_rowPins[r], HIGH);
+    }
+    return '\0';
 }
 
 char Keypad::getKey()
 {
-    // Scanare rând cu rând
-    for (uint8_t row = 0; row < _rows; row++)
+    // 1. Try physical matrix scan
+    char key = scanMatrix();
+
+    // 2. Fallback: read from Serial
+    if (key == '\0' && Serial.available())
     {
-        // Activez rândul curent (LOW)
-        digitalWrite(_rowPins[row], LOW);
-        delayMicroseconds(100);
+        char c = (char)Serial.read();
 
-        // Citit coloanele
-        for (uint8_t col = 0; col < _cols; col++)
-        {
-            if (digitalRead(_colPins[col]) == LOW)
-            {
-                // Debounce - aștept 20ms
-                delay(20);
+        // Convertim litere mici în litere mari pentru A, B, C, D
+        if (c >= 'a' && c <= 'd')
+            c = c - 'a' + 'A';
 
-                // Verific din nou
-                if (digitalRead(_colPins[col]) == LOW)
-                {
-                    char pressedKey = _keys[row][col];
-
-                    // Aștept apăsare și eliberare (până coloana devine HIGH)
-                    while (digitalRead(_colPins[col]) == LOW)
-                    {
-                        delay(10);
-                    }
-
-                    // Debounce pe eliberare
-                    delay(50);
-
-                    // Dezactivez rândul
-                    digitalWrite(_rowPins[row], HIGH);
-
-                    return pressedKey;
-                }
-            }
-        }
-
-        // Dezactivez rândul (HIGH)
-        digitalWrite(_rowPins[row], HIGH);
+        if (isValidKey(c))
+            key = c;
     }
 
-    return '\0'; // Nici o tastă apăsată
+    // 3. Debounce
+    if (key != '\0')
+    {
+        unsigned long now = millis();
+        if (key == _lastKey && (now - _lastKeyTime) < DEBOUNCE_MS)
+            return '\0'; // Ignore bounce
+        _lastKey = key;
+        _lastKeyTime = now;
+    }
+
+    return key;
 }
 
 bool Keypad::keyPressed()
 {
-    for (uint8_t row = 0; row < _rows; row++)
-    {
-        digitalWrite(_rowPins[row], LOW);
-
-        for (uint8_t col = 0; col < _cols; col++)
-        {
-            if (digitalRead(_colPins[col]) == LOW)
-            {
-                digitalWrite(_rowPins[row], HIGH);
-                return true;
-            }
-        }
-
-        digitalWrite(_rowPins[row], HIGH);
-    }
-
-    return false;
+    return (scanMatrix() != '\0') || (Serial.available() > 0);
 }

@@ -2,6 +2,7 @@
 #define KEYPAD_H
 
 #include <Arduino.h>
+#include <stdio.h>
 
 class Keypad
 {
@@ -26,8 +27,16 @@ private:
         {'7', '8', '9', 'C'},
         {'*', '0', '#', 'D'}};
 
-    static const unsigned long DEBOUNCE_DELAY = 20;  // ms
-    static const unsigned long KEY_HOLD_DELAY = 100; // ms
+    // Caractere valide acceptate de la stdin
+    bool isValidKey(char c);
+
+    // Debounce
+    unsigned long _lastKeyTime;
+    char _lastKey;
+    static const unsigned long DEBOUNCE_MS = 200;
+
+    // Scan physical matrix
+    char scanMatrix();
 };
 
 #endif // KEYPAD_H

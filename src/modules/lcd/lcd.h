@@ -4,7 +4,6 @@
 #include <Arduino.h>
 #include <LiquidCrystal_I2C.h>
 
-// Wrapper pentru LCD I2C 16x2
 class LcdI2c
 {
 public:

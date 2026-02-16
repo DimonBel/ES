@@ -64,12 +64,12 @@ void App::displayWelcome()
     _ledGreen.off();
     _ledRed.off();
 
-    printf("[APP] Welcome screen ready\n");
+    fprintf(stderr, "[APP] Welcome screen ready\n");
 }
 
 void App::processInput(char key)
 {
-    printf("[KEYPAD] %c\n", key);
+    fprintf(stderr, "[KEYPAD] %c\n", key);
 
     // Enter programming mode with D at welcome screen
     if (key == PROGRAM_KEY && _inputPos == 0)
@@ -90,7 +90,7 @@ void App::processInput(char key)
         if (_inputPos > 0)
         {
             _inputCode[_inputPos] = '\0';
-            printf("[CODE] %s\n", _inputCode);
+            fprintf(stderr, "[CODE] %s\n", _inputCode);
 
             if (verifyCode())
                 handleValidCode();
@@ -139,8 +139,8 @@ bool App::verifyCode()
 
 void App::handleValidCode()
 {
-    printf("[SUCCESS] CODE VALID! UNLOCKING!\n");
-    printf("[DEBUG] >>> TURNING ON GREEN LED <<<\n");
+    fprintf(stderr, "[SUCCESS] CODE VALID! UNLOCKING!\n");
+    fprintf(stderr, "[DEBUG] >>> TURNING ON GREEN LED <<<\n");
 
     _lcd.clear();
     delay(150);
@@ -155,25 +155,25 @@ void App::handleValidCode()
     _lcd.print("Door Unlocked");
     delay(100);
 
-    printf("[DEBUG] Before ON - LED state: %d\n", _ledGreen.state());
+    fprintf(stderr, "[DEBUG] Before ON - LED state: %d\n", _ledGreen.state());
 
     _ledGreen.on();
 
-    printf("[DEBUG] After ON - LED state: %d\n", _ledGreen.state());
-    printf("[DEBUG] LED should be ON for 5 seconds...\n");
+    fprintf(stderr, "[DEBUG] After ON - LED state: %d\n", _ledGreen.state());
+    fprintf(stderr, "[DEBUG] LED should be ON for 5 seconds...\n");
 
     _ledRed.off();
 
     // Keep LED ON for 5 seconds
     delay(5000);
 
-    printf("[DEBUG] Turning OFF LED\n");
+    fprintf(stderr, "[DEBUG] Turning OFF LED\n");
     _ledGreen.off();
 }
 
 void App::handleInvalidCode()
 {
-    printf("[FAILURE] CODE INVALID! ACCESS DENIED!\n");
+    fprintf(stderr, "[FAILURE] CODE INVALID! ACCESS DENIED!\n");
 
     _lcd.clear();
     delay(150);
@@ -202,8 +202,8 @@ void App::handleInvalidCode()
 }
 void App::enterProgrammingMode()
 {
-    printf("[PROGRAMMING] Entered programming mode\n");
-    printf("[PROGRAMMING] Turning ON LED on pin 3\n");
+    fprintf(stderr, "[PROGRAMMING] Entered programming mode\n");
+    fprintf(stderr, "[PROGRAMMING] Turning ON LED on pin 3\n");
 
     _programmingMode = true;
     _newCodePos = 0;
@@ -227,12 +227,12 @@ void App::enterProgrammingMode()
 
 void App::processProgrammingInput(char key)
 {
-    printf("[PROG-INPUT] %c\n", key);
+    fprintf(stderr, "[PROG-INPUT] %c\n", key);
 
     // Cancel programming with *
     if (key == CLEAR_KEY)
     {
-        printf("[PROGRAMMING] Cancelled - Turning OFF LED\n");
+        fprintf(stderr, "[PROGRAMMING] Cancelled - Turning OFF LED\n");
         _programmingMode = false;
         _newCodePos = 0;
         memset(_newCode, 0, sizeof(_newCode));
@@ -251,7 +251,7 @@ void App::processProgrammingInput(char key)
         }
         else
         {
-            printf("[PROGRAMMING] Need %d digits\n", CODE_LENGTH);
+            fprintf(stderr, "[PROGRAMMING] Need %d digits\n", CODE_LENGTH);
         }
         return;
     }
@@ -286,8 +286,8 @@ void App::processProgrammingInput(char key)
 
 void App::confirmNewCode()
 {
-    printf("[PROGRAMMING] New password set to: %s\n", _newCode);
-    printf("[PROGRAMMING] Turning OFF LED - exiting programming mode\n");
+    fprintf(stderr, "[PROGRAMMING] New password set to: %s\n", _newCode);
+    fprintf(stderr, "[PROGRAMMING] Turning OFF LED - exiting programming mode\n");
 
     strcpy(_correctCode, _newCode);
 
