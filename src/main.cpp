@@ -11,6 +11,7 @@
 #include <string.h>
 #include "serial_stdio/serial_stdio.h"
 #include "led/led.h"
+#include "lcd/lcd.h"
 
 // ========== PINI ==========
 static const uint8_t ROW_PINS[4] = {4, 5, 6, 7};
@@ -58,11 +59,13 @@ static volatile bool g_last_press_was_short = true;  // Track last press type
 static Led *ledG = nullptr;
 static Led *ledR = nullptr;
 static Led *ledY = nullptr;
+static LcdI2c *lcd = nullptr;
 
 // Buton
 static bool btn_pressed = false;
 static bool btn_last = false;
 static uint32_t btn_start = 0;
+static uint32_t total_presses = 0;  // Track total button presses
 
 // ========== SCHEDULER BARE-METAL ==========
 
@@ -98,14 +101,6 @@ bool scanBtn1() {
     // Restore row 0 to HIGH
     digitalWrite(ROW_PINS[0], HIGH);
     
-    static uint32_t debug_counter = 0;
-    if (++debug_counter % 50 == 0) {  // Print every 50 calls
-        Serial.print("[DEBUG] Row0=LOW, Col0=");
-        Serial.print(col0_val);
-        Serial.print(" -> Btn1: ");
-        Serial.println(pressed ? "PRESSED" : "RELEASED");
-    }
-    
     return pressed;
 }
 
@@ -131,7 +126,6 @@ static void task1_detect(void *arg) {
             
             // Detectare apăsare (rising edge)
             if (curr && !btn_last) {
-                Serial.println("[DEBUG] RISING EDGE - Button pressed!");
                 btn_pressed = true;
                 btn_start = millis();
                 ledY->on();
@@ -141,7 +135,6 @@ static void task1_detect(void *arg) {
             }
             // Detectare eliberare (falling edge)
             else if (!curr && btn_last && btn_pressed) {
-                Serial.println("[DEBUG] FALLING EDGE - Button released!");
                 uint32_t dur = millis() - btn_start;
                 bool is_short = (dur < SHORT_PRESS_MS);
                 
@@ -181,17 +174,31 @@ static void task1_detect(void *arg) {
             Serial.print(dur);
             Serial.print(is_short ? "ms - SCURT" : "ms - LUNG");
             
+            // Increment press counter
+            total_presses++;
+            
             // Store the LED type and start time
             tc->local_vars[2] = is_short ? 1 : 0;  // 1 = green, 0 = red
             tc->local_vars[3] = millis();  // Start time
             
-            // Turn on the LED
+            // Turn on the LED and update LCD
+            lcd->clear();
+            delay(10);
+            lcd->setCursor(0, 0);
+            char buffer[17];
+            snprintf(buffer, sizeof(buffer), "Time: %lums", dur);
+            lcd->print(buffer);
+            lcd->setCursor(0, 1);
+            lcd->print("                ");
+            lcd->setCursor(0, 1);
             if (is_short) {
                 Serial.println(" -> LED VERDE");
                 ledG->on();
+                lcd->print("LED: GREEN");
             } else {
                 Serial.println(" -> LED ROSU");
                 ledR->on();
+                lcd->print("LED: RED");
             }
             
             tc->pc = 2;  // Go to wait state
@@ -210,6 +217,14 @@ static void task1_detect(void *arg) {
                 } else {
                     ledR->off();
                 }
+                
+                // Show "Press button" message on LCD
+                lcd->clear();
+                delay(10);
+                lcd->setCursor(0, 0);
+                lcd->print("Press Button");
+                lcd->setCursor(0, 1);
+                lcd->print("to start");
                 
                 // Signal Task 2 to blink
                 g_new_press_flag = true;
@@ -242,8 +257,6 @@ static void task2_blink(void *arg) {
                 tc->local_vars[3] = was_short ? 5 : 10;  // Number of blinks
                 tc->local_vars[4] = 0;  // Current blink count
                 tc->pc = 1;
-                Serial.print("[Task2] Blink ");
-                Serial.println(was_short ? "5 (short)" : "10 (long)");
                 return;
             }
             
@@ -417,6 +430,14 @@ void setup() {
     ledR->off();
     ledY->off();
     
+    // LCD
+    lcd = new LcdI2c(0x27, 16, 2);
+    lcd->begin();
+    lcd->setCursor(0, 0);
+    lcd->print("Press Button");
+    lcd->setCursor(0, 1);
+    lcd->print("to start");
+    
     // Test LED
     Serial.print("Test LED... ");
     ledG->on(); delay(100); ledG->off();
@@ -434,6 +455,9 @@ void setup() {
     // Reset statistici
     memset(&g_stats, 0, sizeof(Stats));
     last_report = millis();
+    
+    // Initialize press counter
+    total_presses = 0;
     
     // Inițializare tasks
     init_tasks();
