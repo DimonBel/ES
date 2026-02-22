@@ -1,4 +1,5 @@
 #include "lcd.h"
+#include <stdarg.h>
 
 LcdI2c::LcdI2c(uint8_t address, uint8_t cols, uint8_t rows)
     : _lcd(address, cols, rows), _cols(cols), _rows(rows) {}
@@ -15,12 +16,11 @@ void LcdI2c::begin()
 void LcdI2c::print(const char *text)
 {
     _lcd.print(text);
-    printf("[LCD] %s", text);
 }
+
 void LcdI2c::println(const char *text)
 {
     _lcd.print(text);
-    printf("[LCD] %s\n", text);
 }
 
 void LcdI2c::setCursor(uint8_t col, uint8_t row)
@@ -35,7 +35,6 @@ void LcdI2c::setCursor(uint8_t col, uint8_t row)
 void LcdI2c::clear()
 {
     _lcd.clear();
-    fprintf(stderr, "[LCD] CLEAR\n");
 }
 
 void LcdI2c::backlight()
@@ -51,4 +50,16 @@ void LcdI2c::noBacklight()
 void LcdI2c::write(uint8_t value)
 {
     _lcd.write(value);
+}
+
+int LcdI2c::printf(const char *format, ...)
+{
+    char buffer[128];
+    va_list args;
+    va_start(args, format);
+    int len = vsnprintf(buffer, sizeof(buffer), format, args);
+    va_end(args);
+    
+    _lcd.print(buffer);
+    return len;
 }

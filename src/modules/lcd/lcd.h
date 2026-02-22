@@ -3,6 +3,7 @@
 
 #include <Arduino.h>
 #include <LiquidCrystal_I2C.h>
+#include <stdio.h>
 
 class LcdI2c
 {
@@ -17,6 +18,9 @@ public:
     void backlight();
     void noBacklight();
     void write(uint8_t value);
+    
+    // Printf support
+    int printf(const char *format, ...);
 
 private:
     LiquidCrystal_I2C _lcd;

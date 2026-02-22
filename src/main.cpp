@@ -12,6 +12,7 @@
 #include "serial_stdio/serial_stdio.h"
 #include "led/led.h"
 #include "lcd/lcd.h"
+#include "button/button.h"
 
 // ========== PINI ==========
 static const uint8_t ROW_PINS[4] = {4, 5, 6, 7};
@@ -60,12 +61,10 @@ static Led *ledG = nullptr;
 static Led *ledR = nullptr;
 static Led *ledY = nullptr;
 static LcdI2c *lcd = nullptr;
+static Button *button1 = nullptr;
 
-// Buton
-static bool btn_pressed = false;
-static bool btn_last = false;
-static uint32_t btn_start = 0;
-static uint32_t total_presses = 0;  // Track total button presses
+// Button state tracking
+static uint32_t total_presses = 0;
 
 // ========== SCHEDULER BARE-METAL ==========
 
@@ -83,26 +82,6 @@ void delay_ms(uint32_t ms) {
 }
 
 // ========== FUNCȚII HELPER ==========
-
-bool scanBtn1() {
-    // Set row 0 LOW, all other rows HIGH
-    digitalWrite(ROW_PINS[0], LOW);
-    digitalWrite(ROW_PINS[1], HIGH);
-    digitalWrite(ROW_PINS[2], HIGH);
-    digitalWrite(ROW_PINS[3], HIGH);
-    
-    // Small delay for signals to stabilize
-    delayMicroseconds(10);
-    
-    // Read column 0 (button 1 is at row 0, col 0)
-    int col0_val = digitalRead(COL_PINS[0]);
-    bool pressed = (col0_val == LOW);
-    
-    // Restore row 0 to HIGH
-    digitalWrite(ROW_PINS[0], HIGH);
-    
-    return pressed;
-}
 
 void blinkY(uint8_t n) {
     for (uint8_t i = 0; i < n; i++) {
@@ -122,20 +101,11 @@ static void task1_detect(void *arg) {
     switch (tc->pc) {
         case 0:  // Check button state
         {
-            bool curr = scanBtn1();
+            button1->scan();
             
-            // Detectare apăsare (rising edge)
-            if (curr && !btn_last) {
-                btn_pressed = true;
-                btn_start = millis();
-                ledY->on();
-                btn_last = curr;  // Update last immediately
-                delay_ms(50);
-                return;
-            }
-            // Detectare eliberare (falling edge)
-            else if (!curr && btn_last && btn_pressed) {
-                uint32_t dur = millis() - btn_start;
+            // Detectare eliberare (falling edge) - button was pressed and now released
+            uint32_t dur = button1->getPressDuration();
+            if (!button1->isPressed() && dur > 0) {
                 bool is_short = (dur < SHORT_PRESS_MS);
                 
                 // Actualizare statistici
@@ -154,13 +124,15 @@ static void task1_detect(void *arg) {
                 
                 // Go to signal state
                 tc->pc = 1;
-                btn_pressed = false;
-                btn_last = curr;  // Update last to current (false)
                 ledY->off();
                 return;
             }
             
-            btn_last = curr;
+            // Detectare apăsare (rising edge)
+            if (button1->isPressed()) {
+                ledY->on();
+            }
+            
             delay_ms(50);
             return;
         }
@@ -170,9 +142,7 @@ static void task1_detect(void *arg) {
             uint32_t dur = tc->local_vars[0];
             bool is_short = tc->local_vars[1];
             
-            Serial.print("[Task1] Apasare: ");
-            Serial.print(dur);
-            Serial.print(is_short ? "ms - SCURT" : "ms - LUNG");
+            printf("Press: %lu %s\n", dur, is_short ? "SHORT" : "LONG");
             
             // Increment press counter
             total_presses++;
@@ -185,20 +155,16 @@ static void task1_detect(void *arg) {
             lcd->clear();
             delay(10);
             lcd->setCursor(0, 0);
-            char buffer[17];
-            snprintf(buffer, sizeof(buffer), "Time: %lums", dur);
-            lcd->print(buffer);
+            lcd->printf("Time: %lums", dur);
             lcd->setCursor(0, 1);
             lcd->print("                ");
             lcd->setCursor(0, 1);
             if (is_short) {
-                Serial.println(" -> LED VERDE");
                 ledG->on();
-                lcd->print("LED: GREEN");
+                lcd->printf("LED: GREEN");
             } else {
-                Serial.println(" -> LED ROSU");
                 ledR->on();
-                lcd->print("LED: RED");
+                lcd->printf("LED: RED");
             }
             
             tc->pc = 2;  // Go to wait state
@@ -222,9 +188,9 @@ static void task1_detect(void *arg) {
                 lcd->clear();
                 delay(10);
                 lcd->setCursor(0, 0);
-                lcd->print("Press Button");
+                lcd->printf("Press Button");
                 lcd->setCursor(0, 1);
-                lcd->print("to start");
+                lcd->printf("to start");
                 
                 // Signal Task 2 to blink
                 g_new_press_flag = true;
@@ -317,13 +283,12 @@ static void task3_report(void *arg) {
             uint32_t ld = g_stats.long_dur;
             float avg = (t > 0) ? ((float)(sd + ld) / t) : 0;
             
-            Serial.println();
-            Serial.println("=== RAPORT (10s) ===");
-            Serial.print("Total apasari: "); Serial.println(t);
-            Serial.print("Apasari scurte: "); Serial.println(s);
-            Serial.print("Apasari lungi: "); Serial.println(l);
-            Serial.print("Durata medie: "); Serial.print(avg); Serial.println(" ms");
-            Serial.println("====================");
+            printf("\n=== RAPORT (10s) ===\n");
+            printf("Total apasari: %lu\n", t);
+            printf("Apasari scurte: %lu\n", s);
+            printf("Apasari lungi: %lu\n", l);
+            printf("Durata medie: %.2f ms\n", (double)avg);
+            printf("====================\n");
             
             // Resetare statistici
             g_stats.total = 0;
@@ -407,17 +372,16 @@ void scheduler_run() {
 
 // ========== SETUP ==========
 void setup() {
-    Serial.begin(9600);
+    SerialStdio::begin(9600);
     delay(2000);
     
-    Serial.println();
-    Serial.println("=== LAB 3.2 - BARE-METAL ===");
-    Serial.println("Sistem NON-PREEMPTIVE cu scheduling cooperativ");
-    Serial.print("LED G: "); Serial.println(LED_GREEN_PIN);
-    Serial.print("LED R: "); Serial.println(LED_RED_PIN);
-    Serial.print("LED Y: "); Serial.println(LED_YELLOW_PIN);
-    Serial.println("Buton: 1 (keypad row0,col0)");
-    Serial.println("============================");
+    printf("\n=== LAB 3.2 - BARE-METAL ===\n");
+    printf("Sistem NON-PREEMPTIVE cu scheduling cooperativ\n");
+    printf("LED G: %d\n", LED_GREEN_PIN);
+    printf("LED R: %d\n", LED_RED_PIN);
+    printf("LED Y: %d\n", LED_YELLOW_PIN);
+    printf("Buton: 1 (keypad row0,col0)\n");
+    printf("============================\n");
     
     // LED-uri
     ledG = new Led(LED_GREEN_PIN);
@@ -430,20 +394,24 @@ void setup() {
     ledR->off();
     ledY->off();
     
+    // Button driver
+    button1 = new Button(ROW_PINS, COL_PINS, 4, 4, 0);
+    button1->begin();
+    
+    // Test LED
+    printf("Test LED... ");
+    ledG->on(); delay(100); ledG->off();
+    ledR->on(); delay(100); ledR->off();
+    ledY->on(); delay(100); ledY->off();
+    printf("OK\n");
+    
     // LCD
     lcd = new LcdI2c(0x27, 16, 2);
     lcd->begin();
     lcd->setCursor(0, 0);
-    lcd->print("Press Button");
+    lcd->printf("Press Button");
     lcd->setCursor(0, 1);
-    lcd->print("to start");
-    
-    // Test LED
-    Serial.print("Test LED... ");
-    ledG->on(); delay(100); ledG->off();
-    ledR->on(); delay(100); ledR->off();
-    ledY->on(); delay(100); ledY->off();
-    Serial.println("OK");
+    lcd->printf("to start");
     
     // Keypad pini
     for (int i = 0; i < 4; i++) {
@@ -455,15 +423,13 @@ void setup() {
     // Reset statistici
     memset(&g_stats, 0, sizeof(Stats));
     last_report = millis();
-    
-    // Initialize press counter
     total_presses = 0;
     
     // Inițializare tasks
     init_tasks();
     
-    Serial.println("=== SCHEDULER PORNIT ===");
-    Serial.println("Apasa butonul 1...\n");
+    printf("=== SCHEDULER PORNIT ===\n");
+    printf("Apasa butonul 1...\n\n");
 }
 
 void loop() {
