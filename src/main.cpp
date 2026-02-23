@@ -1,11 +1,3 @@
-/**
- * Laborator 3.2 - Monitorizare durată apăsare buton
- * Partea 1: Sistem de operare Non-Preemptive (bare-metal)
- * Implementare cu State Machines și Cooperative Scheduling
- * Buton: 1 de pe keypad
- * LED: Verde=3, Rosu=2, Galben=13
- */
-
 #include <Arduino.h>
 #include <stdio.h>
 #include <string.h>
@@ -70,18 +62,15 @@ static uint32_t total_presses = 0;
 
 // Yield control to next task
 void yield() {
-    // Simple round-robin: move to next task
     current_task = (current_task + 1) % NUM_TASKS;
 }
 
-// Block current task for specified ms
 void delay_ms(uint32_t ms) {
     tasks[current_task].state = STATE_BLOCKED;
     tasks[current_task].wait_until = millis() + ms;
     yield();
 }
 
-// ========== FUNCȚII HELPER ==========
 
 void blinkY(uint8_t n) {
     for (uint8_t i = 0; i < n; i++) {
@@ -93,7 +82,6 @@ void blinkY(uint8_t n) {
     ledY->off();
 }
 
-// ========== TASK 1: Detectare și măsurare durată apăsare ==========
 // State machine: PC 0=check button, 1=wait release, 2=signal
 static void task1_detect(void *arg) {
     TaskContext *tc = &tasks[0];
@@ -137,7 +125,7 @@ static void task1_detect(void *arg) {
             return;
         }
         
-        case 1:  // Signal visual (green/red LED)
+        case 1:  // Signal visual 
         {
             uint32_t dur = tc->local_vars[0];
             bool is_short = tc->local_vars[1];
@@ -177,14 +165,13 @@ static void task1_detect(void *arg) {
             bool is_short = (tc->local_vars[2] == 1);
             
             if (millis() - start_time >= 5000) {
-                // Time's up, turn off LED
                 if (is_short) {
                     ledG->off();
                 } else {
                     ledR->off();
                 }
                 
-                // Show "Press button" message on LCD
+                // Show "Press button" 
                 lcd->clear();
                 delay(10);
                 lcd->setCursor(0, 0);
@@ -206,7 +193,6 @@ static void task1_detect(void *arg) {
     }
 }
 
-// ========== TASK 2: Contorizare și statistici cu blink ==========
 // State machine: PC 0=check new press, 1=blink on, 2=blink off
 static void task2_blink(void *arg) {
     TaskContext *tc = &tasks[1];
@@ -255,7 +241,6 @@ static void task2_blink(void *arg) {
     }
 }
 
-// ========== TASK 3: Raportare periodică ==========
 // State machine: PC 0=check time, 1=report
 static void task3_report(void *arg) {
     TaskContext *tc = &tasks[2];
@@ -317,7 +302,6 @@ static TaskFunc task_funcs[NUM_TASKS] = {
     task3_report
 };
 
-// ========== INITIALIZARE TASKS ==========
 void init_tasks() {
     // Task 1 - Detectare (prioritate 2)
     tasks[0].state = STATE_READY;
@@ -344,7 +328,6 @@ void init_tasks() {
     memset(tasks[2].local_vars, 0, sizeof(tasks[2].local_vars));
 }
 
-// ========== SCHEDULER MAIN LOOP ==========
 void scheduler_run() {
     uint32_t now;
     
@@ -369,8 +352,6 @@ void scheduler_run() {
         }
     }
 }
-
-// ========== SETUP ==========
 void setup() {
     SerialStdio::begin(9600);
     delay(2000);
@@ -433,7 +414,5 @@ void setup() {
 }
 
 void loop() {
-    // Nu se folosește loop în bare-metal
-    // Toate task-urile rulează în scheduler_run()
     scheduler_run();
 }

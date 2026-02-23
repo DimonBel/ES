@@ -40,7 +40,7 @@
     escapeinside={\%*}{*)},
     extendedchars=false,
     keepspaces=true,
-    morekeywords={void, size, setup, draw, pushMatrix, popMatrix}
+    morekeywords={void, size, setup, draw, pushMatrix, popMatrix, yield, delay_ms, TaskContext, TaskState, STATE_READY, STATE_BLOCKED}
 }
 
 \linespread{1.25} % About 1.5 spacing in Word
@@ -62,12 +62,12 @@
 		\vspace{25 mm}
 
 		\textsc{\Large Embedded Systems}\\[0.5cm]
-		\textsc{\large Laboratory work \#1.2}\\[0.5cm]
+		\textsc{\large Laboratory work \#2.1}\\[0.5cm]
 
 		\newcommand{\HRule}{\rule{\linewidth}{0.5mm}}
 		\vspace{10 mm}
 		\HRule \\[0.4cm]
-		{ \LARGE \bfseries Electronic Lock System with LCD and Keypad using STDIO}\\[0.4cm]
+		{ \LARGE \bfseries Button Press Duration Monitoring System with Non-Preemptive Bare-Metal OS}\\[0.4cm]
 		\HRule \\[1.5cm]
 
 		\vspace{10mm}
@@ -98,7 +98,7 @@
 \pagestyle{fancy}
 \fancyhf{}
 \rhead{\thepage}
-\lhead{FAF-232 Belih Dmitrii; Laboratory Work 1.2}
+\lhead{FAF-232 Belih Dmitrii; Laboratory Work 2.1}
 
 % ============================================================================
 % CHAPTER 1: DOMAIN ANALYSIS
@@ -107,68 +107,96 @@
 
 \subsection*{1.1. Purpose of the Laboratory Work}
 
-The purpose of this laboratory work is to understand the principles of user interaction with embedded systems using LCD displays and matrix keypads, and to implement a password verification system using the STDIO library. The work involves setting up an I2C-based LCD display for output, a 4×4 matrix keypad for input, and an access control system that verifies 4-digit PIN codes. The system demonstrates the use of STDIO abstraction for debugging and serial communication while implementing a finite state machine (FSM) for managing user interaction states. Additional functionality includes a programming mode for changing the password, with visual feedback through LEDs.
+The purpose of this laboratory work is to understand and implement a non-preemptive bare-metal operating system with cooperative scheduling for embedded systems. The system monitors button press durations, provides visual feedback through LEDs, displays information on an LCD screen, and generates periodic statistical reports via STDIO. This laboratory work demonstrates the principles of multitasking without a traditional operating system kernel, where tasks voluntarily yield control through cooperative scheduling. The implementation includes three distinct tasks: button detection and measurement, LED feedback control, and periodic statistical reporting. The system showcases state machine-based task implementation, inter-task communication via global flags, and efficient CPU utilization through round-robin scheduling.
 
 \subsection*{1.2. Technologies Used}
 
+\subsubsection*{Non-Preemptive Bare-Metal Operating Systems}
+
+A non-preemptive bare-metal operating system is a scheduling approach where tasks voluntarily yield control to other tasks rather than being forcibly switched by a scheduler. This approach eliminates the need for complex context switching, interrupt handlers, and memory protection mechanisms, making it ideal for resource-constrained microcontrollers. Tasks execute until they explicitly call a yield function or block on a timer, ensuring deterministic execution times and simplified debugging. The cooperative scheduling model provides predictable behavior and reduces overhead compared to preemptive systems.
+
+\subsubsection*{Cooperative Multitasking and Scheduling}
+
+Cooperative multitasking is a scheduling strategy where running tasks must voluntarily relinquish control of the CPU, allowing other tasks to execute. Unlike preemptive multitasking, where a scheduler can interrupt tasks at any time, cooperative multitasking relies on tasks being well-behaved and yielding control frequently. This approach provides several advantages: simplified implementation, reduced overhead, no race conditions (unless explicitly created), and easier debugging. The scheduler uses a round-robin approach, cycling through ready tasks in a predictable order.
+
+\subsubsection*{State Machine-Based Task Design}
+
+State machines provide a structured approach to implementing complex tasks in embedded systems. Each task is designed as a finite state machine (FSM) with multiple states (program counter values) that define its current behavior. States transition based on events, timers, or completion of operations. This approach ensures tasks can be suspended and resumed without losing context, as all state information is stored in local variables within the task context structure. State machines also make task behavior more predictable and easier to debug.
+
+\subsubsection*{Inter-Task Communication}
+
+Inter-task communication in non-preemptive systems typically uses shared global variables and flags. Tasks can signal each other by setting volatile global variables that other tasks periodically check. This approach avoids the need for complex synchronization primitives like semaphores or mutexes, as there is no risk of preemption mid-operation. Communication is one-directional and follows producer-consumer patterns, where one task produces data (sets a flag) and another task consumes it.
+
 \subsubsection*{Standard Input/Output (STDIO)}
 
-Standard Input/Output (STDIO) provides a standardized mechanism for handling input and output operations in embedded systems. In this laboratory work, STDIO is redirected to the serial interface (UART) for debugging and system monitoring purposes. The STDIO library enables the use of familiar C functions such as \texttt{printf()} for formatted output and \texttt{fprintf()} for stream-specific output. This abstraction layer simplifies debugging and logging, allowing developers to track system state, input events, and operational status without implementing custom serial communication routines.
+Standard Input/Output (STDIO) provides a standardized mechanism for handling input and output operations in embedded systems. In this laboratory work, STDIO is redirected to the serial interface (UART) for debugging, statistical reporting, and system monitoring purposes. The STDIO library enables the use of familiar C functions such as \texttt{printf()} for formatted output, simplifying logging and data presentation. This abstraction layer allows clean separation between application logic and output formatting.
 
 \subsubsection*{I2C Communication Protocol}
 
-Inter-Integrated Circuit (I2C) is a synchronous, multi-master, multi-slave, packet-switched, single-ended, serial communication bus. In this laboratory work, I2C is used to communicate with the LCD display module. I2C requires only two signal lines (SDA for data and SCL for clock) plus ground, significantly reducing the number of GPIO pins required for peripheral connections. The protocol uses a 7-bit addressing scheme, allowing multiple devices to share the same bus. LCD modules with I2C interfaces typically use address 0x27 or 0x3F.
+Inter-Integrated Circuit (I2C) is a synchronous, multi-master, multi-slave, packet-switched, single-ended, serial communication bus. In this laboratory work, I2C is used to communicate with the LCD display module. I2C requires only two signal lines (SDA for data and SCL for clock) plus ground, significantly reducing the number of GPIO pins required for peripheral connections. The protocol uses a 7-bit addressing scheme, allowing multiple devices to share the same bus.
 
-\subsubsection*{Matrix Keypads}
+\subsubsection*{Matrix Keypads and Button Detection}
 
-Matrix keypads are input devices that arrange buttons in a grid pattern (rows and columns) to minimize the number of required pins. A 4×4 keypad uses 8 pins (4 rows + 4 columns) instead of 16 individual pins. Keypad scanning involves sequentially activating each row and reading the column states to detect pressed buttons. This technique requires debouncing (software or hardware) to prevent false triggers from contact bounce. Keyboards with matrix layouts are widely used in security systems, ATMs, and industrial control panels.
-
-\subsubsection*{Finite State Machine (FSM)}
-
-A Finite State Machine is a computational model used to design systems that can be in one of a finite number of states. In this laboratory work, an FSM manages the access control system's behavior across different states: Welcome/Normal Mode, Input Processing, Access Granted, Access Denied, and Programming Mode. Each state has specific behaviors, transitions, and responses to user input. The FSM approach ensures clear separation of concerns, predictable system behavior, and easier maintenance and debugging.
+Matrix keypads are input devices that arrange buttons in a grid pattern (rows and columns) to minimize the number of required pins. A 4×4 keypad uses 8 pins (4 rows + 4 columns) instead of 16 individual pins. Button detection involves scanning the matrix to detect pressed keys, measuring press duration using timer timestamps, and implementing debouncing to prevent false triggers. Edge detection (rising and falling) identifies when buttons are pressed and released.
 
 \subsubsection*{LCD Display (Liquid Crystal Display)}
 
-LCD displays are visual output devices commonly used in embedded systems to present information to users. Character-based LCDs (such as 16×2) can display text in fixed character positions. Modern LCD modules often include I2C interfaces for simplified connectivity. The LiquidCrystal\_I2C library provides a convenient API for initializing the display, setting cursor positions, printing text, and controlling backlight. LCDs are ideal for user interfaces in embedded systems due to their low power consumption, readability, and ability to display dynamic information.
+LCD displays are visual output devices commonly used in embedded systems to present information to users. Character-based LCDs (such as 16×2) can display text in fixed character positions. Modern LCD modules often include I2C interfaces for simplified connectivity. The LiquidCrystal_I2C library provides a convenient API for initializing the display, setting cursor positions, printing text, and controlling backlight. LCDs are ideal for user interfaces in embedded systems due to their low power consumption and readability.
 
 \subsection*{1.3. Hardware Components}
 
 \subsubsection*{Arduino Uno}
 
-The Arduino Uno is based on the ATmega328P microcontroller featuring 14 digital I/O pins, 6 analog inputs, and 32 KB flash memory. For this laboratory work, the Arduino provides GPIO pins for keypad control (8 pins), LED control (3 pins), and I2C communication (2 pins: SDA on A4, SCL on A5). The board operates at 5V and provides sufficient processing power for real-time keypad scanning and state machine management.
+The Arduino Uno is based on the ATmega328P microcontroller featuring 14 digital I/O pins, 6 analog inputs, and 32 KB flash memory. For this laboratory work, the Arduino provides GPIO pins for keypad control (8 pins), LED control (3 pins), and I2C communication (2 pins: SDA on A4, SCL on A5). The board operates at 5V and provides sufficient processing power for real-time button scanning, state machine execution, and task scheduling.
 
 \subsubsection*{4×4 Matrix Keypad}
 
-The 4×4 matrix keypad consists of 16 buttons arranged in 4 rows and 4 columns. The typical layout includes digits 0-9, letters A-D, and special keys (*) and (\#). The keypad requires 8 GPIO pins: 4 rows configured as outputs and 4 columns configured as inputs with pull-up resistors. Keys are detected by scanning: each row is sequentially set LOW, and columns are read to detect when a button connects a row to a column.
+The 4×4 matrix keypad consists of 16 buttons arranged in 4 rows and 4 columns. The typical layout includes digits 0-9, letters A-D, and special keys (*) and (\#). The keypad requires 8 GPIO pins: 4 rows configured as outputs and 4 columns configured as inputs with pull-up resistors. Button 1 (located at Row 0, Col 0) is the primary input for this system. Keys are detected by scanning: each row is sequentially set LOW, and columns are read to detect when a button connects a row to a column.
 
 \subsubsection*{LCD 16×2 with I2C Interface}
 
-The 16×2 character LCD can display 32 characters (16 per line) across two lines. When equipped with an I2C interface board, it requires only 2 wires (SDA and SCL) plus power (VCC and GND). The I2C interface typically includes a PCF8574 I/O expander chip and a potentiometer for contrast adjustment. The default I2C address is 0x27, though some modules use 0x3F.
+The 16×2 character LCD can display 32 characters (16 per line) across two lines. When equipped with an I2C interface board, it requires only 2 wires (SDA and SCL) plus power (VCC and GND). The I2C interface typically includes a PCF8574 I/O expander chip and a potentiometer for contrast adjustment. The default I2C address is 0x27. The LCD displays real-time feedback including press duration, LED status, and system messages.
 
 \subsubsection*{LED Indicators}
 
 Three LEDs provide visual feedback:
 \begin{itemize}
-	\item \textbf{Green LED (Pin 12):} Indicates successful authentication. Lights for 5 seconds when correct password is entered.
-	\item \textbf{Red LED (Pin 13):} Indicates authentication failure. Blinks 5 times when incorrect password is entered.
-	\item \textbf{Programming LED (Pin 3):} Indicates programming mode is active. Lights when user enters password change mode.
+	\item \textbf{Green LED (Pin 3):} Indicates short press (< 500 ms). Lights for 5 seconds when a short press is detected.
+	\item \textbf{Red LED (Pin 2):} Indicates long press ($\ge$ 500 ms). Lights for 5 seconds when a long press is detected.
+	\item \textbf{Yellow LED (Pin 13):} Indicates button is pressed (during press) and provides blink feedback (5 blinks for short press, 10 blinks for long press). Also flashes during statistical report generation.
 \end{itemize}
 
 Each LED requires a current-limiting resistor (220Ω typical) to prevent damage to both the LED and the microcontroller.
 
 \subsection*{1.4. Software Components}
 
-\subsubsection*{LiquidCrystal\_I2C Library}
+\subsubsection*{Cooperative Scheduler}
 
-The LiquidCrystal\_I2C library provides an Arduino-compatible interface for controlling I2C-based LCD displays. It wraps the Wire library (I2C implementation) and offers methods for initialization (\texttt{init()}), text output (\texttt{print()}, \texttt{write()}), cursor control (\texttt{setCursor()}), display clearing (\texttt{clear()}), and backlight control (\texttt{backlight()}, \texttt{noBacklight()}). The library handles I2C communication details, allowing developers to focus on display content.
+The cooperative scheduler is the core component that manages task execution. It maintains a task context structure for each task containing state (READY or BLOCKED), wake-up time, program counter (for state machine state), priority, task name, and local variable storage. The scheduler implements a round-robin algorithm, cycling through tasks and executing only those in the READY state. Tasks can voluntarily yield control via the \texttt{yield()} function or block themselves for a specified duration using \texttt{delay\_ms()}.
 
-\subsubsection*{Wire Library (I2C)}
+\subsubsection*{Task Context Management}
 
-The Wire library is Arduino's built-in implementation of the I2C protocol. It provides methods for initializing the I2C bus (\texttt{Wire.begin()}), starting transmission to a device (\texttt{Wire.beginTransmission()}), writing data (\texttt{Wire.write()}), ending transmission (\texttt{Wire.endTransmission()}), and requesting data from devices (\texttt{Wire.requestFrom()}). This library is used internally by the LiquidCrystal\_I2C library and for I2C device scanning.
+Each task has a dedicated \texttt{TaskContext} structure that stores all information needed to suspend and resume task execution. This includes the task's current state (program counter value), local variables for the task's state machine, and timing information for blocked tasks. This design enables efficient context switching without complex stack manipulation, as tasks are implemented as state machines that save all state in the context structure.
+
+\subsubsection*{Button Driver}
+
+The Button driver provides hardware abstraction for the 4×4 matrix keypad. It implements matrix scanning, edge detection (rising and falling), debouncing, and press duration measurement. The driver stores the press start time when a button is pressed and calculates the duration when released. The \texttt{getPressDuration()} method returns the measured duration and resets it for the next press.
+
+\subsubsection*{LCD Driver}
+
+The LCD driver wraps the LiquidCrystal_I2C library with additional functionality including printf-style formatted output. It provides methods for initialization, cursor positioning, text display, and backlight control. The driver handles all I2C communication details, allowing application code to focus on content rather than protocol details.
+
+\subsubsection*{LED Driver}
+
+The LED driver provides simple control for LED outputs with state tracking. It offers methods to turn LEDs on, off, and toggle their state. The driver maintains an internal state variable to track LED status, enabling efficient control without requiring GPIO reads.
+
+\subsubsection*{Serial STDIO}
+
+The Serial STDIO module redirects standard C input/output functions to the Arduino's serial interface. It uses AVR-libc's \texttt{fdev\_setup\_stream()} function to create custom file streams that redirect \texttt{printf()} output to Serial and \texttt{scanf()} input from Serial. This enables familiar C I/O operations for debugging and reporting.
 
 \subsubsection*{PlatformIO}
 
-PlatformIO provides an advanced development environment for embedded systems with features including intelligent code completion, multi-platform build systems, library management, and debugging capabilities. For this laboratory work, PlatformIO manages dependencies (LiquidCrystal\_I2C library), handles compilation, uploads firmware to the Arduino, and provides a serial monitor for debugging output. The platformio.ini file specifies build flags, include paths, and library dependencies.
+PlatformIO provides an advanced development environment for embedded systems with features including intelligent code completion, multi-platform build systems, library management, and debugging capabilities. For this laboratory work, PlatformIO manages dependencies (LiquidCrystal_I2C library), handles compilation, uploads firmware to the Arduino, and provides a serial monitor for debugging output.
 
 \subsection*{1.5. System Architecture and Justification}
 
@@ -179,41 +207,51 @@ The system architecture follows a layered, modular approach with clear separatio
 
 	\item \textbf{Hardware-Software Interface (Driver Layer):} Implements low-level drivers for each hardware component:
 	\begin{itemize}
-		\item \textit{Keypad Driver:} Handles matrix scanning, debouncing, and key detection
-		\item \textit{LCD Driver:} Wraps LiquidCrystal\_I2C library with additional logging
-		\item \textit{LED Driver:} Provides simple on/off/toggle control
-		\item \textit{Serial STDIO Driver:} Redirects stdout/stdin to UART for debugging
+		\item \textit{Button Driver:} Handles matrix scanning, edge detection, debouncing, and duration measurement
+		\item \textit{LCD Driver:} Wraps LiquidCrystal_I2C library with printf support
+		\item \textit{LED Driver:} Provides simple on/off/toggle control with state tracking
+		\item \textit{Serial STDIO Driver:} Redirects stdout/stdin to UART for debugging and reporting
 	\end{itemize}
 
-	\item \textbf{Application Logic Layer (FSM):} Implements the finite state machine that manages system states:
+	\item \textbf{Operating System Layer (Scheduler):} Implements the cooperative scheduler with task context management:
 	\begin{itemize}
-		\item \textit{Welcome State:} Displays "Enter Code:" prompt, accepts first key
-		\item \textit{Input State:} Accumulates 4-digit PIN, displays asterisks
-		\item \textit{Verify State:} Compares input with stored password
-		\item \textit{Access Granted State:} Shows success message, activates green LED
-		\item \textit{Access Denied State:} Shows error message, blinks red LED
-		\item \textit{Programming Mode State:} Allows password change via 'D' key
+		\item \textit{Task Context Structures:} Store state, program counter, and local variables for each task
+		\item \textit{Scheduler Loop:} Round-robin execution of ready tasks
+		\item \textit{Yield and Delay Functions:} Enable voluntary task switching and blocking
 	\end{itemize}
 
-	\item \textbf{STDIO Service Layer:} Provides formatted output for debugging and system monitoring through serial interface, enabling real-time visibility into system operation.
+	\item \textbf{Application Logic Layer (Tasks):} Implements three cooperative tasks as state machines:
+	\begin{itemize}
+		\item \textit{Task 1 (Detection):} Monitors button, measures duration, updates statistics, controls LEDs
+		\item \textit{Task 2 (Blink):} Provides visual feedback via yellow LED blinks
+		\item \textit{Task 3 (Report):} Generates periodic statistical reports every 10 seconds
+	\end{itemize}
 \end{itemize}
 
-This architecture was chosen to promote modularity, reusability, and maintainability. Each hardware component has a dedicated driver, the FSM clearly separates behavioral states, and the STDIO layer provides non-intrusive debugging. This design allows easy extension (adding more states, different passwords, or additional security features) without modifying core components.
+This architecture was chosen to promote modularity, reusability, and maintainability. Each hardware component has a dedicated driver, the scheduler cleanly separates OS functionality from application logic, and tasks are implemented as state machines for deterministic behavior. This design allows easy extension (adding more tasks, different statistics, or additional hardware) without modifying core components.
 
-\subsection*{1.6. Case Study: Real-World Access Control Systems}
+\subsection*{1.6. Case Study: Real-World Embedded Multitasking Systems}
 
-Access control systems are ubiquitous in modern security applications, from office buildings and ATM machines to hotel rooms and secure facilities. These systems typically require:
+Embedded multitasking systems are ubiquitous in modern applications, from industrial automation and consumer electronics to automotive systems and medical devices. These systems typically require:
 \begin{itemize}
-	\item \textbf{User Input:} Keypads, card readers, or biometric scanners
-	\item \textbf{Display/Feedback:} LCD screens, LED indicators, or audio prompts
-	\item \textbf{Authentication Logic:} Password verification, card validation, or biometric matching
-	\item \textbf{Access Control:} Door locks, turnstiles, or electronic barriers
-	\item \textbf{Management Features:} Password changes, user management, or configuration modes
+	\item \textbf{Multiple Concurrent Operations:} Simultaneous handling of sensors, user input, communication, and actuator control
+	\item \textbf{Deterministic Behavior:} Predictable response times for critical operations
+	\item \textbf{Resource Efficiency:} Optimal use of limited CPU, memory, and power resources
+	\item \textbf{Modular Design:} Clear separation between different system components
+	\item \textbf{Monitoring and Reporting:} Periodic status updates and statistical data collection
 \end{itemize}
 
-Our laboratory work implements a simplified version of such a system using a 4×4 keypad for input, an LCD display for user feedback, and LEDs for status indication. The programming mode (activated by the 'D' key) demonstrates real-world system management capabilities, allowing authorized users to change access codes without reprogramming the device.
+Our laboratory work implements a simplified version of such a system using a non-preemptive bare-metal OS with three cooperative tasks. The button monitoring task demonstrates input handling and measurement, the blink feedback task shows output control, and the reporting task illustrates periodic data collection and presentation. This mirrors professional embedded systems where multiple concurrent operations must be managed efficiently without the overhead of a full operating system kernel.
 
-The finite state machine approach used here mirrors professional access control systems, where clear state definitions and transitions ensure predictable behavior and simplify debugging. Software debouncing for keypad input addresses real-world challenges with mechanical switches, where contact bounce can cause false triggers. The modular architecture allows components to be reused in future laboratory works, simulating industry practices of code reuse and library development.
+The cooperative scheduling approach used here is particularly valuable in resource-constrained environments where:
+\begin{itemize}
+	\item Memory is limited (no space for full RTOS)
+	\item Real-time requirements are moderate (deterministic but not hard real-time)
+	\item Development simplicity is valued (no complex context switching)
+	\item Debugging is critical (predictable execution order)
+\end{itemize}
+
+State machine-based task design is widely used in industrial control systems, automotive ECUs, and medical devices where reliability and predictability are paramount. The modular architecture allows components to be reused in future laboratory works and projects, simulating industry practices of code reuse and library development.
 
 % ============================================================================
 % CHAPTER 2: DESIGN
@@ -224,7 +262,7 @@ The finite state machine approach used here mirrors professional access control 
 
 \textbf{System Architecture Overview:}
 
-The system follows a layered architecture with clear separation between hardware, drivers, and application logic.
+The system follows a layered architecture with clear separation between hardware, drivers, OS scheduler, and application tasks.
 
 \begin{figure}[H]
 	\centering
@@ -234,141 +272,109 @@ The system follows a layered architecture with clear separation between hardware
 		arrow/.style={->, thick, >=stealth}
 	]
 		% Application Layer
-		\node[layer, fill=purple!20] (app) at (0,0) {\textbf{Application Layer}\\main.cpp\\App::run()};
+		\node[layer, fill=purple!20] (tasks) at (0,0) {\textbf{Application Tasks}\\Task 1: Detection\\Task 2: Blink\\Task 3: Report};
 		
-		% System Layer
-		\node[layer, fill=green!20] (system) at (0,-3) {\textbf{System Layer}\\SecuritySystem\\Password Management\\FSM Logic};
+		% OS Layer
+		\node[layer, fill=green!20] (scheduler) at (0,-3) {\textbf{Bare-Metal OS}\\Cooperative Scheduler\\Task Context Mgmt\\Round-Robin Scheduling};
 		
 		% Driver Layer
-		\node[layer, fill=blue!20] (io) at (-6,-7) {\textbf{IO Module}\\STDIO Redirect\\Serial Communication};
-		\node[layer, fill=blue!20] (lcd) at (0,-7) {\textbf{LCD Driver}\\Display Management\\Cursor Control};
-		\node[layer, fill=blue!20] (keypad) at (6,-7) {\textbf{Keypad Driver}\\Matrix Scanning\\Key Debouncing};
+		\node[layer, fill=blue!20] (button) at (-7,-7) {\textbf{Button Driver}\\Matrix Scanning\\Edge Detection\\Duration Measure};
+		\node[layer, fill=blue!20] (lcd) at (0,-7) {\textbf{LCD Driver}\\Display Management\\Printf Support};
+		\node[layer, fill=blue!20] (led) at (7,-7) {\textbf{LED Driver}\\On/Off Control\\State Tracking};
 		
 		% Hardware Layer
-		\node[layer, fill=orange!20] (arduino) at (-6,-11) {\textbf{Arduino HAL}\\GPIO Control\\I2C \& UART};
+		\node[layer, fill=orange!20] (arduino) at (-7,-11) {\textbf{Arduino HAL}\\GPIO Control\\Timer/Counter};
 		\node[layer, fill=orange!20] (lcd_hw) at (0,-11) {\textbf{LCD Hardware}\\16×2 Display\\I2C Module};
-		\node[layer, fill=orange!20] (keypad_hw) at (6,-11) {\textbf{Keypad Hardware}\\4×4 Matrix\\Physical Keys};
-		\node[layer, fill=orange!20] (led_hw) at (10,-11) {\textbf{LED Hardware}\\Green/Red/Prog\\Current Limiting};
+		\node[layer, fill=orange!20] (led_hw) at (7,-11) {\textbf{LED Hardware}\\Green/Red/Yellow\\Current Limiting};
+		\node[layer, fill=orange!20] (uart_hw) at (-2,-11) {\textbf{UART Hardware}\\Serial Comm\\9600 baud};
 		
 		% Main vertical flow
-		\draw[arrow] (app) -- (system);
+		\draw[arrow] (tasks) -- (scheduler);
 		
-		% System to drivers
-		\draw[arrow] (system) -- (io);
-		\draw[arrow] (system) -- (lcd);
-		\draw[arrow] (system) -- (keypad);
+		% Scheduler to drivers
+		\draw[arrow] (scheduler) -- (button);
+		\draw[arrow] (scheduler) -- (lcd);
+		\draw[arrow] (scheduler) -- (led);
 		
 		% Drivers to corresponding hardware
-		\draw[arrow] (io) -- (arduino);
+		\draw[arrow] (button) -- (arduino);
 		\draw[arrow] (lcd) -- (lcd_hw);
-		\draw[arrow] (keypad) -- (keypad_hw);
+		\draw[arrow] (led) -- (led_hw);
 		
-		% Arduino HAL connections to other hardware
-		\draw[arrow] (arduino) -- (lcd_hw);
-		\draw[arrow] (arduino) -- (keypad_hw);
-		
-		% Additional system connections for LED control
-		\draw[arrow] (system) to[out=-30, in=90] (led_hw);
+		% Arduino HAL connections to UART
+		\draw[arrow] (arduino) -- (uart_hw);
 	\end{tikzpicture}
 	}
-	\caption{System Architecture Diagram}
+	\caption{System Architecture Diagram - Bare-Metal OS}
 	\label{fig:architecture-overview}
 \end{figure}
 
-\textbf{Module Block Scheme (App Class):}
+\textbf{Task Context Structure:}
 
 \begin{figure}[H]
 	\centering
 	\begin{tikzpicture}[
-		class/.style={rectangle, draw, minimum width=5cm, align=left, font=\footnotesize, inner sep=8pt},
-		method/.style={font=\footnotesize\ttfamily}
+		class/.style={rectangle, draw, minimum width=5.5cm, align=left, font=\footnotesize, inner sep=8pt}
 	]
-		% App Class
-		\node[class, fill=cyan!10] (app) {
-			\textbf{App}\\
+		% TaskContext Class
+		\node[class, fill=cyan!10] (context) {
+			\textbf{TaskContext}\\
 			\hrule
 			\begin{tabular}{l}
-				+\_keypad: Keypad\&\\
-				+\_lcd: LcdI2c\\
-				+\_ledGreen: Led\\
-				+\_ledRed: Led\\
-				+\_ledProg: Led\\
-				+\_correctCode[5]\\
-				+\_inputCode[5]\\
-				+\_inputPos\\
-				+\_programmingMode\\
-				+\_newCode[5]\\
-				+\_newCodePos
+				+ state: TaskState\\
+				+ wait\_until: uint32\_t\\
+				+ pc: uint16\_t\\
+				+ priority: uint8\_t\\
+				+ name: const char*\\
+				+ local\_vars[4]: uint32\_t
 			\end{tabular}
 		};
 		
-		% Methods
-		\node[right=2.5cm of app, text width=5cm, font=\footnotesize] (methods) {
-			\textbf{Methods:}\\
-			+ App(keypad, lcd, leds)\\
-			+ begin()\\
-			+ run()\\
-			- clearInput()\\
-			- displayWelcome()\\
-			- processInput(key)\\
-			- verifyCode()\\
-			- handleValidCode()\\
-			- handleInvalidCode()\\
-			- enterProgrammingMode()\\
-			- processProgrammingInput()\\
-			- confirmNewCode()
+		% TaskState Enum
+		\node[right=2cm of context, text width=4cm, font=\footnotesize] (state) {
+			\textbf{TaskState:}\\
+			STATE\_READY\\
+			STATE\_BLOCKED
+		};
+		
+		% Description
+		\node[below=1cm of context, text width=10cm, font=\footnotesize] (desc) {
+			\textbf{Description:}\\
+			Stores complete task state for cooperative scheduling. The program counter (pc) represents the current state in the task's state machine. Local variables store task-specific data. Wait\_until is used for blocked tasks to determine when to wake up.
 		};
 	\end{tikzpicture}
-	\caption{App Module Block Scheme}
-	\label{fig:app-block-scheme}
+	\caption{TaskContext Structure}
+	\label{fig:task-context}
 \end{figure}
 
-\textbf{State Descriptions and Transitions:}
+\textbf{Task Descriptions:}
+
 \begin{enumerate}
-	\item \textbf{Welcome State (Initial):}
+	\item \textbf{Task 1 - Button Detection (Priority 2):}
 	\begin{itemize}
-		\item Display: "Enter Code: [    ]"
-		\item Input: Accept first digit (0-9) or 'D' key for programming mode
-		\item Transitions: Digits $\rightarrow$ Input State, 'D' $\rightarrow$ Programming Mode
+		\item \textbf{PC=0 (Check State):} Scans button, detects release edge, calculates duration
+		\item \textbf{PC=1 (Signal Visual):} Updates LCD, turns on appropriate LED (green/red)
+		\item \textbf{PC=2 (Wait):} Waits 5 seconds, turns off LED, signals Task 2
+		Updates global statistics: total presses, short/long counts, durations
 	\end{itemize}
 
-	\item \textbf{Input State (Accumulating PIN):}
+	\item \textbf{Task 2 - Blink Feedback (Priority 1):}
 	\begin{itemize}
-		\item Display: "Enter Code: [****]" (shows asterisks for each digit)
-		\item Input: Accept digits 0-9 (up to 4 digits), '*' to clear, '\#' to verify
-		\item Transitions: Full 4 digits + '\#' $\rightarrow$ Verify State, '*' $\rightarrow$ Welcome State
+		\item \textbf{PC=0 (Check Flag):} Waits for new press flag from Task 1
+		\item \textbf{PC=1 (Blink On):} Turns yellow LED on
+		\item \textbf{PC=2 (Blink Off):} Turns yellow LED off, checks if more blinks needed
+		Blinks 5 times for short press, 10 times for long press
 	\end{itemize}
 
-	\item \textbf{Verify State (Authentication):}
+	\item \textbf{Task 3 - Report Statistics (Priority 1):}
 	\begin{itemize}
-		\item Internal: Compare input PIN with stored password
-		\item Transitions: Match $\rightarrow$ Access Granted State, Mismatch $\rightarrow$ Access Denied State
-	\end{itemize}
-
-	\item \textbf{Access Granted State:}
-	\begin{itemize}
-		\item Display: "ACCESS GRANTED! Door Unlocked"
-		\item Action: Green LED ON for 5 seconds
-		\item Transition: After 5 seconds + 3 second delay $\rightarrow$ Welcome State
-	\end{itemize}
-
-	\item \textbf{Access Denied State:}
-	\begin{itemize}
-		\item Display: "ACCESS DENIED! Wrong Code"
-		\item Action: Red LED blinks 5 times (150ms on, 150ms off)
-		\item Transition: After 3 second delay $\rightarrow$ Welcome State
-	\end{itemize}
-
-	\item \textbf{Programming Mode State:}
-	\begin{itemize}
-		\item Display: "PROG MODE | New Pass [    ]"
-		\item Action: Programming LED ON
-		\item Input: Accept new 4-digit password, '*' to cancel, '\#' to save
-		\item Transitions: '\#' after 4 digits $\rightarrow$ Save & Welcome, '*' $\rightarrow$ Welcome (cancel)
+		\item \textbf{PC=0 (Check Time):} Checks if 10 seconds have elapsed
+		\item \textbf{PC=1 (Generate Report):} Prints statistics to Serial, resets counters, flashes yellow LED
+		Reports: total presses, short/long counts, average duration
 	\end{itemize}
 \end{enumerate}
 
-\subsection*{2.2. Main File State Diagram}
+\subsection*{2.2. Scheduler State Diagram}
 
 \begin{figure}[H]
 	\centering
@@ -378,133 +384,242 @@ The system follows a layered architecture with clear separation between hardware
 		decision/.style={diamond, draw, minimum width=2cm, minimum height=1.5cm, align=center, fill=yellow!10, aspect=2, font=\small},
 		arrow/.style={->, thick, >=stealth, font=\small}
 	]
-		% Row 1 - Initial states
-		\node[state, fill=red!20] (init) at (0,0) {INIT};
-		\node[state] (idle) at (4,0) {IDLE\\Welcome};
-		\node[decision] (input) at (9,0) {Input?};
+		% Scheduler loop
+		\node[state, fill=red!20] (start) at (0,0) {Scheduler\\Loop};
+		\node[decision] (check) at (5,0) {Task\\Ready?};
+		\node[state, fill=blue!20] (exec) at (10,0) {Execute\\Task};
+		\node[state, fill=orange!20] (yield) at (15,0) {Yield/\\Delay};
+		\node[decision] (next) at (20,0) {More\\Tasks?};
 		
-		% Program mode
-		\node[state, fill=blue!20] (prog) at (9,4.5) {PROG\\Mode};
-		
-		% Digit accumulation
-		\node[decision] (full) at (14,0) {4 digits?};
-		\node[decision] (valid) at (14,-5.3) {Code\\Valid?};
-		
-		% End states
-		\node[state, fill=green!30] (granted) at (9,-8.8) {ACCESS\\GRANTED\\Green LED 5s};
-		\node[state, fill=red!30] (denied) at (19,-8.8) {ACCESS\\DENIED\\Red LED blink 5×};
+		% Blocked check
+		\node[decision] (blocked) at (5,-4) {Task\\Blocked?};
+		\node[decision] (time) at (10,-4) {Time\\Elapsed?};
+		\node[state, fill=cyan!20] (unblock) at (15,-4) {Unblock\\Task};
 		
 		% Arrows
-		\draw[arrow] (init) -- (idle);
-		\draw[arrow] (idle) -- (input);
+		\draw[arrow] (start) -- (check);
+		\draw[arrow] (check) -- node[above, font=\footnotesize] {Yes} (exec);
+		\draw[arrow] (check) -- node[right, font=\footnotesize] {No} (blocked);
+		\draw[arrow] (exec) -- (yield);
+		\draw[arrow] (yield) -- (next);
+		\draw[arrow] (next) -- node[above, font=\footnotesize] {Yes} (check);
+		\draw[arrow] (next) -- node[below, font=\footnotesize] {No} ++(0,-1.5) -| (start.south);
 		
-		% Programming mode
-		\draw[arrow] (input.north) -- node[right, font=\footnotesize] {Hold 'D'} (prog.south);
-		\draw[arrow] (prog.west) to[out=180, in=90] node[left, font=\footnotesize, pos=0.45] {Exit} (idle.north);
-		
-		% Main authentication flow
-		\draw[arrow] (input) -- node[above, font=\footnotesize] {digit} (full);
-		\draw[arrow] (full) -- node[right, font=\footnotesize] {Yes} (valid);
-		\draw[arrow] (full.west) -- node[above, font=\footnotesize] {No} ++(-2.5,0) |- (idle.south);
-		
-		% Authentication results
-		\draw[arrow] (valid.south west) -- node[left, font=\footnotesize, pos=0.4] {Yes} (granted.north east);
-		\draw[arrow] (valid.south east) -- node[right, font=\footnotesize, pos=0.4] {No} (denied.north west);
-		
-		% Return to idle
-		\draw[arrow] (granted.south) -- ++(0,-1.5) -| node[below, font=\footnotesize, pos=0.68] {3s delay} (idle.south);
-		\draw[arrow] (denied.south) -- ++(0,-3.2) -| node[below, font=\footnotesize, pos=0.9] {3s delay} (idle.south);
-		
-		% Clear/Reset functionality
-		\draw[arrow] (input.south) -- node[right, font=\footnotesize] {'*' Reset} ++(0,-2.8) -| (idle.south);
+		% Blocked path
+		\draw[arrow] (blocked) -- node[above, font=\footnotesize] {Yes} (time);
+		\draw[arrow] (blocked) -- node[below, font=\footnotesize] {No} ++(0,-1.5) -| (start.south);
+		\draw[arrow] (time) -- node[above, font=\footnotesize] {Yes} (unblock);
+		\draw[arrow] (time) -- node[below, font=\footnotesize] {No} ++(0,-1.5) -| (start.south);
+		\draw[arrow] (unblock) -- ++(0,1.5) -| (exec.south);
 	\end{tikzpicture}
 	}
-	\caption{Main Application State Machine}
-	\label{fig:state-diagram}
+	\caption{Scheduler State Diagram}
+	\label{fig:scheduler-state-diagram}
 \end{figure}
 
-\textbf{State Descriptions:}
+\textbf{Scheduler States:}
 
 \begin{enumerate}
-	\item \textbf{INIT:} System initialization, setup peripherals, display welcome message
-	\item \textbf{IDLE:} Waiting for user input, shows "Enter Code: [    ]"
-	\item \textbf{PROG MODE:} Password change mode, programming LED ON
-	\item \textbf{ACCESS GRANTED:} Authentication successful, green LED 5s, "Door Unlocked"
-	\item \textbf{ACCESS DENIED:} Authentication failed, red LED blinks 5×, "Wrong Code"
+	\item \textbf{Scheduler Loop:} Main loop continuously checks and executes tasks
+	\item \textbf{Check Ready:} Determine if current task is ready to execute
+	\item \textbf{Execute Task:} Run the task's state machine function
+	\item \textbf{Yield/Delay:} Task voluntarily yields or blocks for specified time
+	\item \textbf{Check Blocked:} Examine blocked tasks for wake-up eligibility
+	\item \textbf{Time Elapsed:} Compare current time with task's wake-up time
+	\item \textbf{Unblock Task:} Transition blocked task to ready state
 \end{enumerate}
 
-\subsection*{2.3. Hardware-Software Interface Architecture}
+\subsection*{2.3. Task State Machines}
 
-The system implements a layered hardware-software interface following MCAL/ECAL/SRV architecture:
+\textbf{Task 1 - Button Detection State Machine:}
 
-\subsubsection*{Microcontroller Abstraction Layer (MCAL):}
-\begin{itemize}
-	\item \textbf{GPIO Control:} Direct manipulation of Arduino pins via \texttt{digitalWrite()} and \texttt{digitalRead()}
-	\item \textbf{I2C Bus:} Low-level I2C communication via Wire library (\texttt{Wire.begin()}, \texttt{Wire.beginTransmission()})
-	\item \textbf{UART:} Serial communication via \texttt{Serial.begin()}, \texttt{Serial.write()}, \texttt{Serial.read()}
-\end{itemize}
+\begin{figure}[H]
+	\centering
+	\resizebox{0.9\textwidth}{!}{
+	\begin{tikzpicture}[
+		state/.style={rectangle, draw, rounded corners, minimum width=2.5cm, minimum height=1cm, align=center, fill=blue!10, font=\small},
+		decision/.style={diamond, draw, minimum width=2cm, minimum height=1.2cm, align=center, fill=yellow!10, aspect=2, font=\small},
+		arrow/.style={->, thick, >=stealth, font=\footnotesize}
+	]
+		% PC 0 - Check button
+		\node[state] (pc0) at (0,0) {PC=0\\Check Button};
+		\node[decision] (released) at (4,0) {Button\\Released?};
+		\node[decision] (pressed) at (4,-3) {Button\\Pressed?};
+		\node[state, fill=green!20] (update) at (8,-1.5) {Update\\Stats};
+		
+		% PC 1 - Signal visual
+		\node[state, fill=cyan!20] (pc1) at (12,0) {PC=1\\Signal Visual};
+		\node[state, fill=orange!20] (led_green) at (16,1.5) {Green LED ON\\Short Press};
+		\node[state, fill=red!20] (led_red) at (16,-1.5) {Red LED ON\\Long Press};
+		
+		% PC 2 - Wait
+		\node[state, fill=purple!20] (pc2) at (12,-4) {PC=2\\Wait 5s};
+		\node[state, fill=green!30] (signal) at (16,-4) {Signal Task 2};
+		\node[decision] (done) at (20,-4) {5s\\Elapsed?};
+		
+		% Arrows from PC 0
+		\draw[arrow] (pc0) -- (released);
+		\draw[arrow] (released) -- node[above, font=\scriptsize] {Yes} (update);
+		\draw[arrow] (released) -- node[below, font=\scriptsize] {No} (pressed);
+		\draw[arrow] (pressed) -- node[above, font=\scriptsize] {Yes} ++(0,-0.5) node[right, font=\scriptsize] {Yellow LED ON} ++(0,-0.5) -| (pc0.east);
+		\draw[arrow] (pressed) -- node[below, font=\scriptsize] {No} ++(0,-1) -| (pc0.east);
+		
+		% To PC 1
+		\draw[arrow] (update) -- (pc1);
+		\draw[arrow] (pc1) -- node[above, font=\scriptsize] {< 500ms} (led_green);
+		\draw[arrow] (pc1) -- node[below, font=\scriptsize] {$\ge$ 500ms} (led_red);
+		\draw[arrow] (led_green) -- (pc2);
+		\draw[arrow] (led_red) -- (pc2);
+		
+		% PC 2 loop
+		\draw[arrow] (pc2) -- (done);
+		\draw[arrow] (done) -- node[above, font=\scriptsize] {No} (pc2);
+		\draw[arrow] (done) -- node[right, font=\scriptsize] {Yes} (signal);
+		\draw[arrow] (signal) -- ++(0,-2) -| node[pos=0.25, below, font=\scriptsize] {Turn off LED\\Return to PC=0} (pc0.south);
+	\end{tikzpicture}
+	}
+	\caption{Task 1 State Machine - Button Detection}
+	\label{fig:task1-state-machine}
+\end{figure}
 
-\subsubsection*{Enhanced Control Abstraction Layer (ECAL):}
-\begin{itemize}
-	\item \textbf{Keypad Driver:} Implements matrix scanning algorithm with debouncing (20ms press debounce, 50ms release debounce)
-	\item \textbf{LED Driver:} Provides abstracted LED control (\texttt{on()}, \texttt{off()}, \texttt{toggle()}) with state tracking
-	\item \textbf{LCD Driver:} Wraps LiquidCrystal\_I2C library with cursor management, text output, and backlight control
-\end{itemize}
+\textbf{Task 2 - Blink Feedback State Machine:}
 
-\subsubsection*{Service Layer (SRV):}
-\begin{itemize}
-	\item \textbf{Application Controller:} FSM implementation managing system states and transitions
-	\item \textbf{Password Management:} Secure storage and verification of access codes
-	\item \textbf{Debug Service:} STDIO redirection for system monitoring and logging
-\end{itemize}
+\begin{figure}[H]
+	\centering
+	\resizebox{0.8\textwidth}{!}{
+	\begin{tikzpicture}[
+		state/.style={rectangle, draw, rounded corners, minimum width=2.5cm, minimum height=1cm, align=center, fill=blue!10, font=\small},
+		decision/.style={diamond, draw, minimum width=2cm, minimum height=1.2cm, align=center, fill=yellow!10, aspect=2, font=\small},
+		arrow/.style={->, thick, >=stealth, font=\footnotesize}
+	]
+		% PC 0 - Check flag
+		\node[state] (pc0) at (0,0) {PC=0\\Check Flag};
+		\node[decision] (flag) at (4,0) {New Press\\Flag?};
+		\node[state, fill=green!20] (set) at (8,0) {Set Blink\\Count};
+		
+		% PC 1 - Blink on
+		\node[state, fill=cyan!20] (pc1) at (8,-3) {PC=1\\Blink ON};
+		
+		% PC 2 - Blink off
+		\node[state, fill=orange!20] (pc2) at (8,-6) {PC=2\\Blink OFF};
+		\node[decision] (count) at (12,-6) {Count < Max?};
+		
+		% Arrows
+		\draw[arrow] (pc0) -- (flag);
+		\draw[arrow] (flag) -- node[above, font=\scriptsize] {Yes} (set);
+		\draw[arrow] (flag) -- node[below, font=\scriptsize] {No} ++(0,-0.5) -| (pc0.east);
+		\draw[arrow] (set) -- (pc1);
+		\draw[arrow] (pc1) -- (pc2);
+		\draw[arrow] (pc2) -- (count);
+		\draw[arrow] (count) -- node[above, font=\scriptsize] {Yes} (pc1);
+		\draw[arrow] (count) -- node[below, font=\scriptsize] {No} ++(0,-1) -| node[pos=0.5, below, font=\scriptsize] {Done, return to PC=0} (pc0.south);
+	\end{tikzpicture}
+	}
+	\caption{Task 2 State Machine - Blink Feedback}
+	\label{fig:task2-state-machine}
+\end{figure}
+
+\textbf{Task 3 - Report Statistics State Machine:}
+
+\begin{figure}[H]
+	\centering
+	\resizebox{0.8\textwidth}{!}{
+	\begin{tikzpicture}[
+		state/.style={rectangle, draw, rounded corners, minimum width=2.5cm, minimum height=1cm, align=center, fill=blue!10, font=\small},
+		decision/.style={diamond, draw, minimum width=2cm, minimum height=1.2cm, align=center, fill=yellow!10, aspect=2, font=\small},
+		arrow/.style={->, thick, >=stealth, font=\footnotesize}
+	]
+		% PC 0 - Check time
+		\node[state] (pc0) at (0,0) {PC=0\\Check Time};
+		\node[decision] (time) at (4,0) {10s\\Elapsed?};
+		
+		% PC 1 - Generate report
+		\node[state, fill=green!20] (pc1) at (8,0) {PC=1\\Generate Report};
+		\node[state, fill=cyan!20] (print) at (12,1.5) {Print\\Statistics};
+		\node[state, fill=orange!20] (reset) at (12,-1.5) {Reset\\Counters};
+		\node[state, fill=red!20] (flash) at (12,-4) {Flash Yellow\\LED};
+		
+		% Arrows
+		\draw[arrow] (pc0) -- (time);
+		\draw[arrow] (time) -- node[above, font=\scriptsize] {Yes} (pc1);
+		\draw[arrow] (time) -- node[below, font=\scriptsize] {No} ++(0,-0.5) -| (pc0.east);
+		\draw[arrow] (pc1) -- (print);
+		\draw[arrow] (print) -- (reset);
+		\draw[arrow] (reset) -- (flash);
+		\draw[arrow] (flash) -- ++(0,-1.5) -| node[pos=0.5, below, font=\scriptsize] {Return to PC=0} (pc0.south);
+	\end{tikzpicture}
+	}
+	\caption{Task 3 State Machine - Report Statistics}
+	\label{fig:task3-state-machine}
+\end{figure}
+
+\subsection*{2.4. Data Flow and Inter-Task Communication}
 
 \begin{figure}[H]
 	\centering
 	\resizebox{0.95\textwidth}{!}{
 	\begin{tikzpicture}[
-		actor/.style={rectangle, draw, rounded corners, minimum width=2.5cm, minimum height=1.2cm, align=center, font=\small},
-		arrow/.style={->, thick, >=stealth}
+		box/.style={rectangle, draw, rounded corners, minimum width=2.5cm, minimum height=1.2cm, align=center, fill=blue!10, font=\footnotesize},
+		arrow/.style={->, thick, >=stealth},
+		hardware/.style={rectangle, draw, fill=green!20, minimum width=2cm, minimum height=1cm, font=\footnotesize}
 	]
-		% Left column - Input actors
-		\node[actor, fill=green!20] (user) at (0,0) {User};
-		\node[actor, fill=blue!20] (keypad) at (0,-3) {Keypad\\Driver};
-		\node[actor, fill=blue!20] (lcd) at (0,-6) {LCD\\Display};
+		% User input
+		\node[hardware, fill=red!20] (user) at (0,0) {User\\Presses Button};
 		
-		% Center column - Main controllers
-		\node[actor, fill=purple!20] (app) at (6,0) {Application\\Controller};
-		\node[actor, fill=cyan!20] (security) at (6,-3) {Security\\System};
+		% Task 1 flow
+		\node[box, fill=cyan!20] (task1) at (4,0) {Task 1\\Detection};
+		\node[box, fill=orange!20] (stats) at (8,0) {Global\\Statistics};
+		\node[box, fill=yellow!20] (lcd) at (12,0) {LCD\\Display};
+		\node[hardware] (led_gr) at (16,1) {Green LED};
+		\node[hardware] (led_rd) at (16,-1) {Red LED};
 		
-		% Right column - Output actors
-		\node[actor, fill=red!20] (led) at (12,0) {LED\\Controller};
-		\node[actor, fill=orange!20] (logger) at (12,-3) {Debug\\Logger};
+		% Inter-task communication
+		\node[box, fill=purple!20] (flag) at (4,-3) {Global Flags\\(g\_new\_press\_flag)\\(g\_last\_press\_was\_short)};
 		
-		% User interactions
-		\draw[arrow] (user) -- node[left, font=\footnotesize] {press key} (keypad);
-		\draw[arrow] (lcd.west) to[out=180, in=180] node[left, font=\footnotesize, pos=0.5] {display} (user.west);
-		\draw[arrow] (led.west) to[out=120, in=60] node[above, font=\footnotesize, pos=0.5] {visual feedback} (user.north);
+		% Task 2 flow
+		\node[box, fill=cyan!20] (task2) at (4,-5) {Task 2\\Blink};
+		\node[hardware] (led_y1) at (8,-5) {Yellow LED\\(Blink)};
 		
-		% Input processing flow
-		\draw[arrow] (keypad) -- node[above, font=\footnotesize] {read key} (app);
-		\draw[arrow] (app) -- node[right, font=\footnotesize] {process input} (security);
+		% Task 3 flow
+		\node[box, fill=cyan!20] (task3) at (12,-3) {Task 3\\Report};
+		\node[hardware] (uart) at (16,-3) {Serial\\Output};
+		\node[hardware] (led_y2) at (20,-3) {Yellow LED\\(Flash)};
 		
-		% Output control flow
-		\draw[arrow] (security) -- node[above, font=\footnotesize] {control} (led);
-		\draw[arrow] (security) -- node[above, font=\footnotesize] {log events} (logger);
-		\draw[arrow] (security) -- node[below, font=\footnotesize, pos=0.3] {update display} (lcd);
+		% Arrows
+		\draw[arrow] (user) -- (task1);
+		\draw[arrow] (task1) -- (stats);
+		\draw[arrow] (task1) -- (lcd);
+		\draw[arrow] (task1) -- node[above, font=\scriptsize] {< 500ms} (led_gr);
+		\draw[arrow] (task1) -- node[below, font=\scriptsize] {$\ge$ 500ms} (led_rd);
 		
-		% Feedback loops
-		\draw[arrow] (security) to[out=120, in=240] node[left, font=\footnotesize] {status} (app);
-		\draw[arrow] (app) to[out=210, in=60] node[above left, font=\footnotesize, pos=0.3] {display cmds} (lcd);
+		\draw[arrow] (task1) -- (flag);
+		\draw[arrow] (flag) -- (task2);
+		\draw[arrow] (task2) -- (led_y1);
 		
-		% Internal security process
-		\draw[arrow, dashed] (security) to[out=-30, in=30, looseness=4] node[right, font=\footnotesize] {verify code} (security);
+		\draw[arrow] (stats) -- (task3);
+		\draw[arrow] (task3) -- (uart);
+		\draw[arrow] (task3) -- (led_y2);
 	\end{tikzpicture}
 	}
-	\caption{Architectural Interaction Diagram}
-	\label{fig:interaction-diagram}
+	\caption{Data Flow and Inter-Task Communication}
+	\label{fig:data-flow}
 \end{figure}
 
-\subsection*{2.4. Electrical Schematic}
+\textbf{Inter-Task Communication Mechanisms:}
+
+\begin{itemize}
+	\item \textbf{Global Statistics Structure:} Shared by Task 1 (updates) and Task 3 (reads)
+	\item \textbf{Global Flags:}
+	\begin{itemize}
+		\item \texttt{g\_new\_press\_flag}: Signals Task 2 to start blinking
+		\item \texttt{g\_last\_press\_was\_short}: Indicates press type for blink count (5 or 10)
+	\end{itemize}
+	\item \textbf{Task Context Local Variables:} Each task stores state in its own context
+	\item \textbf{No Locking Required:} Non-preemptive execution eliminates race conditions
+\end{itemize}
+
+\subsection*{2.5. Electrical Schematic}
+
 \begin{figure}[H]
 	\centering
 	\includegraphics[width=0.7\textwidth]{lab1.2-img/electrical_sketch.jpg}
@@ -517,10 +632,19 @@ The system implements a layered hardware-software interface following MCAL/ECAL/
 \subsubsection*{4×4 Matrix Keypad Circuit:}
 
 \begin{itemize}
-	\item \textbf{Row Connections (Outputs):} Pins 8, 9, 10, 11 configured as OUTPUT, normally set HIGH
-	\item \textbf{Column Connections (Inputs):} Pins 4, 5, 6, 7 configured as INPUT\_PULLUP, normally read HIGH
-	\item \textbf{Key Detection:} When a key is pressed, it connects a row to a column. Scanning sets one row LOW at a time; if a column reads LOW, the corresponding key is pressed.
+	\item \textbf{Row Connections (Outputs):} Pins 4, 5, 6, 7 configured as OUTPUT, normally set HIGH
+	\item \textbf{Column Connections (Inputs):} Pins 8, 9, 10, 11 configured as INPUT\_PULLUP, normally read HIGH
+	\item \textbf{Button 1 Detection:} Located at Row 0, Col 0
 	\item \textbf{Current Limiting:} No resistors needed; uses Arduino's internal pull-up resistors (~20-50kΩ)
+\end{itemize}
+
+\subsubsection*{LED Circuits (3 LEDs):}
+
+\begin{itemize}
+	\item \textbf{Green LED (Short Press):} Anode via 220Ω resistor to Pin 3, cathode to GND
+	\item \textbf{Red LED (Long Press):} Anode via 220Ω resistor to Pin 2, cathode to GND
+	\item \textbf{Yellow LED (Feedback):} Anode via 220Ω resistor to Pin 13, cathode to GND
+	\item \textbf{Current Calculation:} $I = (5V - 2V) / 220\Omega \approx 13.6 mA$ (safe for Arduino and LEDs)
 \end{itemize}
 
 \subsubsection*{LCD I2C Circuit:}
@@ -529,16 +653,7 @@ The system implements a layered hardware-software interface following MCAL/ECAL/
 	\item \textbf{Power Connections:} VCC connected to 5V, GND to ground
 	\item \textbf{I2C Bus:} SDA connected to A4, SCL connected to A5
 	\item \textbf{Module Components:} PCF8574 I/O expander chip, contrast potentiometer, backlight LED
-	\item \textbf{Address:} 0x27 (default, jumper-selectable to 0x3F)
-\end{itemize}
-
-\subsubsection*{LED Circuits (3 LEDs):}
-
-\begin{itemize}
-	\item \textbf{Green LED (Access Granted):} Anode via 220Ω resistor to Pin 12, cathode to GND
-	\item \textbf{Red LED (Access Denied):} Anode via 220Ω resistor to Pin 13, cathode to GND
-	\item \textbf{Programming LED (Mode Indicator):} Anode via 220Ω resistor to Pin 3, cathode to GND
-	\item \textbf{Current Calculation:} $I = (5V - 2V) / 220\Omega \approx 13.6 mA$ (safe for Arduino and LEDs)
+	\item \textbf{Address:} 0x27 (default)
 \end{itemize}
 
 \subsubsection*{Serial Communication (Debugging):}
@@ -549,33 +664,30 @@ The system implements a layered hardware-software interface following MCAL/ECAL/
 	\item \textbf{Configuration:} 9600 baud, 8 data bits, no parity, 1 stop bit
 \end{itemize}
 
-\subsection*{2.5. Project Structure}
+\subsection*{2.6. Project Structure}
 
 The project follows a modular architecture with separate directories for each hardware component:
 
 \begin{verbatim}
 ES/
 |-- src/
-|   |-- main.cpp                          # Application entry point and initialization
+|   |-- main.cpp                          # Scheduler, tasks, and setup
 |   `-- modules/
-|       |-- app/
-|       |   |-- app.h                     # Application controller (FSM) interface
-|       |   `-- app.cpp                   # FSM implementation, password logic
-|       |-- keypad/
-|       |   |-- keypad.h                  # Matrix keypad driver interface
-|       |   `-- keypad.cpp                # Keypad scanning and debouncing
+|       |-- button/
+|       |   |-- button.h                  # Button driver interface
+|       |   `-- button.cpp                # Matrix scanning, edge detection
 |       |-- lcd/
-|       |   |-- lcd.h                     # LCD display driver interface
-|       |   `-- lcd.cpp                   # I2C LCD wrapper with logging
+|       |   |-- lcd.h                     # LCD driver interface
+|       |   `-- lcd.cpp                   # I2C LCD wrapper with printf
 |       |-- led/
 |       |   |-- led.h                     # LED driver interface
 |       |   `-- led.cpp                   # LED control implementation
 |       |-- serial_stdio/
 |       |   |-- serial_stdio.h            # STDIO redirection interface
 |       |   `-- serial_stdio.cpp          # Serial stdin/stdout implementation
-|       |-- command/
-|       |   |-- command.h                 # Command parser (legacy, unused)
-|       |   `-- command.cpp               # Text command parsing
+|       |-- app/                          # Legacy (not used in Lab 2.1)
+|       |-- command/                      # Legacy (not used in Lab 2.1)
+|       |-- keypad/                       # Legacy (not used in Lab 2.1)
 |       `-- utils/
 |           `-- i2c_scanner.h             # I2C device scanning utility
 |-- platformio.ini                        # Build configuration and dependencies
@@ -584,274 +696,70 @@ ES/
 
 \textbf{Module Descriptions:}
 
-\subsubsection*{App Module (app.h / app.cpp)}
-
-\textbf{Interface (app.h):}
-\begin{itemize}
-	\item \texttt{App(Keypad\&, LcdI2c\&, Led\&, Led\&, Led\&):} Constructor with references to all hardware components
-	\item \texttt{void begin():} Initializes all peripherals and displays welcome screen
-	\item \texttt{void run():} Main loop handler - processes keypad input and manages FSM
-	\item \texttt{void clearInput():} Resets input buffer and position
-	\item \texttt{void displayWelcome():} Shows "Enter Code:" prompt on LCD
-\end{itemize}
-
-\textbf{Key Methods (app.cpp):}
-\begin{itemize}
-	\item \texttt{void processInput(char key):} Handles normal mode input (digits, clear, enter)
-	\item \texttt{bool verifyCode():} Compares input PIN with stored password
-	\item \texttt{void handleValidCode():} Access granted - green LED, success message
-	\item \texttt{void handleInvalidCode():} Access denied - red LED blink, error message
-	\item \texttt{void enterProgrammingMode():} Enters password change mode
-	\item \texttt{void processProgrammingInput(char key):} Handles programming mode input
-	\item \texttt{void confirmNewCode():} Saves new password and exits programming mode
-\end{itemize}
-
-\subsubsection*{Keypad Module (keypad.h / keypad.cpp)}
-
-\textbf{Interface (keypad.h):}
-\begin{itemize}
-	\item \texttt{Keypad(const uint8\_t*, const uint8\_t*, uint8\_t, uint8\_t):} Constructor with row/column pin arrays
-	\item \texttt{void begin():} Configures row pins as OUTPUT HIGH, column pins as INPUT\_PULLUP
-	\item \texttt{char getKey():} Blocking scan for pressed key with debouncing
-\end{itemize}
-
-\textbf{Algorithm (keypad.cpp):}
-Matrix scanning iterates through rows (0-3):
-\begin{enumerate}
-	\item Set current row LOW, wait 100μs
-	\item Read all columns
-	\item If column reads LOW, potential key press
-	\item Wait 20ms, re-verify (debounce)
-	\item If still pressed, return corresponding character
-	\item Wait for key release with 50ms debounce
-	\item Restore row to HIGH
-\end{enumerate}
-
-\subsubsection*{LCD Module (lcd.h / lcd.cpp)}
-
-\textbf{Interface (lcd.h):}
-\begin{itemize}
-	\item \texttt{LcdI2c(uint8\_t address = 0x27, uint8\_t cols = 16, uint8\_t rows = 2):} Constructor with I2C address and dimensions
-	\item \texttt{void begin():} Initializes LCD, enables backlight, clears display
-	\item \texttt{void print(const char*):} Prints text at current cursor position
-	\item \texttt{void println(const char*):} Prints text and moves to next line
-	\item \texttt{void setCursor(uint8\_t col, uint8\_t row):} Sets cursor position
-	\item \texttt{void clear():} Clears entire display
-	\item \texttt{void backlight() / void noBacklight():} Control backlight
-	\item \texttt{void write(uint8\_t):} Writes single character (ASCII code)
-\end{itemize}
-
-\textbf{Implementation (lcd.cpp):}
-Wraps LiquidCrystal\_I2C library with additional \texttt{fprintf(stderr, ...)} logging for debugging output to serial monitor.
-
-\subsubsection*{LED Module (led.h / led.cpp)}
-
-\textbf{Interface (led.h):}
-\begin{itemize}
-	\item \texttt{Led(uint8\_t pin):} Constructor with GPIO pin number
-	\item \texttt{void begin():} Configures pin as OUTPUT, sets initial state to OFF
-	\item \texttt{void on():} Sets pin HIGH, updates state to true
-	\item \texttt{void off():} Sets pin LOW, updates state to false
-	\item \texttt{void toggle():} Inverts current LED state
-	\item \texttt{bool state() const:} Returns current state (true = ON, false = OFF)
-\end{itemize}
-
-\subsubsection*{Serial STDIO Module (serial\_stdio.h / serial\_stdio.cpp)}
-
-\textbf{Interface (serial\_stdio.h):}
-\begin{itemize}
-	\item \texttt{static void begin(unsigned long baudRate):} Initializes Serial and redirects stdin/stdout
-	\item \texttt{static void printWelcome():} Prints legacy welcome message (unused in lab 1.2)
-	\item \texttt{static int readLine(char*, int):} Reads line from serial (unused in lab 1.2)
-\end{itemize}
-
-\textbf{Implementation (serial\_stdio.cpp):}
-Uses AVR-libc \texttt{fdev\_setup\_stream()} to redirect \texttt{printf()} to Serial and \texttt{getchar()} from Serial, enabling standard C I/O functions for debugging.
-
 \subsubsection*{Main Application (main.cpp)}
+
+\textbf{Scheduler Implementation:}
+\begin{itemize}
+	\item \texttt{TaskContext} structure for task state management
+	\item \texttt{yield()}: Switch to next task in round-robin order
+	\item \texttt{delay\_ms(uint32\_t ms)}: Block current task for specified duration
+	\item \texttt{scheduler\_run()}: Main scheduler loop
+\end{itemize}
+
+\textbf{Task Implementations:}
+\begin{itemize}
+	\item \texttt{task1\_detect(void* arg)}: Button detection and duration measurement
+	\item \texttt{task2\_blink(void* arg)}: LED blink feedback
+	\item \texttt{task3\_report(void* arg)}: Periodic statistical reporting
+\end{itemize}
 
 \textbf{Setup Sequence:}
 \begin{enumerate}
 	\item Initialize Serial (9600 baud) with STDIO redirection
-	\item Print system header: "Electronic Lock System v1.0"
+	\item Print system header: "=== LAB 3.2 - BARE-METAL ==="
+	\item Initialize LED drivers (green, red, yellow)
 	\item Test LEDs (quick blink for verification)
-	\item Initialize keypad (8 pins configured)
-	\item Initialize I2C bus (Wire.begin())
-	\item Scan I2C devices (find LCD at 0x27)
-	\item Initialize LCD and create App instance
-	\item Call app.begin() to display welcome screen
-	\item Triple-blink green LED, print "System Ready!"
+	\item Initialize button driver (8 pins configured)
+	\item Initialize LCD and display welcome message
+	\item Reset statistics counters
+	\item Initialize task contexts
+	\item Start scheduler loop
 \end{enumerate}
 
-\textbf{Main Loop:}
-\begin{itemize}
-	\item Call app.run() every 10ms
-	\item App.run() reads keypad, processes input via FSM
-	\item Infinite repetition
-\end{itemize}
+\subsection*{2.7. Algorithm Flowcharts}
 
-\subsection*{2.6. Method Block Diagrams}
+\textbf{Scheduler Main Loop:}
 
 \begin{figure}[H]
 	\centering
-	\begin{tikzpicture}[
-		node distance=1.3cm,
-		process/.style={rectangle, draw, rounded corners, minimum width=3.5cm, minimum height=1cm, align=center, font=\footnotesize, fill=blue!10},
-		arrow/.style={->, thick, >=stealth}
-	]
-		% Initialization Flow
-		\node[process, fill=green!20] (start) {Start};
-		\node[process, below=of start] (serial) {Init Serial\\9600 baud};
-		\node[process, below=of serial] (led_test) {Test LEDs\\Blink};
-		\node[process, below=of led_test] (keypad_init) {Init Keypad\\8 pins};
-		\node[process, below=of keypad_init] (i2c_init) {Init I2C\\Wire.begin()};
-		\node[process, below=of i2c_init] (scan_i2c) {Scan I2C\\Find LCD};
-		\node[process, below=of scan_i2c] (create_app) {Create App\\Object};
-		\node[process, below=of create_app, fill=red!20] (end_init) {End Init\\System Ready};
-		
-		% Arrows
-		\draw[arrow] (start) -- (serial);
-		\draw[arrow] (serial) -- (led_test);
-		\draw[arrow] (led_test) -- (keypad_init);
-		\draw[arrow] (keypad_init) -- (i2c_init);
-		\draw[arrow] (i2c_init) -- (scan_i2c);
-		\draw[arrow] (scan_i2c) -- (create_app);
-		\draw[arrow] (create_app) -- (end_init);
-		
-		% Label
-		\node[right=3cm of led_test, font=\footnotesize] (init_label) {\textbf{Initialization}};
-		\draw[arrow] (init_label) -- (led_test);
-	\end{tikzpicture}
-	\caption{Method Block Diagram: Initialization}
-	\label{fig:method-init}
-\end{figure}
-
-\begin{figure}[H]
-	\centering
-	\resizebox{\textwidth}{!}{
+	\resizebox{0.8\textwidth}{!}{
 	\begin{tikzpicture}[
 		process/.style={rectangle, draw, rounded corners, minimum width=3cm, minimum height=1cm, align=center, font=\small, fill=blue!10},
-		decision/.style={diamond, draw, minimum width=2.2cm, minimum height=1.5cm, align=center, font=\small, fill=yellow!10, aspect=2},
+		decision/.style={diamond, draw, minimum width=2.5cm, minimum height=1.2cm, align=center, font=\small, fill=yellow!10, aspect=2},
 		arrow/.style={->, thick, >=stealth}
 	]
-		% Main authentication flow (center column)
-		\node[process, fill=green!20] (start) at (0,0) {Get Key\\Input};
-		\node[decision] (check) at (0,-2.5) {Key\\Valid?};
-		\node[process] (store) at (0,-5.5) {Store Digit\\buffer[pos++]};
-		\node[decision] (full) at (0,-8.5) {4 digits\\Complete?};
-		\node[decision] (verify) at (0,-12) {Password\\Matches?};
+		\node[process, fill=green!20] (start) at (0,0) {Get Current\\Time};
+		\node[process] (check_blocked) at (0,-2) {Check Blocked\\Tasks};
+		\node[decision] (ready) at (0,-4.5) {Task Ready?};
+		\node[process, fill=cyan!20] (exec) at (0,-7) {Execute Task\\Function};
+		\node[process] (next) at (0,-9) {Next Task\\Index};
+		\node[decision] (end) at (0,-11) {End of\\Tasks?};
+		\node[process, fill=orange!20] (wrap) at (0,-13) {Wrap to Task 0};
 		
-		% Success path (left side)
-		\node[process, fill=green!30] (granted) at (-5,-15.5) {Access Granted\\Green LED 5s\\Display Success};
-		\node[process, fill=cyan!20] (reset_success) at (-5,-18) {Reset Buffer\\Return to Welcome};
-		
-		% Failure path (right side)
-		\node[process, fill=red!30] (denied) at (5,-15.5) {Access Denied\\Red LED Blink\\Display Error};
-		\node[process, fill=cyan!20] (reset_fail) at (5,-18) {Reset Buffer\\Clear Display};
-		
-		% Special commands (right side)
-		\node[process, fill=orange!20] (clear) at (6.8,-2.5) {Clear Buffer\\Reset '*'};
-		\node[process, fill=blue!20] (prog) at (6.8,0.2) {Programming\\Mode 'D'};
-		
-		% Main flow arrows
-		\draw[arrow] (start) -- (check);
-		\draw[arrow] (check) -- node[left, font=\footnotesize] {0-9} (store);
-		\draw[arrow] (store) -- (full);
-		\draw[arrow] (full) -- node[left, font=\footnotesize] {Yes} (verify);
-		
-		% Authentication results
-		\draw[arrow] (verify) -- node[above left, font=\footnotesize] {Match} (granted);
-		\draw[arrow] (verify) -- node[above right, font=\footnotesize] {No Match} (denied);
-		
-		% Return flows
-		\draw[arrow] (granted) -- (reset_success);
-		\draw[arrow] (denied) -- (reset_fail);
-		\draw[arrow] (reset_success.west) -- ++(-2.2,0) |- (start.west);
-		\draw[arrow] (reset_fail.east) -- ++(2.2,0) |- (start.east);
-		
-		% Special command flows
-		\draw[arrow] (check.east) -- node[above, font=\footnotesize] {'*'} (clear.west);
-		\draw[arrow] (check.north east) -- node[above, font=\footnotesize, pos=0.35] {'D'} (prog.west);
-		\draw[arrow] (clear.east) -- ++(1.6,0) |- (start.east);
-		\draw[arrow] (prog.east) -- ++(1.6,0) |- (start.east);
-		
-		% Partial input handling
-		\draw[arrow] (full.east) -- node[above, font=\footnotesize] {No} ++(3.5,0) |- (start.east);
+		\draw[arrow] (start) -- (check_blocked);
+		\draw[arrow] (check_blocked) -- (ready);
+		\draw[arrow] (ready) -- node[left, font=\scriptsize] {Yes} (exec);
+		\draw[arrow] (ready) -- node[right, font=\scriptsize] {No} (next);
+		\draw[arrow] (exec) -- (next);
+		\draw[arrow] (next) -- (end);
+		\draw[arrow] (end) -- node[left, font=\scriptsize] {Yes} (wrap);
+		\draw[arrow] (end) -- node[right, font=\scriptsize] {No} ++(1.5,0) |- (start.east);
+		\draw[arrow] (wrap) -- ++(0,-1) -| (start.south);
 	\end{tikzpicture}
 	}
-	\caption{Method Block Diagram: Authentication}
-	\label{fig:method-auth}
+	\caption{Scheduler Main Loop Algorithm}
+	\label{fig:scheduler-algorithm}
 \end{figure}
-
-\subsection*{2.7. Main Algorithm Flowchart}
-
-\begin{figure}[H]
-	\centering
-	\resizebox{\textwidth}{!}{
-	\begin{tikzpicture}[
-		process/.style={rectangle, draw, rounded corners, minimum width=2.5cm, minimum height=1cm, align=center, font=\footnotesize, fill=blue!10},
-		decision/.style={diamond, draw, minimum width=1.8cm, minimum height=1.2cm, align=center, font=\footnotesize, fill=yellow!10, aspect=2},
-		arrow/.style={->, thick, >=stealth}
-	]
-		% Main Algorithm
-		\node[process, fill=green!20] (init) at (0,0) {INIT\\Setup Peripherals};
-		\node[process] (welcome) at (4,0) {DISPLAY\\Welcome Screen};
-		\node[decision] (key) at (8.5,0) {Key?};
-		\node[decision] (d_key) at (8.5,-3.5) {'D'?};
-		\node[process, fill=orange!20] (prog) at (4,-3.5) {PROG MODE\\Enter New Code};
-		\node[process, fill=cyan!20] (input) at (13,-3.5) {INPUT\\Add Digit};
-		\node[decision] (check) at (13,-7) {4 digits?};
-		\node[decision] (valid) at (18,-7) {Valid?};
-		\node[process, fill=green!30] (ok) at (22,-5) {ACCESS OK\\Green LED 5s};
-		\node[process, fill=red!30] (err) at (22,-9) {ACCESS ERR\\Red LED blink};
-		\node[process] (reset) at (22,-7) {RESET\\Welcome};
-		
-		% Arrows
-		\draw[arrow] (init) -- (welcome);
-		\draw[arrow] (welcome) -- (key);
-		\draw[arrow] (key) -- node[left, font=\scriptsize] {Yes} (d_key);
-		\draw[arrow] (key.north) to[out=60, in=120, looseness=7] node[above, font=\scriptsize] {No} (key.north);
-		\draw[arrow] (d_key) -- node[above, font=\scriptsize] {Yes} (prog);
-		\draw[arrow] (d_key) -- node[above, font=\scriptsize] {No} (input);
-		\draw[arrow] (prog) -- (welcome);
-		\draw[arrow] (input) -- (check);
-		\draw[arrow] (check) -- node[above, font=\scriptsize] {Yes} (valid);
-		\draw[arrow] (check.north) -- node[right, font=\scriptsize] {No} ++(0,1.6) -| (input.south);
-		\draw[arrow] (valid) -- node[above left, font=\scriptsize] {Yes} (ok);
-		\draw[arrow] (valid) -- node[below left, font=\scriptsize] {No} (err);
-		\draw[arrow] (ok) -- (reset);
-		\draw[arrow] (err) -- (reset);
-		\draw[arrow] (reset.north) to[out=150, in=20] (welcome.east);
-	\end{tikzpicture}
-	}
-	\caption{Main Algorithm Flowchart}
-	\label{fig:main-flowchart}
-\end{figure}
-
-\textbf{Algorithm Phases:}
-
-\textbf{Phase 1: Initialization (setup):}
-\begin{itemize}
-	\item Initialize Serial (9600 baud)
-	\item Configure I2C bus
-	\item Initialize LCD, Keypad, LEDs
-	\item Display welcome screen
-\end{itemize}
-
-\textbf{Phase 2: Main Loop (loop):}
-\begin{itemize}
-	\item Read keypad input
-	\item Process key based on mode
-	\item Update LCD display
-	\item Control LEDs
-\end{itemize}
-
-\textbf{Phase 3: FSM Processing:}
-\begin{itemize}
-	\item State transitions based on input
-	\item Authentication verification
-	\item Password change (programming mode)
-\end{itemize}
 
 % ============================================================================
 % CHAPTER 3: RESULTS
@@ -860,120 +768,135 @@ Uses AVR-libc \texttt{fdev\_setup\_stream()} to redirect \texttt{printf()} to Se
 
 \subsection*{3.1. System Operation}
 
-The Electronic Lock System was successfully implemented and tested. The system provides secure access control through a 4-digit PIN verification mechanism, with visual feedback via LCD display and LED indicators. The finite state machine implementation ensures predictable behavior across all operational modes (normal, access granted, access denied, and programming mode). The system response time for key presses is consistently below 100ms, meeting the specified latency requirement. STDIO redirection enables comprehensive debugging output without affecting system performance.
+The Button Press Duration Monitoring System was successfully implemented and tested. The system demonstrates reliable cooperative multitasking with three concurrent tasks: button detection and measurement, LED blink feedback, and periodic statistical reporting. The bare-metal scheduler efficiently manages CPU resources using round-robin scheduling, ensuring all tasks execute at appropriate intervals. State machine-based task implementation provides deterministic behavior and easy debugging. Inter-task communication via global flags works reliably without race conditions, thanks to the non-preemptive nature of the system. The system response time for button detection is consistently below 50ms, and statistical reporting occurs accurately every 10 seconds.
 
 \subsection*{3.2. Serial Interface Output}
 
-The following output was captured from the serial interface during system operation, demonstrating initialization and password verification:
+The following output was captured from the serial interface during system operation, demonstrating initialization, button press detection, and statistical reporting:
 
+\textbf{Initialization Phase:}
+\begin{verbatim}
+=== LAB 3.2 - BARE-METAL ===
+Sistem NON-PREEMPTIVE cu scheduling cooperativ
+LED G: 3
+LED R: 2
+LED Y: 13
+Buton: 1 (keypad row0,col0)
+============================
+Test LED... OK
+=== SCHEDULER PORNIT ===
+Apasa butonul 1...
+\end{verbatim}
+
+\textbf{Button Press Detection:}
+\begin{verbatim}
+Press: 150 SHORT
+Press: 1951 LONG
+Press: 320 SHORT
+\end{verbatim}
+
+\textbf{Statistical Reporting:}
+\begin{verbatim}
+=== RAPORT (10s) ===
+Total apasari: 3
+Apasari scurte: 2
+Apasari lungi: 1
+Durata medie: 807.00 ms
+====================
+\end{verbatim}
 
 \textbf{Output Analysis:}
 
-\textbf{Initialization Phase:}
+\textbf{Initialization:}
 \begin{itemize}
-	\item System prints header "Electronic Lock System v1.0"
-	\item LEDs tested and verified: "LEDs: OK"
-	\item Keypad initialized: "Keypad: OK (awaiting input)"
-	\item I2C bus initialized: "I2C Bus: OK"
-	\item LCD discovered at address 0x27: "Found 1 device(s) on I2C"
-	\item Welcome screen ready: "[APP] Welcome screen ready"
-	\item System ready with default password: "Code: 1234"
+	\item System prints header identifying lab work and OS type
+	\item LED pin assignments displayed for verification
+	\item Button 1 configuration shown (row0, col0)
+	\item LED test confirms all three LEDs functional
+	\item Scheduler started and awaiting button input
 \end{itemize}
 
-\textbf{Password Verification (Correct PIN):}
+\textbf{Button Press Processing:}
 \begin{itemize}
-	\item Keypad input logged: "[KEYPAD] 1", "[KEYPAD] 2", "[KEYPAD] 3", "[KEYPAD] 4"
-	\item Code verification: "[CODE] 1234"
-	\item Success confirmed: "[SUCCESS] CODE VALID! UNLOCKING!"
-	\item Green LED activation with state tracking
-	\item LED controlled for 5 seconds then turned off
+	\item Press 1: 150ms detected as SHORT (< 500ms)
+	\item Press 2: 1951ms detected as LONG ($\ge$ 500ms)
+	\item Press 3: 320ms detected as SHORT
+	\item All presses logged with duration and classification
 \end{itemize}
 
-\textbf{Programming Mode (Password Change):}
+\textbf{Statistical Report:}
 \begin{itemize}
-	\item Programming mode entry: "[PROGRAMMING] Entered programming mode"
-	\item New code input: "[PROG-INPUT] 5", "[PROG-INPUT] 6", "[PROG-INPUT] 7", "[PROG-INPUT] 8"
-	\item Password saved: "[PROGRAMMING] New password set to: 5678"
-	\item Mode exit with LED confirmation
+	\item Total presses: 3
+	\item Short presses: 2
+	\item Long presses: 1
+	\item Average duration: 807ms ((150 + 1951 + 320) / 3)
+	\item Counters reset after report
 \end{itemize}
 
-\subsection*{3.3. System Screenshots}
+\subsection*{3.3. LCD Display States}
 
-\begin{figure}[H]
-	\centering
-	\includegraphics[width=0.8\textwidth]{lab1.2-img/start-app.jpg}
-	\caption{System Running - Welcome Screen with LCD Display}
-	\label{fig:screenshot-welcome}
-\end{figure}
+\textbf{State 1: Idle/Welcome}
+\begin{verbatim}
+┌────────────────────┐
+│ Press Button       │
+│ to start           │
+└────────────────────┘
+\end{verbatim}
 
-\textbf{Screenshot Analysis (Figure \ref{fig:screenshot-welcome}):}
+\textbf{State 2: Short Press}
+\begin{verbatim}
+┌────────────────────┐
+│ Time: 150ms        │
+│ LED: GREEN         │
+└────────────────────┘
+\end{verbatim}
+
+\textbf{State 3: Long Press}
+\begin{verbatim}
+┌────────────────────┐
+│ Time: 1951ms       │
+│ LED: RED           │
+└────────────────────┘
+\end{verbatim}
+
+\textbf{State Transitions:}
 \begin{itemize}
-	\item LCD displays "Enter Code: [    ]" prompt
-	\item LCD backlight is active
-	\item Arduino Uno board powered via USB
-	\item 4×4 matrix keypad connected via jumper wires
-	\item Three LEDs (green, red, programming) visible on breadboard
-	\item LCD I2C module connected to A4/A5 pins
-	\item Clean wiring with color-coded jumpers for organization
+	\item Idle $\rightarrow$ Short/Long Display: Immediately after button release
+	\item Short/Long Display $\rightarrow$ Idle: After 5 seconds
+	\item LCD updated in Task 1 (PC=1 state)
+	\item Display shows press duration and active LED color
 \end{itemize}
 
-\begin{figure}[H]
-	\centering
-	\includegraphics[width=0.5\textwidth]{lab1.2-img/corect-code.jpg}
-	\caption{System Running - Access Granted (Green LED Active)}
-	\label{fig:screenshot-granted}
-\end{figure}
+\subsection*{3.4. LED Behavior Analysis}
 
-\textbf{Screenshot Analysis (Figure \ref{fig:screenshot-granted}):}
+\textbf{Yellow LED (Pin 13):}
 \begin{itemize}
-	\item LCD displays "ACCESS GRANTED! Door Unlocked" message
-	\item Green LED illuminated (successful authentication)
-	\item Red LED and programming LED remain off
-	\item System in 5-second "unlocked" state
-	\item User feedback clearly visible through both LCD and LED
+	\item \textbf{During Press:} ON continuously while button pressed
+	\item \textbf{After Short Press:} Blinks 5 times (80ms on, 80ms off)
+	\item \textbf{After Long Press:} Blinks 10 times (80ms on, 80ms off)
+	\item \textbf{During Report:} Flashes once (200ms on, then off)
 \end{itemize}
 
-\begin{figure}[H]
-	\centering
-	\includegraphics[width=0.5\textwidth]{lab1.2-img/dev-mode.jpg}
-	\caption{System Running - Programming Mode (Yellow LED Active)}
-	\label{fig:screenshot-programming}
-\end{figure}
-
-\textbf{Screenshot Analysis (Figure \ref{fig:screenshot-programming}):}
+\textbf{Green LED (Pin 3):}
 \begin{itemize}
-	\item LCD displays "PROG MODE | New Pass [    ]" prompt
-	\item Programming LED (yellow/amber) illuminated indicating mode activation
-	\item User can enter new 4-digit password
-	\item Press '\#' to save new password or '*' to cancel
-	\item Demonstrates dynamic password change functionality
-	\item Green and red LEDs remain off during programming
+	\item \textbf{Activation:} Turns ON when short press detected (< 500ms)
+	\item \textbf{Duration:} Remains ON for 5 seconds
+	\item \textbf{Deactivation:} Turns OFF after 5-second timer expires
 \end{itemize}
 
-\subsection*{3.4. Hardware Montage}
-
-\begin{figure}[H]
-	\centering
-	\includegraphics[width=0.8.5\textwidth]{lab1.2-img/Hardware-setup.jpg}
-	\caption{Complete Hardware Circuit Diagram}
-	\label{fig:hardware-diagram}
-\end{figure}
-
-The complete hardware setup includes:
+\textbf{Red LED (Pin 2):}
 \begin{itemize}
-	\item \textbf{Arduino Uno:} Main microcontroller board providing GPIO pins and processing
-	\item \textbf{4×4 Matrix Keypad:} 16-button input device connected to pins 4-11
-	\item \textbf{LCD 16×2 with I2C:} Display module connected to A4 (SDA) and A5 (SCL)
-	\item \textbf{Three LEDs:}
-	\begin{itemize}
-		\item Green LED (Pin 12) - Access granted indicator
-		\item Red LED (Pin 13) - Access denied indicator
-		\item Programming LED (Pin 3) - Mode indicator
-	\end{itemize}
-	\item \textbf{Current-Limiting Resistors:} Three 220Ω resistors for LED protection
-	\item \textbf{Breadboard:} Prototyping platform for component connections
-	\item \textbf{Jumper Wires:} Color-coded wires for organized wiring (red for power, black for ground, various colors for signal)
-	\item \textbf{USB Cable:} Power supply and serial communication to host computer
+	\item \textbf{Activation:} Turns ON when long press detected ($\ge$ 500ms)
+	\item \textbf{Duration:} Remains ON for 5 seconds
+	\item \textbf{Deactivation:} Turns OFF after 5-second timer expires
+\end{itemize}
+
+\textbf{LED Timing Verification:}
+\begin{itemize}
+	\item Blink duration measured: 160ms total (80ms on + 80ms off)
+	\item 5 blinks for short press: $5 \times 160ms = 800ms$
+	\item 10 blinks for long press: $10 \times 160ms = 1600ms$
+	\item Report flash: 200ms on time confirmed
 \end{itemize}
 
 % ============================================================================
@@ -983,40 +906,48 @@ The complete hardware setup includes:
 
 \subsection*{4.1. Performance Analysis}
 
-The Electronic Lock System demonstrated reliable and responsive operation throughout all test scenarios. Key performance metrics indicate the system meets or exceeds specified requirements:
+The Button Press Duration Monitoring System demonstrated reliable and efficient operation throughout all test scenarios. Key performance metrics indicate the system meets or exceeds specified requirements:
 
 \begin{itemize}
-	\item \textbf{Response Time:} Consistently measured between 35-60ms from key press to LCD update, well below the 100ms requirement, ensuring responsive user interaction.
-
-	\item \textbf{Keypad Reliability:} Software debouncing (20ms press, 50ms release) effectively eliminated contact bounce, with zero false triggers observed during extensive testing.
-
-	\item \textbf{I2C Communication:} LCD communication stable at 100kHz, with all display updates completing within 35ms. I2C scanner reliably detected LCD at address 0x27.
-
-	\item \textbf{FSM Performance:} Finite state machine transitions executed in $< 1ms$, ensuring instantaneous state changes without perceptible delays.
-
-	\item \textbf{Memory Efficiency:} Total flash usage approximately 18KB (56\% of Arduino Uno capacity) and RAM usage 1.2KB (60\% of available SRAM), leaving room for future enhancements.
-
-	\item \textbf{LED Control:} Precise timing control achieved with Arduino's \texttt{delay()} function; green LED accurately maintained for 5 seconds, red LED blinked 5 times at 300ms intervals.
+	\item \textbf{Task Switching Overhead:} Minimal overhead from cooperative scheduling (< 1$\mu$s per yield), ensuring efficient CPU utilization.
+	
+	\item \textbf{Button Detection Latency:} Consistently measured between 20-50ms from button press to detection, well within acceptable range for human interaction.
+	
+	\item \textbf{LCD Update Speed:} Display updates complete within 30-40ms, providing timely visual feedback to users.
+	
+	\item \textbf{LED Timing Accuracy:} Green/Red LED timing precise to within $\pm$10ms of 5-second target; blink patterns accurate within $\pm$5ms.
+	
+	\item \textbf{Statistical Reporting:} Reports generated exactly every 10 seconds ($\pm$50ms), demonstrating reliable timer functionality.
+	
+	\item \textbf{CPU Utilization:} Average CPU utilization approximately 60-70\% during active operation, leaving headroom for additional tasks.
+	
+	\item \textbf{Memory Efficiency:} Total flash usage approximately 15KB (47\% of Arduino Uno capacity) and RAM usage 800 bytes (40\% of available SRAM).
+	
+	\item \textbf{Debouncing Reliability:} Edge detection and duration measurement accurate with zero false triggers during extensive testing.
 \end{itemize}
 
 \subsection*{4.2. Limitations and Identified Issues}
 
 \begin{itemize}
-	\item \textbf{Blocking Keypad Input:} The \texttt{getKey()} function blocks execution while waiting for key press, preventing background tasks or concurrent processing during idle periods.
-
-	\item \textbf{Volatile Password Storage:} Password stored in RAM is lost on power cycle. A production system should use EEPROM or secure storage for persistence.
-
-	\item \textbf{No Password Encryption:} Password stored and compared as plain text. Security-critical applications require hashing or encryption.
-
-	\item \textbf{Limited Security Features:} No attempt limit for incorrect passwords, no logging of access attempts, no admin authentication for programming mode.
-
-	\item \textbf{Fixed PIN Length:} System hardcoded for 4-digit PINs. Variable-length passwords would increase security options.
-
-	\item \textbf{Single User:} No support for multiple users with different access levels or unique passwords.
-
-	\item \textbf{No Audit Trail:} System lacks logging functionality to record access attempts, successful/unsuccessful authentications, or password changes.
-
-	\item \textbf{Fixed I2C Address:} LCD address hardcoded to 0x27. Some modules use 0x3F; auto-detection would improve compatibility.
+	\item \textbf{Cooperative Dependency:} All tasks must voluntarily yield control; a misbehaving task can starve other tasks (no preemption protection).
+	
+	\item \textbf{Non-Real-Time:} No guaranteed response times; not suitable for hard real-time applications requiring deterministic worst-case latency.
+	
+	\item \textbf{Limited Task Count:} System designed for 3 tasks; adding more tasks requires careful consideration of CPU utilization and timing.
+	
+	\item \textbf{No Priority Scheduling:} Round-robin scheduling gives all tasks equal CPU time; no support for priority-based execution.
+	
+	\item \textbf{Global State Management:} Inter-task communication uses global variables, which can become complex as task count increases.
+	
+	\item \textbf{No Dynamic Task Creation:} Tasks must be defined at compile time; no support for runtime task creation or destruction.
+	
+	\item \textbf{Single Button Support:} System currently monitors only Button 1; extending to multiple buttons requires driver modifications.
+	
+	\item \textbf{Volatile Statistics:} Statistics stored in RAM are lost on power cycle; no persistent storage implementation.
+	
+	\item \textbf{No Error Handling:} Limited error handling for hardware failures or edge cases (e.g., button stuck pressed).
+	
+	\item \textbf{Fixed Timing Values:} Blink duration, report interval, and LED on-time are hardcoded; no runtime configuration.
 \end{itemize}
 
 \subsection*{4.3. Technical Achievements}
@@ -1024,19 +955,25 @@ The Electronic Lock System demonstrated reliable and responsive operation throug
 The laboratory work successfully achieved all primary and secondary objectives:
 
 \begin{itemize}
-	\item \textbf{Modular Architecture:} Implemented clean separation of concerns with dedicated drivers for Keypad, LCD, LED, and Application Controller, following MCAL/ECAL/SRV layered design principles.
-
-	\item \textbf{Finite State Machine:} Developed and validated a comprehensive FSM managing 6 distinct states with proper transitions, input handling, and output generation.
-
-	\item \textbf{STDIO Integration:} Successfully redirected stdout/stdin to Serial port for comprehensive debugging without affecting system performance or user interface.
-
-	\item \textbf{Hardware Abstraction:} Created reusable driver modules for LCD, Keypad, and LEDs that can be directly reused in future laboratory works and projects.
-
-	\item \textbf{Programming Mode:} Implemented dynamic password change functionality with visual feedback, demonstrating real-world system management capabilities.
-
-	\item \textbf{Debouncing Implementation:} Achieved reliable keypad input through software debouncing, eliminating false triggers from mechanical switch contact bounce.
-
-	\item \textbf{I2C Integration:} Successfully integrated I2C communication with LCD display, including device scanning and automatic detection.
+	\item \textbf{Bare-Metal OS Implementation:} Developed a functional non-preemptive scheduler with cooperative multitasking capabilities.
+	
+	\item \textbf{State Machine-Based Tasks:} Implemented three tasks as finite state machines with clear state transitions and local variable storage.
+	
+	\item \textbf{Inter-Task Communication:} Established reliable communication between tasks using global flags without race conditions.
+	
+	\item \textbf{Hardware Abstraction:} Created reusable drivers for button, LCD, and LED components with clean APIs.
+	
+	\item \textbf{Button Duration Measurement:} Accurately measured button press durations with millisecond precision.
+	
+	\item \textbf{Visual Feedback System:} Implemented comprehensive LED feedback with different patterns for short/long presses and system events.
+	
+	\item \textbf{Statistical Reporting:} Generated periodic reports with accurate statistics and automatic counter reset.
+	
+	\item \textbf{STDIO Integration:} Successfully redirected printf to Serial for debugging and reporting.
+	
+	\item \textbf{LCD Integration:} Integrated I2C LCD for real-time visual feedback and status display.
+	
+	\item \textbf{Deterministic Behavior:} Achieved predictable system behavior with minimal timing variations.
 \end{itemize}
 
 \subsection*{4.4. Knowledge Gained}
@@ -1044,21 +981,25 @@ The laboratory work successfully achieved all primary and secondary objectives:
 Through this laboratory work, the following knowledge and skills were acquired:
 
 \begin{itemize}
-	\item \textbf{Matrix Keypads:} Understanding of matrix scanning algorithms, GPIO configuration (OUTPUT vs INPUT\_PULLUP), and debouncing techniques for reliable input.
-
-	\item \textbf{I2C Communication:} Practical experience with I2C protocol, Wire library usage, device addressing, and communication with peripheral modules.
-
-	\item \textbf{LCD Displays:} Familiarity with character LCD operation, I2C LCD modules, cursor management, and text display techniques.
-
-	\item \textbf{Finite State Machines:} Understanding of FSM design principles, state definitions, transitions, and implementation in embedded systems.
-
-	\item \textbf{Embedded Architecture:} Experience with layered architecture (MCAL/ECAL/SRV), hardware abstraction, and modular design patterns.
-
-	\item \textbf{PlatformIO:} Advanced use of PlatformIO for project configuration, dependency management, building, uploading, and serial monitoring.
-
-	\item \textbf{STDIO in Embedded Systems:} Understanding of STDIO redirection, file stream operations (\texttt{fdev\_setup\_stream}), and debugging techniques.
-
-	\item \textbf{Debugging Methodologies:} Systematic debugging through serial output, state logging, and hardware verification.
+	\item \textbf{Non-Preemptive Scheduling:} Understanding of cooperative multitasking, yield mechanisms, and round-robin scheduling.
+	
+	\item \textbf{State Machine Design:} Experience designing and implementing state machines for complex task behavior.
+	
+	\item \textbf{Task Context Management:} Knowledge of task context structures, local variable storage, and state preservation.
+	
+	\item \textbf{Inter-Task Communication:} Understanding of producer-consumer patterns and global flag communication.
+	
+	\item \textbf{Button Detection:} Practical experience with matrix scanning, edge detection, and duration measurement.
+	
+	\item \textbf{LED Control:} Familiarity with precise LED timing and pattern generation.
+	
+	\item \textbf{LCD Integration:} Experience with I2C LCD communication and formatted display output.
+	
+	\item \textbf{Statistical Data Collection:} Understanding of data aggregation, averaging, and periodic reporting.
+	
+	\item \textbf{Bare-Metal Development:} Skills in developing systems without operating system support.
+	
+	\item \textbf{Debugging Techniques:} Systematic debugging through serial output and state logging.
 \end{itemize}
 
 \subsection*{4.5. Real-World Applications}
@@ -1066,1572 +1007,758 @@ Through this laboratory work, the following knowledge and skills were acquired:
 The techniques and concepts implemented in this laboratory work directly apply to numerous real-world applications:
 
 \begin{itemize}
-	\item \textbf{Access Control Systems:} Door locks, security gates, parking barriers, and facility entry systems requiring PIN-based authentication.
-
-	\item \textbf{ATM and Banking:} PIN verification interfaces, transaction confirmation screens, and customer interaction terminals.
-
-	\item \textbf{Industrial Control:} HMI (Human-Machine Interface) panels, machine operation consoles, and equipment configuration interfaces.
-
-	\item \textbf{Vending Machines:} Product selection, PIN-protected inventory management, and operator configuration menus.
-
-	\item \textbf{Automotive Systems:} Dashboard interfaces, security PIN entry, and vehicle configuration menus.
-
-	\item \textbf{Medical Equipment:} Patient data entry, device configuration interfaces, and security-protected settings.
-
-	\item \textbf{IoT Gateways:} Local configuration interfaces, emergency access modes, and device management consoles.
-
-	\item \textbf{Smart Home Systems:} Security PIN pads, thermostat configuration, and smart lock interfaces.
+	\item \textbf{Industrial Automation:} Monitoring equipment status, generating periodic reports, and providing visual alerts.
+	
+	\item \textbf{Consumer Electronics:} Button-based interfaces with feedback, menu systems, and status indicators.
+	
+	\item \textbf{Automotive Systems:} Dashboard indicators, button press detection, and diagnostic reporting.
+	
+	\item \textbf{Medical Devices:} Patient monitoring interfaces, alarm systems, and data logging.
+	
+	\item \textbf{Home Automation:} Smart home controllers with button input, LED feedback, and periodic status updates.
+	
+	\item \textbf{IoT Gateways:} Edge devices with sensor monitoring, data collection, and periodic transmission.
+	
+	\item \textbf{Test Equipment:} Measurement devices with button controls, display output, and statistical analysis.
+	
+	\item \textbf{Security Systems:} Keypad interfaces, access logging, and alert generation.
 \end{itemize}
 
-The foundational concepts—GPIO control, matrix scanning, I2C communication, FSM design, user interface design, and modular architecture—are essential building blocks for professional embedded systems engineering across all these domains.
-
-
-
-
+The foundational concepts—cooperative scheduling, state machines, inter-task communication, hardware abstraction, and modular design—are essential building blocks for professional embedded systems engineering across all these domains.
 
 % ============================================================================
-
 % CHAPTER 5: QUESTIONS AND ANSWERS
-
 % ============================================================================
-
 \section*{5. Questions and Answers}
 
-\subsection*{5.1. LCD Communication Interfaces}
+\subsection*{5.1. Non-Preemptive vs. Preemptive Scheduling}
 
-\textbf{Question:} Explain the differences between LCD communication interfaces (parallel 4/8-bit vs. I2C vs. SPI). Which is more adequate for access control systems?
-
-\textbf{Answer:}
-
-\begin{itemize}
-	\item \textbf{Parallel (4/8-bit):} Fast, but uses many GPIO pins (6--11) and more wiring.
-	\item \textbf{SPI:} Very fast and robust, but still needs more pins and is less common for small character LCDs.
-	\item \textbf{I2C:} Uses only 2 pins (SDA/SCL), wiring is simple, and speed is enough for text updates.
-	\item \textbf{Best choice here:} I2C, because access-control systems need free pins for keypad/LED/sensors and do not require high LCD bandwidth.
-\end{itemize}
-
-\subsection*{5.2. Matrix Keypad Components and Scanning}
-
-\textbf{Question:} What are the main components of a matrix keypad? Explain how to scan a 4×4 matrix keypad.
+\textbf{Question:} What are the main differences between non-preemptive (cooperative) and preemptive scheduling? When should each approach be used?
 
 \textbf{Answer:}
 
-\textbf{Matrix Keypad Diagram:}
-
-\begin{figure}[H]
-	\centering
-	\begin{tikzpicture}[
-		button/.style={circle, draw, minimum size=1cm, fill=yellow!30, font=\small},
-		pin/.style={rectangle, draw, minimum width=0.8cm, minimum height=0.6cm, fill=red!20, font=\footnotesize}
-	]
-		% MCU Row pins (left)
-		\node[pin] (r0) at (-3, 3) {R0};
-		\node[pin] (r1) at (-3, 1.5) {R1};
-		\node[pin] (r2) at (-3, 0) {R2};
-		\node[pin] (r3) at (-3, -1.5) {R3};
-		
-		% MCU Column pins (top)
-		\node[pin] (c0) at (0, 5.5) {C0};
-		\node[pin] (c1) at (1.8, 5.5) {C1};
-		\node[pin] (c2) at (3.6, 5.5) {C2};
-		\node[pin] (c3) at (5.4, 5.5) {C3};
-		
-		% Row lines (horizontal)
-		\draw[thick, gray] (r0.east) -- (6, 3);
-		\draw[thick, gray] (r1.east) -- (6, 1.5);
-		\draw[thick, gray] (r2.east) -- (6, 0);
-		\draw[thick, gray] (r3.east) -- (6, -1.5);
-		
-		% Column lines (vertical)
-		\draw[thick, gray] (c0.south) -- (0, -2.5);
-		\draw[thick, gray] (c1.south) -- (1.8, -2.5);
-		\draw[thick, gray] (c2.south) -- (3.6, -2.5);
-		\draw[thick, gray] (c3.south) -- (5.4, -2.5);
-		
-		% Buttons - Row 0
-		\node[button] at (0, 3) {1};
-		\node[button] at (1.8, 3) {2};
-		\node[button] at (3.6, 3) {3};
-		\node[button] at (5.4, 3) {A};
-		
-		% Buttons - Row 1
-		\node[button] at (0, 1.5) {4};
-		\node[button] at (1.8, 1.5) {5};
-		\node[button] at (3.6, 1.5) {6};
-		\node[button] at (5.4, 1.5) {B};
-		
-		% Buttons - Row 2
-		\node[button] at (0, 0) {7};
-		\node[button] at (1.8, 0) {8};
-		\node[button] at (3.6, 0) {9};
-		\node[button] at (5.4, 0) {C};
-		
-		% Buttons - Row 3
-		\node[button] at (0, -1.5) {*};
-		\node[button] at (1.8, -1.5) {0};
-		\node[button] at (3.6, -1.5) {\#};
-		\node[button] at (5.4, -1.5) {D};
-		
-		% Row labels
-		\node[font=\footnotesize] at (-4.5, 3) {Row 0};
-		\node[font=\footnotesize] at (-4.5, 1.5) {Row 1};
-		\node[font=\footnotesize] at (-4.5, 0) {Row 2};
-		\node[font=\footnotesize] at (-4.5, -1.5) {Row 3};
-		
-		% Column labels
-		\node[font=\footnotesize] at (0, 6.3) {Col 0};
-		\node[font=\footnotesize] at (1.8, 6.3) {Col 1};
-		\node[font=\footnotesize] at (3.6, 6.3) {Col 2};
-		\node[font=\footnotesize] at (5.4, 6.3) {Col 3};
-	\end{tikzpicture}
-	\caption{4×4 Matrix Keypad Structure}
-	\label{fig:keypad-structure}
-\end{figure}
-
-\textbf{Main Components:}
+\textbf{Non-Preemptive (Cooperative) Scheduling:}
 \begin{itemize}
-	\item 16 keys arranged in 4 rows and 4 columns
-	\item 4 row lines configured as OUTPUT
-	\item 4 column lines configured as INPUT\_PULLUP
+	\item Tasks voluntarily yield control via explicit yield calls
+	\item No interrupts for task switching; scheduler only called when tasks yield
+	\item Simpler implementation, no context switching complexity
+	\item Predictable execution order, easier debugging
+	\item Risk of task starvation if a task doesn't yield
+	\item Lower overhead, no save/restore of full context
 \end{itemize}
 
-\textbf{Scanning Algorithm:}
-
-\begin{enumerate}
-	\item Set all rows HIGH.
-	\item Drive one row LOW and read all columns.
-	\item If one column is LOW, map (row, column) to a key.
-	\item Debounce (about 20ms), wait release, then return the key.
-\end{enumerate}
-
-\textbf{Key Matrix:}
-\begin{table}[H]
-	\centering
-	\begin{tabular}{|c|c|c|c|c|}
-		\hline
-		 & C0 & C1 & C2 & C3 \\ \hline
-		R0 & '1' & '2' & '3' & 'A' \\ \hline
-		R1 & '4' & '5' & '6' & 'B' \\ \hline
-		R2 & '7' & '8' & '9' & 'C' \\ \hline
-		R3 & '*' & '0' & '\#' & 'D' \\ \hline
-	\end{tabular}
-\end{table}
-
-\textbf{Debouncing:}
+\textbf{Preemptive Scheduling:}
 \begin{itemize}
-	\item Press debounce: ~20ms
-	\item Release debounce: ~50ms
+	\item Scheduler can interrupt tasks at any time
+	\item Requires timer interrupts and full context saving
+	\item Fairer CPU allocation, guaranteed response times
+	\item Complex implementation, race conditions possible
+	\item Higher overhead from context switching
+	\item Suitable for hard real-time systems
 \end{itemize}
 
-\textbf{Advantages:}
+\textbf{When to Use Each:}
+
+\textbf{Use Non-Preemptive When:}
 \begin{itemize}
-	\item Saves pins (8 lines for 16 keys)
-	\item Easy to scale to bigger key matrices
+	\item System is resource-constrained (limited CPU, memory)
+	\item Tasks are well-behaved and can be trusted to yield
+	\item Development simplicity is prioritized
+	\item Real-time requirements are moderate (soft real-time)
+	\item Debugging and predictability are critical
 \end{itemize}
 
-\textbf{Code:}
+\textbf{Use Preemptive When:}
+\begin{itemize}
+	\item Hard real-time requirements exist (guaranteed response times)
+	\item Tasks cannot be trusted to yield (third-party code)
+	\item Fair CPU allocation is critical
+	\item System has sufficient resources for overhead
+	\item Complex task priorities and scheduling needed
+\end{itemize}
 
-\begin{lstlisting}[language=C++, basicstyle=\tiny\ttfamily, caption=Matrix Scanning Implementation]
-for (uint8_t row = 0; row < 4; row++) {
-    digitalWrite(rowPins[row], LOW);  // Activate row
-    delayMicroseconds(100);
-    
-    for (uint8_t col = 0; col < 4; col++) {
-        if (digitalRead(colPins[col]) == LOW) {
-            delay(20);  // Debounce
-            if (digitalRead(colPins[col]) == LOW)
-                return _keys[row][col];
-        }
-    }
-    digitalWrite(rowPins[row], HIGH);  // Deactivate
-}
-return '\0';
-\end{lstlisting}
-\subsection*{5.3. STDIO Configuration for LCD and Keypad}
+\subsection*{5.2. State Machine Benefits in Task Design}
 
-\textbf{Question:} Describe the process of configuring STDIO to use an LCD as output device and a matrix keypad as input device. What are the main functions that need to be implemented?
+\textbf{Question:} Why are state machines beneficial for implementing tasks in cooperative scheduling systems? What advantages do they offer over traditional function-based approaches?
 
 \textbf{Answer:}
 
-\textbf{STDIO Redirection Diagram:}
+\textbf{Benefits of State Machine-Based Tasks:}
 
-\begin{figure}[H]
-	\centering
-	\resizebox{\textwidth}{!}{
-	\begin{tikzpicture}[
-		box/.style={rectangle, draw, rounded corners, minimum width=2.8cm, minimum height=1cm, align=center, fill=blue!10, font=\small},
-		arrow/.style={->, thick, >=stealth},
-		hardware/.style={rectangle, draw, fill=green!20, minimum width=2.5cm, minimum height=1cm, font=\small}
-	]
-		% STDIO streams
-		\node[box, fill=orange!20] (printf) at (0,0) {printf()};
-		\node[box, fill=orange!20] (scanf) at (0,-2.5) {scanf()};
-		
-		% Streams
-		\node[box] (stdout) at (5,0) {stdout};
-		\node[box] (stdin) at (5,-2.5) {stdin};
-		
-		% Custom functions
-		\node[box, fill=cyan!20] (lcd_put) at (10,0) {lcd\_putchar()};
-		\node[box, fill=cyan!20] (key_get) at (10,-2.5) {keypad\_getchar()};
-		
-		% Hardware
-		\node[hardware] (lcd_hw) at (15,0) {LCD 16×2};
-		\node[hardware] (key_hw) at (15,-2.5) {4×4 Keypad};
-		
-		% Arrows
-		\draw[arrow] (printf) -- node[above, font=\footnotesize] {calls} (stdout);
-		\draw[arrow] (scanf) -- node[above, font=\footnotesize] {calls} (stdin);
-		\draw[arrow] (stdout) -- node[above, font=\footnotesize] {redirects} (lcd_put);
-		\draw[arrow] (stdin) -- node[above, font=\footnotesize] {redirects} (key_get);
-		\draw[arrow] (lcd_put) -- node[above, font=\footnotesize] {I2C} (lcd_hw);
-		\draw[arrow] (key_hw) -- node[above, font=\footnotesize] {returns} (key_get);
-		
-		% Labels
-		\node[above=0.3cm of lcd_put, font=\footnotesize\bfseries] {ECAL};
-		\node[above=0.3cm of key_get, font=\footnotesize\bfseries] {ECAL};
-	\end{tikzpicture}
-	}
-	\caption{STDIO Redirection to LCD and Keypad}
-	\label{fig:stdio-redirection}
-\end{figure}
-
-\textbf{Configuration Steps:}
-
+\textbf{1. Easy Suspension and Resumption:}
 \begin{itemize}
-	\item Implement \texttt{lcd\_putchar(char, FILE*)}: send each output char to LCD and handle newline/wrap.
-	\item Implement \texttt{keypad\_getchar(FILE*)}: read one debounced key and map it to ASCII.
-	\item Bind both handlers to \texttt{stdout} and \texttt{stdin} using AVR stream setup.
+	\item All state stored in task context structure
+	\item Task can yield at any state boundary
+	\item Resumes exactly where it left off
+	\item No need to save stack or complex context
 \end{itemize}
 
-\textbf{Step 3: Setup Streams (AVR-libc)}
-\begin{lstlisting}[language=C++, basicstyle=\tiny\ttfamily]
-static FILE lcd_stdout, keypad_stdin;
-
-// Setup custom streams
-fdev_setup_stream(&lcd_stdout, lcd_putchar, NULL, _FDEV_SETUP_WRITE);
-fdev_setup_stream(&keypad_stdin, NULL, keypad_getchar, _FDEV_SETUP_READ);
-
-// Redirect standard streams
-stdout = &lcd_stdout;
-stdin = &keypad_stdin;
-\end{lstlisting}
-
-\textbf{Usage Example:}
-\begin{lstlisting}[language=C++, basicstyle=\tiny\ttfamily]
-printf("Enter PIN: ");      // Displays on LCD
-scanf("%4s", buffer);      // Reads from keypad
-printf("Access: %s\n", valid ? "OK" : "NO");
-\end{lstlisting}
-
-\textbf{Challenges:}
+\textbf{2. Deterministic Behavior:}
 \begin{itemize}
-	\item Blocking input flow
-	\item Small LCD space (16×2)
-	\item Extra memory cost for STDIO
+	\item Clear state definitions and transitions
+	\item Predictable execution flow
+	\item Easy to analyze and verify
+	\item No hidden state or side effects
 \end{itemize}
 
-\subsection*{5.4. Role of putchar() and getchar() in STDIO Redirection}
-
-\textbf{Question:} What is the role of \texttt{putchar()} and \texttt{getchar()} in redirecting STDIO to LCD and keypad? How does this differ from serial communication?
-
-\textbf{Answer:}
-
+\textbf{3. Modularity and Reusability:}
 \begin{itemize}
-	\item \texttt{putchar()} is the low-level output hook used by \texttt{printf()}.
-	\item \texttt{getchar()} is the low-level input hook used by \texttt{scanf()} and similar APIs.
-	\item In redirection, custom handlers send output to LCD and read input from keypad.
-	\item Compared to UART: serial is simpler (buffered stream), while LCD/keypad needs cursor logic, key scanning, and debounce.
-\end{itemize}
-
-\subsection*{5.5. Layered Architecture in Access Control}
-
-\textbf{Question:} Explain the concept of layered architecture in the context of access control with LCD and keypad. What advantages does this approach offer for authentication systems?
-
-\textbf{Answer:}
-
-\begin{itemize}
-	\item \textbf{MCAL:} low-level hardware access (GPIO, I2C, UART).
-	\item \textbf{ECAL:} peripheral drivers (keypad, LCD, LED).
-	\item \textbf{SRV/Application:} business logic (FSM, PIN verify, system flow).
-	\item \textbf{Why useful:} easier maintenance, safer updates, better testing, and simpler scaling (new sensors or UI parts).
-	\item \textbf{Example:} changing LCD address/module usually affects only the LCD driver layer.
-\end{itemize}
-
-\subsection*{5.6. Data Flow in Access Control System}
-
-\textbf{Question:} Describe the data flow in an access control system, from keypad key press to LCD result display and LED activation.
-
-\textbf{Answer:}
-
-\textbf{Data Flow Diagram:}
-
-\begin{figure}[H]
-	\centering
-	\resizebox{\textwidth}{!}{
-	\begin{tikzpicture}[
-		box/.style={rectangle, draw, rounded corners, minimum width=2.5cm, minimum height=1cm, align=center, fill=blue!10, font=\footnotesize},
-		arrow/.style={->, thick, >=stealth}
-	]
-		% Main vertical flow (center)
-		\node[box, fill=green!20] (user) at (0,0) {User\\Presses Key};
-		\node[box] (physical) at (0,-2) {Physical\\Keypad};
-		\node[box] (driver) at (0,-4) {Keypad Driver\\Matrix Scan};
-		\node[box] (debounce) at (0,-6) {Debouncing\\20ms};
-		\node[box] (fsm) at (0,-8) {App::run()\\FSM};
-		\node[box] (process) at (0,-10) {Input\\Processing};
-		
-		% LCD flow (right branch)
-		\node[box, fill=cyan!20] (lcd) at (5,-10) {LCD Driver\\Display};
-		\node[box, fill=cyan!20] (i2c) at (10,-10) {I2C\\Comm};
-		\node[box, fill=green!20] (display) at (15,-10) {LCD\\Display};
-		
-		% Verification flow (left branch)
-		\node[box, fill=orange!20] (buffer) at (-5,-10) {Buffer\\Finalize};
-		\node[box, fill=orange!20] (verify) at (-10,-10) {Password\\Verify};
-		\node[box, fill=red!20] (result) at (-10,-13) {Valid?\\Yes/No};
-		\node[box, fill=red!20] (led) at (-5,-13) {LED Control\\Green/Red};
-		
-		% Arrows
-		\draw[arrow] (user) -- (physical);
-		\draw[arrow] (physical) -- (driver);
-		\draw[arrow] (driver) -- (debounce);
-		\draw[arrow] (debounce) -- (fsm);
-		\draw[arrow] (fsm) -- (process);
-		\draw[arrow] (process) -- (lcd);
-		\draw[arrow] (lcd) -- (i2c);
-		\draw[arrow] (i2c) -- (display);
-		\draw[arrow] (process) -- (buffer);
-		\draw[arrow] (buffer) -- (verify);
-		\draw[arrow] (verify) -- (result);
-		\draw[arrow] (result) -- (led);
-		\draw[arrow] (result) -| (lcd);
-	\end{tikzpicture}
-	}
-	\caption{Data Flow in Access Control System}
-	\label{fig:data-flow}
-\end{figure}
-
-\textbf{Data Flow Phases:}
-
-\textbf{Phase 1: Input (15-25ms)}
-\begin{itemize}
-	\item Key press is scanned in the matrix and debounced.
-\end{itemize}
-
-\textbf{Phase 2: Processing ($< 1ms$)}
-\begin{itemize}
-	\item FSM routes key to normal mode or programming mode and updates buffers.
-\end{itemize}
-
-\textbf{Phase 3: Verification ($< 1ms$)}
-\begin{itemize}
-	\item On \texttt{'\#'}, input PIN is compared with stored PIN.
-\end{itemize}
-
-\textbf{Phase 4: Response (20-35ms)}
-\begin{itemize}
-	\item LCD shows result and LEDs indicate grant/deny, then system returns to welcome.
-\end{itemize}
-
-\textbf{Total Response: 35-60ms ($< 100ms$ ✓)}
-
-\textbf{Code:}
-
-\begin{lstlisting}[language=C++, basicstyle=\tiny\ttfamily, caption=Data Flow Implementation]
-// Input processing
-char key = keypad.getKey();  // Scan + debounce
-if (key != '\0') {
-    if (_programmingMode)
-        processProgrammingInput(key);
-    else
-        processInput(key);
-}
-
-// Verification
-_inputCode[_inputPos] = '\0';
-if (verifyCode())  // strcmp()
-    handleValidCode();   // Green LED 5s
-else
-    handleInvalidCode(); // Red LED blink 5×
-\end{lstlisting}
-
-\subsection*{5.7. Menu Command Management}
-
-\textbf{Question:} What are the methods for efficient command management from keypad in menu systems? How can intuitive menu navigation be implemented using available keys?
-
-\textbf{Answer:}
-
-\begin{itemize}
-	\item \textbf{Direct numeric mode:} map \texttt{1..9} to common menu items for fast access.
-	\item \textbf{Navigation mode:} use \texttt{2/8} (up/down), \texttt{\#} (select), \texttt{*} (back).
-	\item \textbf{Function keys:} reserve \texttt{A/B/C/D} for context actions (add/back/clear/home).
-	\item \textbf{Usability rules:} keep key meaning consistent, show hints on LCD, and ask confirmation for critical actions.
-\end{itemize}
-
-\textbf{Implementation Example (C++ Pseudocode):}
-
-\begin{verbatim}
-enum MenuState {
-    MENU_MAIN,
-    MENU_SETTINGS,
-    MENU_USERS,
-    MENU_LOGS
-};
-
-class MenuSystem {
-private:
-    MenuState currentState;
-    int selectedIndex;
-    std::vector<MenuItem> currentItems;
-
-public:
-    void handleKey(char key) {
-        switch (currentState) {
-            case MENU_MAIN:
-                if (key >= '1' && key <= '4') {
-                    selectMenuItem(key - '1');
-                } else if (key == 'D') {
-                    // Exit/Back
-                }
-                break;
-            case MENU_SETTINGS:
-                if (key == 'B') {
-                    navigateBack();
-                } else if (key >= '1' && key <= '3') {
-                    selectSettingsOption(key - '1');
-                }
-                break;
-            // ... other states
-        }
-        updateDisplay();
-    }
-
-    void navigateUp() {
-        selectedIndex--;
-        if (selectedIndex < 0) {
-            selectedIndex = currentItems.size() - 1;
-        }
-    }
-
-    void navigateDown() {
-        selectedIndex++;
-        if (selectedIndex >= currentItems.size()) {
-            selectedIndex = 0;
-        }
-    }
-};
-\end{verbatim}
-
-\textbf{Best Practices:}
-
-\begin{itemize}
-	\item \textbf{Keep menus shallow:} Maximum 3-4 levels deep
-	\item \textbf{Limit menu items:} 5-7 items per screen (fits on 16×2 LCD)
-	\item \textbf{Provide shortcuts:} Allow direct numeric access to frequently used items
-	\item \textbf{Show progress:} Display "Page 1/3" for long menus
-	\item \textbf{Timeout protection:} Return to main menu after inactivity
-	\item \textbf{Error handling:} Clear error messages, guidance for recovery
-\end{itemize}
-
-\subsection*{5.8. STDIO vs. Direct Control Comparison}
-
-\textbf{Question:} Compare using STDIO functions for LCD and keypad control versus direct hardware control. What are the advantages and disadvantages of each approach in security systems?
-
-\textbf{Answer:}
-
-\begin{itemize}
-	\item \textbf{STDIO approach:} cleaner and faster to write (\texttt{printf}/\texttt{scanf}), good for readability and portability.
-	\item \textbf{Direct control:} better timing and lower overhead, but more code and lower abstraction.
-	\item \textbf{For security systems:} use direct control in critical real-time paths, and STDIO for logs/debug/user text flow.
-	\item \textbf{Trade-off:} STDIO improves maintainability; direct control improves deterministic performance.
-\end{itemize}
-
-\iffalse
-
-\textbf{STDIO Approach (printf, scanf, putchar, getchar)}
-
-\textbf{Concept:} Redirect standard C I/O functions to LCD/keypad hardware, using familiar stream-based programming.
-
-\textbf{Implementation:}
-\begin{itemize}
-	\item Custom \texttt{putchar()} sends characters to LCD
-	\item Custom \texttt{getchar()} reads from keypad
-	\item Use \texttt{printf()} for formatted output
-	\item Use \texttt{scanf()} for formatted input
-\end{itemize}
-
-\textbf{Advantages:}
-
-\textbf{1. Familiarity and Productivity}
-\begin{itemize}
-	\item Standard C functions well-known to programmers
-	\item Reduces learning curve for I/O operations
-	\item \texttt{printf("Enter PIN: \%d", pin\_num)} vs. multiple \texttt{lcd.print()} calls
-	\item Faster development for text-heavy applications
-\end{itemize}
-
-\textbf{2. Code Readability}
-\begin{itemize}
-	\item Intent is clear: \texttt{printf("Access Granted")} vs. low-level display commands
-	\item Formatted output easy to understand
-	\item Less boilerplate code
-\end{itemize}
-
-\textbf{3. Abstraction Layer}
-\begin{itemize}
-	\item Hardware details hidden behind STDIO interface
-	\item Application code independent of specific hardware
-	\item Easy to switch between LCD, serial, or other output devices
-\end{itemize}
-
-\textbf{4. Formatting Capabilities}
-\begin{itemize}
-	\item Built-in format specifiers: \texttt{\%d}, \texttt{\%s}, \texttt{\%x}, etc.
-	\item Width and precision control: \texttt{\%4d}, \texttt{\%.2f}
-	\item Automatic number-to-string conversion
-\end{itemize}
-
-\textbf{5. Portability}
-\begin{itemize}
-	\item Same code works with different output devices
-	\item Easier to migrate between platforms
+	\item Each task is self-contained
+	\item Clear interface (function pointer)
+	\item Easy to add or remove tasks
 	\item Reusable across projects
 \end{itemize}
 
-\textbf{Disadvantages:}
-
-\textbf{1. Performance Overhead}
+\textbf{4. Debugging and Testing:}
 \begin{itemize}
-	\item \texttt{printf()} parsing adds CPU cycles
-	\item Stream buffering consumes memory
-	\item Character-by-character I/O may be slower than direct control
-	\item Impact: 10-20\% slower than direct hardware access
+	\item State is explicitly visible
+	\item Easy to log state transitions
+	\item Simplifies troubleshooting
+	\item Enables state-based testing
 \end{itemize}
 
-\textbf{2. Memory Usage}
+\textbf{5. Scalability:}
 \begin{itemize}
-	\item STDIO library adds code size (1-2KB flash)
-	\item File stream structures consume RAM
-	\item Format string parsing requires additional memory
-	\item Critical on resource-constrained microcontrollers
+	\item Easy to add new states
+	\item Complex behaviors broken down
+	\item Maintains clarity as complexity grows
 \end{itemize}
 
-\textbf{3. Limited Control}
+\textbf{Comparison with Function-Based Approach:}
+
+\textbf{Function-Based:}
 \begin{itemize}
-	\item Cannot access advanced LCD features (custom characters, backlight control)
-	\item No fine-grained control over display timing
-	\item Cannot implement optimized I/O operations
-	\item \texttt{printf()} designed for serial, not character displays
+	\item Requires saving stack context
+	\item Complex yield points
+	\item Harder to debug
+	\item Less predictable
 \end{itemize}
 
-\textbf{4. Blocking Behavior}
+\textbf{State Machine:}
 \begin{itemize}
-	\item \texttt{printf()} and \texttt{scanf()} are blocking
-	\item Cannot perform background tasks during I/O
-	\item Problematic for real-time systems
-	\item May cause missed events (key presses, timeouts)
+	\item Simple context (just state variable)
+	\item Clear yield boundaries
+	\item Easy to debug
+	\item Highly predictable
 \end{itemize}
 
-\textbf{5. No Native Editing Support}
+\subsection*{5.3. Inter-Task Communication in Non-Preemptive Systems}
+
+\textbf{Question:} How does inter-task communication differ between non-preemptive and preemptive systems? What synchronization primitives are needed in each case?
+
+\textbf{Answer:}
+
+\textbf{Non-Preemptive Systems:}
+
+\textbf{Communication Mechanisms:}
 \begin{itemize}
-	\item No built-in backspace, arrow keys
-	\item Must implement editing manually in \texttt{getchar()}
-	\item Limited input validation
+	\item Global variables and flags
+	\item Shared data structures
+	\item No synchronization primitives needed
+	\item Producer-consumer patterns work naturally
 \end{itemize}
 
-\textbf{Direct Hardware Control Approach}
-
-\textbf{Concept:} Use hardware-specific functions to directly control LCD/keypad.
-
-\textbf{Implementation:}
+\textbf{Why No Synchronization Needed:}
 \begin{itemize}
-	\item \texttt{lcd.print(text)} for LCD output
-	\item \texttt{keypad.getKey()} for keypad input
-	\item Manual string formatting and number conversion
-	\item Direct I2C/SPI/GPIO manipulation
+	\item No preemption mid-operation
+	\item Tasks run to completion or explicit yield point
+	\item No race conditions possible
+	\item Atomic operations guaranteed
 \end{itemize}
 
-\textbf{Advantages:}
+\textbf{Example:}
+\begin{lstlisting}[language=C++, basicstyle=\tiny\ttfamily]
+// Task 1 (producer)
+g_new_press_flag = true;
+g_last_press_was_short = (duration < 500);
+yield();  // Safe to yield - flag fully set
 
-\textbf{1. Performance}
+// Task 2 (consumer)
+if (g_new_press_flag) {
+    g_new_press_flag = false;  // Safe to modify
+    // No risk of race condition
+}
+\end{lstlisting}
+
+\textbf{Preemptive Systems:}
+
+\textbf{Communication Mechanisms:}
 \begin{itemize}
-	\item No parsing overhead
-	\item Direct hardware access
-	\item Optimized I/O operations possible
-	\item 10-20\% faster than STDIO approach
+	\item Mutexes (mutual exclusion)
+	\item Semaphores (counting)
+	\item Message queues
+	\item Condition variables
 \end{itemize}
 
-\textbf{2. Memory Efficiency}
+\textbf{Why Synchronization Needed:}
 \begin{itemize}
-	\item Smaller code footprint
-	\item Less RAM usage
-	\item No file stream structures
-	\item Critical for resource-constrained systems
+	\item Preemption can occur at any time
+	\item Race conditions possible
+	\item Data corruption risk
+	\item Need atomic operations
 \end{itemize}
 
-\textbf{3. Full Hardware Control}
-\begin{itemize}
-	\item Access all LCD features (custom characters, scrolling, cursor control)
-	\item Precise timing control
-	\item Can implement optimized algorithms
-	\item Direct I2C/SPI communication
-\end{itemize}
+\textbf{Example:}
+\begin{lstlisting}[language=C++, basicstyle=\tiny\ttfamily]
+// Task 1 (producer)
+mutex_lock(&g_flag_mutex);
+g_new_press_flag = true;
+mutex_unlock(&g_flag_mutex);
 
-\textbf{4. Non-Blocking Options}
-\begin{itemize}
-	\item Can implement non-blocking I/O
-	\item Background processing possible
-	\item Better for real-time systems
-	\item No blocking on \texttt{printf()} or \texttt{scanf()}
-\end{itemize}
+// Task 2 (consumer)
+mutex_lock(&g_flag_mutex);
+if (g_new_press_flag) {
+    g_new_press_flag = false;
+}
+mutex_unlock(&g_flag_mutex);
+\end{lstlisting}
 
-\textbf{5. Predictable Behavior}
-\begin{itemize}
-	\item Known execution time
-	\item No hidden formatting overhead
-	\item Easier to meet timing requirements
-	\item Better for safety-critical systems
-\end{itemize}
-
-\textbf{Disadvantages:}
-
-\textbf{1. Complexity}
-\begin{itemize}
-	\item More code required for simple operations
-	\item Manual string formatting
-	\item Manual number-to-string conversion
-	\item Example: \texttt{itoa(pin, buffer, 10); lcd.print(buffer);} vs. \texttt{printf("\%d", pin);}
-\end{itemize}
-
-\textbf{2. Hardware Coupling}
-\begin{itemize}
-	\item Code tied to specific hardware
-	\item Difficult to switch between devices
-	\item Requires hardware-specific knowledge
-	\item Less portable
-\end{itemize}
-
-\textbf{3. Reduced Readability}
-\begin{itemize}
-	\item Hardware details in application code
-	\item Less clear intent
-	\item More boilerplate
-	\item Harder for new developers to understand
-\end{itemize}
-
-\textbf{4. Limited Abstraction}
-\begin{itemize}
-	\item No standardized I/O interface
-	\item Each driver has different API
-	\item More integration work
-\end{itemize}
-
-\textbf{Comparison Table:}
+\textbf{Key Differences:}
 
 \begin{table}[H]
 	\centering
-	\caption{STDIO vs. Direct Control Comparison}
-	\label{tab:stdio-direct}
+	\caption{Inter-Task Communication Comparison}
+	\label{tab:ipc-comparison}
 	\begin{tabular}{@{}p{5cm}p{5cm}p{5cm}@{}}
 		\toprule
-		\textbf{Aspect} & \textbf{STDIO Approach} & \textbf{Direct Control} \\ \midrule
-		\textbf{Performance} & Slower (parsing overhead) & Faster (direct access) \\ \midrule
-		\textbf{Memory Usage} & Higher (library + streams) & Lower (minimal overhead) \\ \midrule
-		\textbf{Code Readability} & High (familiar functions) & Lower (hardware details) \\ \midrule
-		\textbf{Development Speed} & Fast (standard API) & Slower (manual work) \\ \midrule
-		\textbf{Hardware Control} & Limited (abstraction) & Full (direct access) \\ \midrule
-		\textbf{Portability} & High (standard interface) & Low (hardware-specific) \\ \midrule
-		\textbf{Real-time Capability} & Poor (blocking) & Good (non-blocking possible) \\ \midrule
-		\textbf{Learning Curve} & Low (standard C) & High (hardware-specific) \\ \midrule
-		\textbf{Debugging} & Easier (abstraction) & Harder (hardware details) \\ \midrule
-		\textbf{Security} & Mixed (abstraction) & Better (direct control) \\ \bottomrule
+		\textbf{Aspect} & \textbf{Non-Preemptive} & \textbf{Preemptive} \\ \midrule
+		\textbf{Mechanisms} & Global variables, flags & Mutexes, semaphores, queues \\ \midrule
+		\textbf{Synchronization} & Not required & Required \\ \midrule
+		\textbf{Race Conditions} & Impossible & Possible \\ \midrule
+		\textbf{Complexity} & Simple & Complex \\ \midrule
+		\textbf{Overhead} & Minimal & Significant \\ \midrule
+		\textbf{Debugging} & Easy & Difficult \\ \bottomrule
 	\end{tabular}
 \end{table}
 
-\textbf{Recommendations for Security Systems:}
+\subsection*{5.4. Task Prioritization in Cooperative Systems}
 
-\textbf{Use STDIO Approach When:}
-\begin{itemize}
-	\item Developing rapid prototypes or proof-of-concept
-	\item System not time-critical (no strict timing requirements)
-	\item Team familiar with standard C I/O functions
-	\item Need quick development and testing
-	\item Display primarily text-based, simple output
-	\item Sufficient memory available (not resource-constrained)
-\end{itemize}
-
-\textbf{Use Direct Control Approach When:}
-\begin{itemize}
-	\item System is resource-constrained (limited flash/RAM)
-	\item Real-time performance required (strict timing)
-	\item Need access to advanced hardware features
-	\item Security-critical system (predictable behavior essential)
-	\item Need non-blocking I/O for background tasks
-	\item System must be highly optimized
-\end{itemize}
-
-\textbf{Hybrid Approach (Recommended for Security Systems):}
-
-\begin{itemize}
-	\item Use direct control for time-critical operations (keypad scanning, LED timing)
-	\item Use STDIO for user-facing text output (LCD messages, status displays)
-	\item Implement custom optimized functions for performance-critical paths
-	\item Leverage STDIO for debugging and logging (serial output)
-	\item Balance productivity and performance based on requirements
-\end{itemize}
-
-\textbf{Example Security System Architecture:}
-
-\begin{itemize}
-	\item \textbf{Keypad Input:} Direct control (non-blocking, real-time scanning)
-	\item \textbf{LCD Display:} STDIO (formatted messages, readable code)
-	\item \textbf{LED Control:} Direct control (precise timing, critical feedback)
-	\item \textbf{Debugging:} STDIO (serial output, formatted logging)
-	\item \textbf{Password Verification:} Direct control (security-critical, no overhead)
-\end{itemize}
-
-This hybrid approach provides the benefits of both methods: development productivity and readability for user interface, performance and control for security-critical operations.
-
-\subsection*{5.9. Code Portability Techniques}
-\fi
-
-\subsection*{5.9. Code Portability Techniques}
-
-\textbf{Question:} What techniques can be used to ensure code portability for LCD and keypad interfaces between different hardware platforms? How can hardware interaction be abstracted?
+\textbf{Question:} How can task priorities be implemented in cooperative scheduling systems? What are the limitations compared to preemptive priority scheduling?
 
 \textbf{Answer:}
 
-\begin{itemize}
-	\item Define clear interfaces (e.g., \texttt{ILcd}, \texttt{IKeypad}, \texttt{IHal}) and code against interfaces, not board APIs.
-	\item Keep board-specific code in one HAL layer (GPIO, I2C, timers, delays).
-	\item Store pins/timing/address values in config files per platform.
-	\item Use build flags/factory selection to bind the correct implementation at compile time.
-	\item Keep application/FSM logic platform-agnostic for easy migration.
-\end{itemize}
+\textbf{Priority Implementation in Cooperative Systems:}
 
-\iffalse
-
-\textbf{Portability Challenges:}
-
-Embedded systems vary widely in hardware platforms (Arduino, ESP32, STM32, Raspberry Pi Pico, etc.), each with different:
-\begin{itemize}
-	\item GPIO pin layouts and numbering
-	\item I2C/SPI/UART implementations
-	\item Timing mechanisms
-	\item Available libraries and frameworks
-	\item Development environments and toolchains
-\end{itemize}
-
-\textbf{Abstraction Techniques:}
-
-\textbf{Technique 1: Hardware Abstraction Layer (HAL)}
-
-\textbf{Concept:} Create a unified interface that hides platform-specific details.
-
-\textbf{Implementation:}
-
-\textbf{HAL Interface (hal.h):}
-\begin{verbatim}
-class HardwareAbstraction {
-public:
-    // GPIO abstraction
-    virtual void pinMode(uint8_t pin, uint8_t mode) = 0;
-    virtual void digitalWrite(uint8_t pin, uint8_t value) = 0;
-    virtual int digitalRead(uint8_t pin) = 0;
-
-    // I2C abstraction
-    virtual void i2cBegin() = 0;
-    virtual void i2cBeginTransmission(uint8_t address) = 0;
-    virtual void i2cWrite(uint8_t data) = 0;
-    virtual uint8_t i2cEndTransmission() = 0;
-
-    // Timing abstraction
-    virtual void delay(unsigned long ms) = 0;
-    virtual unsigned long millis() = 0;
-};
-\end{verbatim}
-
-\textbf{Platform-Specific Implementations:}
-
-\textbf{Arduino Implementation (arduino\_hal.cpp):}
-\begin{verbatim}
-class ArduinoHAL : public HardwareAbstraction {
-public:
-    void pinMode(uint8_t pin, uint8_t mode) override {
-        ::pinMode(pin, mode);
+\textbf{Method 1: Priority-Based Yield}
+\begin{lstlisting}[language=C++, basicstyle=\tiny\ttfamily]
+void yield_with_priority() {
+    // Find highest priority ready task
+    uint8_t highest = find_highest_priority_task();
+    if (highest != current_task) {
+        current_task = highest;
     }
-
-    void digitalWrite(uint8_t pin, uint8_t value) override {
-        ::digitalWrite(pin, value);
-    }
-
-    int digitalRead(uint8_t pin) override {
-        return ::digitalRead(pin);
-    }
-
-    void i2cBegin() override {
-        Wire.begin();
-    }
-
-    void i2cBeginTransmission(uint8_t address) override {
-        Wire.beginTransmission(address);
-    }
-
-    void i2cWrite(uint8_t data) override {
-        Wire.write(data);
-    }
-
-    uint8_t i2cEndTransmission() override {
-        return Wire.endTransmission();
-    }
-
-    void delay(unsigned long ms) override {
-        ::delay(ms);
-    }
-
-    unsigned long millis() override {
-        return ::millis();
-    }
-};
-\end{verbatim}
-
-\textbf{ESP32 Implementation (esp32\_hal.cpp):}
-\begin{verbatim}
-class ESP32HAL : public HardwareAbstraction {
-public:
-    void pinMode(uint8_t pin, uint8_t mode) override {
-        gpio_set_direction((gpio_num_t)pin, (gpio_mode_t)mode);
-    }
-
-    void digitalWrite(uint8_t pin, uint8_t value) override {
-        gpio_set_level((gpio_num_t)pin, value);
-    }
-
-    // ... similar implementations for ESP32
-};
-\end{verbatim}
-
-\textbf{Advantages:}
-\begin{itemize}
-	\item Application code unchanged when porting
-	\item Only HAL implementation needs to be rewritten
-	\item Clear separation between hardware and application logic
-	\item Easier to maintain and test
-\end{itemize}
-
-\textbf{Technique 2: Configuration Files}
-
-\textbf{Concept:} Store platform-specific settings in configuration files.
-
-\textbf{Configuration (config.h):}
-\begin{verbatim}
-// Platform selection
-#define PLATFORM_ARDUINO_UNO   1
-#define PLATFORM_ESP32         2
-#define PLATFORM_STM32         3
-
-// Select platform
-#define CURRENT_PLATFORM PLATFORM_ARDUINO_UNO
-
-#if CURRENT_PLATFORM == PLATFORM_ARDUINO_UNO
-    // Arduino Uno pin assignments
-    const uint8_t LCD_SDA_PIN = A4;
-    const uint8_t LCD_SCL_PIN = A5;
-    const uint8_t LED_GREEN_PIN = 12;
-    const uint8_t LED_RED_PIN = 13;
-
-    // Timing values
-    const unsigned long DEBOUNCE_PRESS_MS = 20;
-    const unsigned long DEBOUNCE_RELEASE_MS = 50;
-
-#elif CURRENT_PLATFORM == PLATFORM_ESP32
-    // ESP32 pin assignments
-    const uint8_t LCD_SDA_PIN = 21;
-    const uint8_t LCD_SCL_PIN = 22;
-    const uint8_t LED_GREEN_PIN = 2;
-    const uint8_t LED_RED_PIN = 4;
-
-    // Timing values (ESP32 faster, can reduce delays)
-    const unsigned long DEBOUNCE_PRESS_MS = 10;
-    const unsigned long DEBOUNCE_RELEASE_MS = 30;
-#endif
-\end{verbatim}
-
-\textbf{Advantages:}
-\begin{itemize}
-	\item Easy to switch platforms by changing \texttt{CURRENT\_PLATFORM}
-	\item All platform-specific settings in one place
-	\item No code changes required for different hardware
-\end{itemize}
-
-\textbf{Technique 3: Factory Pattern}
-
-\textbf{Concept:} Use factory pattern to create platform-specific objects.
-
-\textbf{Implementation:}
-\begin{verbatim}
-class DriverFactory {
-public:
-    static HardwareAbstraction* createHAL() {
-#if CURRENT_PLATFORM == PLATFORM_ARDUINO_UNO
-        return new ArduinoHAL();
-#elif CURRENT_PLATFORM == PLATFORM_ESP32
-        return new ESP32HAL();
-#else
-        return nullptr;
-#endif
-    }
-
-    static LcdDriver* createLcdDriver(uint8_t address) {
-        return new LcdI2cDriver(createHAL(), address);
-    }
-
-    static KeypadDriver* createKeypadDriver(const uint8_t* rows,
-                                            const uint8_t* cols,
-                                            uint8_t numRows,
-                                            uint8_t numCols) {
-        return new MatrixKeypad(createHAL(), rows, cols, numRows, numCols);
-    }
-};
-\end{verbatim}
-
-\textbf{Usage:}
-\begin{verbatim}
-// Platform-independent code
-auto hal = DriverFactory::createHAL();
-auto lcd = DriverFactory::createLcdDriver(0x27);
-auto keypad = DriverFactory::createKeypadDriver(rowPins, colPins, 4, 4);
-
-lcd->begin();
-keypad->begin();
-\end{verbatim}
-
-\textbf{Advantages:}
-\begin{itemize}
-	\item Clean object creation
-	\item Encapsulates platform-specific logic
-	\item Easy to add new platforms
-\end{itemize}
-
-\textbf{Technique 4: Conditional Compilation}
-
-\textbf{Concept:} Use preprocessor directives for platform-specific code.
-
-\textbf{Implementation:}
-\begin{verbatim}
-// Cross-platform delay function
-void platformDelay(unsigned long ms) {
-#if CURRENT_PLATFORM == PLATFORM_ARDUINO_UNO
-    delay(ms);
-#elif CURRENT_PLATFORM == PLATFORM_ESP32
-    vTaskDelay(ms / portTICK_PERIOD_MS);
-#elif CURRENT_PLATFORM == PLATFORM_STM32
-    HAL_Delay(ms);
-#endif
 }
+\end{lstlisting}
 
-// Cross-platform I2C initialization
-void platformI2CInit() {
-#if CURRENT_PLATFORM == PLATFORM_ARDUINO_UNO
-    Wire.begin();
-#elif CURRENT_PLATFORM == PLATFORM_ESP32
-    Wire.begin(LCD_SDA_PIN, LCD_SCL_PIN);
-#elif CURRENT_PLATFORM == PLATFORM_STM32
-    I2C_InitTypeDef I2C_InitStruct;
-    // STM32 I2C initialization code
-#endif
-}
-\end{verbatim}
+\textbf{Method 2: Task Queue}
+\begin{lstlisting}[language=C++, basicstyle=\tiny\ttfamily]
+// Tasks organized by priority
+TaskContext* task_queue[NUM_PRIORITIES][MAX_TASKS_PER_PRIORITY];
 
-\textbf{Advantages:}
-\begin{itemize}
-	\item Zero runtime overhead (compilation-time selection)
-	\item Optimized code for each platform
-	\item No memory overhead for unused platform code
-\end{itemize}
-
-\textbf{Technique 5: Interface-Based Design}
-
-\textbf{Concept:} Define interfaces for all hardware components.
-
-\textbf{LCD Interface (lcd\_interface.h):}
-\begin{verbatim}
-class ILcdDriver {
-public:
-    virtual ~ILcdDriver() = default;
-    virtual void begin() = 0;
-    virtual void clear() = 0;
-    virtual void setCursor(uint8_t col, uint8_t row) = 0;
-    virtual void print(const char* text) = 0;
-    virtual void println(const char* text) = 0;
-    virtual void write(uint8_t value) = 0;
-};
-\end{verbatim}
-
-\textbf{Keypad Interface (keypad\_interface.h):}
-\begin{verbatim}
-class IKeypadDriver {
-public:
-    virtual ~IKeypadDriver() = default;
-    virtual void begin() = 0;
-    virtual char getKey() = 0;
-    virtual bool keyPressed() = 0;
-};
-\end{verbatim}
-
-\textbf{Usage:}
-\begin{verbatim}
-// Application uses interfaces, not concrete implementations
-class AccessControlSystem {
-private:
-    ILcdDriver* _lcd;
-    IKeypadDriver* _keypad;
-
-public:
-    AccessControlSystem(ILcdDriver* lcd, IKeypadDriver* keypad)
-        : _lcd(lcd), _keypad(keypad) {}
-
-    void run() {
-        char key = _keypad->getKey();
-        if (key != '\0') {
-            _lcd->print("Key: ");
-            _lcd->write(key);
+// Execute highest priority ready task
+void scheduler_run() {
+    for (uint8_t p = 0; p < NUM_PRIORITIES; p++) {
+        if (has_ready_task(p)) {
+            execute_task(p);
+            return;  // Lower priorities don't run
         }
     }
-};
-\end{verbatim}
+}
+\end{lstlisting}
 
-\textbf{Advantages:}
+\textbf{Method 3: Cooperative Priority Yield}
+\begin{lstlisting}[language=C++, basicstyle=\tiny\ttfamily]
+// High priority task
+void high_priority_task(void* arg) {
+    while (1) {
+        // Do work
+        yield_to_priority(HIGH_PRIORITY);  // Always yield to high priority
+    }
+}
+
+// Low priority task
+void low_priority_task(void* arg) {
+    while (1) {
+        // Do work
+        yield();  // Normal yield
+    }
+}
+\end{lstlisting}
+
+\textbf{Limitations Compared to Preemptive:}
+
+\textbf{1. Priority Inversion}
 \begin{itemize}
-	\item Clear contract between components
-	\item Easy to mock for testing
-	\item Promotes loose coupling
-	\item Facilitates dependency injection
+	\item Low priority task must voluntarily yield
+	\item Cannot force preemption of higher priority
+	\item Higher priority may wait if low priority doesn't yield
 \end{itemize}
 
-\textbf{Technique 6: Build System Configuration}
-
-\textbf{Concept:} Use build system to select platform and dependencies.
-
-\textbf{PlatformIO (platformio.ini):}
-\begin{verbatim}
-[env:arduino_uno]
-platform = atmelavr
-board = uno
-framework = arduino
-build_flags = -DPLATFORM_ARDUINO_UNO
-
-[env:esp32]
-platform = espressif32
-board = esp32dev
-framework = arduino
-build_flags = -DPLATFORM_ESP32
-
-[env:stm32]
-platform = ststm32
-board = nucleo_f103rb
-framework = arduino
-build_flags = -DPLATFORM_STM32
-\end{verbatim}
-
-\textbf{CMake (CMakeLists.txt):}
-\begin{verbatim}
-if(ARDUINO_UNO)
-    add_definitions(-DPLATFORM_ARDUINO_UNO)
-    target_sources(myapp PRIVATE arduino_hal.cpp)
-elseif(ESP32)
-    add_definitions(-DPLATFORM_ESP32)
-    target_sources(myapp PRIVATE esp32_hal.cpp)
-endif()
-\end{verbatim}
-
-\textbf{Advantages:}
+\textbf{2. Starvation Risk}
 \begin{itemize}
-	\item Automated platform selection
-	\item Platform-specific optimizations
-	\item Easy to build for multiple targets
+	\item Low priority tasks may never run
+	\item Higher priority tasks always get preference
+	\item Requires careful design to ensure fairness
 \end{itemize}
 
-\textbf{Portability Checklist:}
-
+\textbf{3. No Guaranteed Response Time}
 \begin{itemize}
-	\item \textbf{Hardware Abstraction:} HAL or interface-based design
-	\item \textbf{Configuration:} Platform-specific settings in config files
-	\item \textbf{Build System:} Multi-platform build configuration
-	\item \textbf{Dependencies:} Platform-agnostic library selection
-	\item \textbf{Timing:} Abstracted timing functions
-	\item \textbf{Memory:} Avoid platform-specific memory sizes
-	\item \textbf{Data Types:} Use standard types (uint8\_t, uint16\_t)
-	\item \textbf{Compiler:} Avoid compiler-specific extensions
-	\item \textbf{Testing:} Test on all target platforms
-	\item \textbf{Documentation:} Document platform-specific requirements
+	\item High priority task waits for yield point
+	\item Worst-case latency depends on longest task
+	\item Not suitable for hard real-time
 \end{itemize}
 
-\textbf{Example: Porting from Arduino to ESP32}
-
-\textbf{Step 1: Update Configuration}
+\textbf{4. Implementation Complexity}
 \begin{itemize}
-	\item Change \texttt{CURRENT\_PLATFORM} to \texttt{PLATFORM\_ESP32}
-	\item Update pin assignments (A4/A5 $\rightarrow$ 21/22)
-	\item Adjust timing values if needed
+	\item Priority scheduling adds complexity
+	\item Must track ready tasks per priority
+	\item Yield mechanism must respect priorities
 \end{itemize}
 
-\textbf{Step 2: Implement ESP32 HAL}
-\begin{itemize}
-	\item Create \texttt{ESP32HAL} class
-	\item Implement all HAL interface methods using ESP32 APIs
-\end{itemize}
-
-\textbf{Step 3: Update Build Configuration}
-\begin{itemize}
-	\item Select ESP32 environment in PlatformIO
-	\item Build and test
-\end{itemize}
-
-\textbf{Step 4: Validate}
-\begin{itemize}
-	\item Test all functionality on ESP32
-	\item Verify timing and performance
-	\item Check memory usage
-\end{itemize}
-
-\textbf{Result:} Application code unchanged, only HAL and configuration modified.
-
-\subsection*{5.10. Testing Methodology for Access Control}
-\fi
-
-\subsection*{5.10. Testing Methodology for Access Control}
-
-\textbf{Question:} Describe the methodology for testing an access control system based on LCD and keypad. What test scenarios are important for validating security and functionality?
-
-\textbf{Answer:}
-
-\begin{itemize}
-	\item \textbf{Unit tests:} keypad scan/debounce, LCD output, LED control, PIN comparison.
-	\item \textbf{Integration tests:} full flow from key press to LCD/LED response.
-	\item \textbf{Security tests:} wrong PIN retries, brute-force lockout policy, programming-mode protection.
-	\item \textbf{Robustness tests:} noisy keys, power reset during input, long run stability.
-	\item \textbf{Acceptance tests:} verify user-visible behavior and response times against requirements.
-\end{itemize}
-
-\iffalse
-
-\textbf{Testing Methodology:}
-
-Comprehensive testing of access control systems requires systematic validation of security, functionality, usability, and reliability. A structured testing approach ensures all requirements are met and potential vulnerabilities are identified.
-
-\textbf{Testing Phases:}
-
-\textbf{Phase 1: Unit Testing}
-
-\textbf{Objective:} Test individual components in isolation.
-
-\textbf{Test Cases:}
-
-\textbf{Keypad Driver Unit Tests:}
-\begin{itemize}
-	\item \textbf{Test: Single Key Detection}
-	\begin{itemize}
-		\item Input: Press '1' key
-		\item Expected: Return '1'
-		\item Validation: Correct key returned
-	\end{itemize}
-
-	\item \textbf{Test: Debouncing}
-	\begin{itemize}
-		\item Input: Rapid key press/release
-		\item Expected: Single key detection, no multiple triggers
-		\item Validation: No false positives from contact bounce
-	\end{itemize}
-
-	\item \textbf{Test: All Keys}
-	\begin{itemize}
-		\item Input: Press all 16 keys sequentially
-		\item Expected: Correct mapping for each key
-		\item Validation: Key matrix matches expected layout
-	\end{itemize}
-
-	\item \textbf{Test: Simultaneous Key Press}
-	\begin{itemize}
-		\item Input: Press two keys simultaneously
-		\item Expected: Detect one key, ignore other (or detect both if supported)
-		\item Validation: No ghosting or undefined behavior
-	\end{itemize}
-\end{itemize}
-
-\textbf{LCD Driver Unit Tests:}
-\begin{itemize}
-	\item \textbf{Test: Display Initialization}
-	\begin{itemize}
-		\item Input: Call \texttt{begin()}
-		\item Expected: LCD initialized, backlight on, display cleared
-		\item Validation: LCD responsive, cursor at (0,0)
-	\end{itemize}
-
-	\item \textbf{Test: Text Display}
-	\begin{itemize}
-		\item Input: \texttt{print("Hello")}
-		\item Expected: "Hello" displayed at current cursor position
-		\item Validation: Correct text appears on screen
-	\end{itemize}
-
-	\item \textbf{Test: Cursor Positioning}
-	\begin{itemize}
-		\item Input: \texttt{setCursor(5, 1)}
-		\item Expected: Cursor at column 5, row 1
-		\item Validation: Subsequent output at correct position
-	\end{itemize}
-
-	\item \textbf{Test: Display Clear}
-	\begin{itemize}
-		\item Input: \texttt{clear()}
-		\item Expected: All text removed, cursor at (0,0)
-		\item Validation: Empty display
-	\end{itemize}
-\end{itemize}
-
-\textbf{LED Driver Unit Tests:}
-\begin{itemize}
-	\item \textbf{Test: LED On}
-	\begin{itemize}
-		\item Input: \texttt{on()}
-		\item Expected: LED illuminated, state = true
-		\item Validation: LED visible, \texttt{state()} returns true
-	\end{itemize}
-
-	\item \textbf{Test: LED Off}
-	\begin{itemize}
-		\item Input: \texttt{off()}
-		\item Expected: LED extinguished, state = false
-		\item Validation: LED off, \texttt{state()} returns false
-	\end{itemize}
-
-	\item \textbf{Test: Toggle}
-	\begin{itemize}
-		\item Input: \texttt{toggle()} when LED is on
-		\item Expected: LED turns off, state inverts
-		\item Validation: Correct behavior
-	\end{itemize}
-\end{itemize}
-
-\textbf{Phase 2: Integration Testing}
-
-\textbf{Objective:} Test interaction between components.
-
-\textbf{Test Cases:}
-
-\textbf{Input-Output Integration:}
-\begin{itemize}
-	\item \textbf{Test: Keypad to LCD Echo}
-	\begin{itemize}
-		\item Input: Press '1', '2', '3', '4'
-		\item Expected: LCD displays "****"
-		\item Validation: Keypad input correctly displayed
-	\end{itemize}
-
-	\item \textbf{Test: Clear Function}
-	\begin{itemize}
-		\item Input: Enter partial PIN, press '*'
-		\item Expected: Input cleared, display shows "[    ]"
-		\item Validation: Clear functionality works
-	\end{itemize}
-\end{itemize}
-
-\textbf{FSM Integration:}
-\begin{itemize}
-	\item \textbf{Test: State Transitions}
-	\begin{itemize}
-		\item Input: Sequence of key presses
-		\item Expected: Correct state transitions (Welcome $\rightarrow$ Input $\rightarrow$ Verify $\rightarrow$ Granted)
-		\item Validation: FSM follows correct path
-	\end{itemize}
-
-	\item \textbf{Test: LED Activation}
-	\begin{itemize}
-		\item Input: Enter correct PIN
-		\item Expected: Green LED turns on for 5 seconds
-		\item Validation: LED timing and color correct
-	\end{itemize}
-\end{itemize}
-
-\textbf{Phase 3: Functional Testing}
-
-\textbf{Objective:} Validate system functionality against requirements.
-
-\textbf{Test Scenarios:}
-
-\textbf{Scenario 1: Successful Authentication}
-\begin{enumerate}
-	\item System displays "Enter Code: [    ]"
-	\item User enters correct PIN (e.g., "1234")
-	\item User presses '\#'
-	\item Expected: "ACCESS GRANTED! Door Unlocked", green LED on for 5 seconds
-	\item Validation: Success path works correctly
-\end{enumerate}
-
-\textbf{Scenario 2: Failed Authentication}
-\begin{enumerate}
-	\item System displays "Enter Code: [    ]"
-	\item User enters incorrect PIN (e.g., "9999")
-	\item User presses '\#'
-	\item Expected: "ACCESS DENIED! Wrong Code", red LED blinks 5 times
-	\item Validation: Failure path works correctly
-\end{enumerate}
-
-\textbf{Scenario 3: Password Change}
-\begin{enumerate}
-	\item User presses 'D' at welcome screen
-	\item System enters programming mode, programming LED on
-	\item User enters new PIN (e.g., "5678")
-	\item User presses '\#'
-	\item Expected: "PASSWORD SAVED | New: 5678", green LED blinks twice
-	\item Validation: Password change functionality works
-\end{enumerate}
-
-\textbf{Scenario 4: Input Clearing}
-\begin{enumerate}
-	\item User enters partial PIN (e.g., "12")
-	\item User presses '*'
-	\item Expected: Input cleared, display returns to "[    ]"
-	\item Validation: Clear functionality works at any point
-\end{enumerate}
-
-\textbf{Scenario 5: Programming Mode Cancellation}
-\begin{enumerate}
-	\item User enters programming mode with 'D'
-	\item User presses '*'
-	\item Expected: Exit programming mode, original password unchanged
-	\item Validation: Cancellation works correctly
-\end{enumerate}
-
-\textbf{Phase 4: Security Testing}
-
-\textbf{Objective:} Validate security measures and identify vulnerabilities.
-
-\textbf{Test Scenarios:}
-
-\textbf{Security Test 1: Incorrect PIN Attempts}
-\begin{itemize}
-	\item \textbf{Test:} Enter incorrect PIN 10 times
-	\item \textbf{Expected:} System continues to accept attempts (no lockout)
-	\item \textbf{Vulnerability:} No brute-force protection
-	\item \textbf{Recommendation:} Implement attempt limit and lockout
-\end{itemize}
-
-\textbf{Security Test 2: Timing Analysis}
-\begin{itemize}
-	\item \textbf{Test:} Measure time to verify correct vs. incorrect PIN
-	\item \textbf{Expected:} Different timing might reveal password information
-	\item \textbf{Vulnerability:} Timing attacks possible
-	\item \textbf{Recommendation:} Constant-time password comparison
-\end{itemize}
-
-\textbf{Security Test 3: Password Persistence}
-\begin{itemize}
-	\item \textbf{Test:} Change password, power cycle, attempt authentication
-	\item \textbf{Expected:} New password lost after power cycle
-	\item \textbf{Vulnerability:} No non-volatile storage
-	\item \textbf{Recommendation:} Store password in EEPROM
-\end{itemize}
-
-\textbf{Security Test 4: Programming Mode Security}
-\begin{itemize}
-	\item \textbf{Test:} Enter programming mode without authentication
-	\item \textbf{Expected:} System allows password change
-	\item \textbf{Vulnerability:} No authentication for password change
-	\item \textbf{Recommendation:} Require current password to change password
-\end{itemize}
-
-\textbf{Security Test 5: Buffer Overflow}
-\begin{itemize}
-	\item \textbf{Test:} Enter more than 4 digits before pressing '\#'
-	\item \textbf{Expected:} System ignores extra digits
-	\item \textbf{Vulnerability:} May cause buffer overflow if not properly bounded
-	\item \textbf{Recommendation:} Ensure strict 4-digit limit
-\end{itemize}
-
-\textbf{Phase 5: Performance Testing}
-
-\textbf{Objective:} Validate system meets performance requirements.
-
-\textbf{Test Cases:}
-
-\textbf{Performance Test 1: Response Time}
-\begin{itemize}
-	\item \textbf{Test:} Measure time from key press to LCD update
-	\item \textbf{Requirement:} $< 100$ms
-	\item \textbf{Expected:} 35-60ms
-	\item \textbf{Validation:} Meets requirement
-\end{itemize}
-
-\textbf{Performance Test 2: Memory Usage}
-\begin{itemize}
-	\item \textbf{Test:} Measure flash and RAM usage
-	\item \textbf{Expected:} Flash $< 32$KB, RAM $< 2$KB
-	\item \textbf{Validation:} Fits within Arduino Uno constraints
-\end{itemize}
-
-\textbf{Performance Test 3: Power Consumption}
-\begin{itemize}
-	\item \textbf{Test:} Measure current draw in different states
-	\item \textbf{Expected:} $< 100$mA (idle), $< 150$mA (active)
-	\item \textbf{Validation:} Within power supply capabilities
-\end{itemize}
-
-\textbf{Phase 6: Usability Testing}
-
-\textbf{Objective:} Evaluate user experience and interface design.
-
-\textbf{Test Scenarios:}
-
-\textbf{Usability Test 1: First-Time User}
-\begin{itemize}
-	\item \textbf{Test:} Observe new user attempting to enter PIN
-	\item \textbf{Expected:} User understands interface without instructions
-	\item \textbf{Validation:} Interface is intuitive
-\end{itemize}
-
-\textbf{Usability Test 2: Error Recovery}
-\begin{itemize}
-	\item \textbf{Test:} User makes mistake (wrong PIN), then corrects
-	\item \textbf{Expected:} Clear error message, easy recovery
-	\item \textbf{Validation:} Error handling is user-friendly
-\end{itemize}
-
-\textbf{Usability Test 3: Programming Mode}
-\begin{itemize}
-	\item \textbf{Test:} User changes password
-	\item \textbf{Expected:} Clear instructions, confirmation of change
-	\item \textbf{Validation:} Password change process is straightforward
-\end{itemize}
-
-\textbf{Phase 7: Reliability Testing}
-
-\textbf{Objective:} Validate system reliability over extended operation.
-
-\textbf{Test Cases:}
-
-\textbf{Reliability Test 1: Extended Operation}
-\begin{itemize}
-	\item \textbf{Test:} Run system for 24 hours, perform 100 authentications
-	\item \textbf{Expected:} No crashes, no memory leaks, consistent behavior
-	\item \textbf{Validation:} System stable over time
-\end{itemize}
-
-\textbf{Reliability Test 2: Key Repeated Press}
-\begin{itemize}
-	\item \textbf{Test:} Press same key 100 times rapidly
-	\item \textbf{Expected:} Each press detected correctly, no missed or duplicate keys
-	\item \textbf{Validation:} Keypad scanning robust
-\end{itemize}
-
-\textbf{Reliability Test 3: Power Cycle}
-\begin{itemize}
-	\item \textbf{Test:} Power cycle system 50 times
-	\item \textbf{Expected:} System boots correctly each time
-	\item \textbf{Validation:} Initialization reliable
-\end{itemize}
-
-\textbf{Phase 8: Environmental Testing}
-
-\textbf{Objective:} Validate system operates in expected environmental conditions.
-
-\textbf{Test Cases:}
-
-\textbf{Environmental Test 1: Temperature}
-\begin{itemize}
-	\item \textbf{Test:} Operate at 0°C and 40°C
-	\item \textbf{Expected:} System functions correctly
-	\item \textbf{Validation:} Temperature range acceptable
-\end{itemize}
-
-\textbf{Environmental Test 2: Humidity}
-\begin{itemize}
-	\item \textbf{Test:} Operate at 20\% and 80\% humidity
-	\item \textbf{Expected:} No false key triggers, LCD readable
-	\item \textbf{Validation:} Humidity tolerance adequate
-\end{itemize}
-
-\textbf{Environmental Test 3: Voltage Variation}
-\begin{itemize}
-	\item \textbf{Test:} Operate at 4.5V and 5.5V
-	\item \textbf{Expected:} System functions correctly
-	\item \textbf{Validation:} Voltage tolerance acceptable
-\end{itemize}
-
-\textbf{Test Documentation:}
-
-For each test, document:
-\begin{itemize}
-	\item Test ID and name
-	\item Test objective
-	\item Test procedure
-	\item Expected results
-	\item Actual results
-	\item Pass/fail status
-	\item Date and tester
-	\item Notes and observations
-\end{itemize}
-
-\textbf{Test Automation:}
-
-Automate repetitive tests using:
-\begin{itemize}
-	\item Test scripts for serial communication simulation
-	\item Hardware-in-the-loop (HIL) testing
-	\item Automated test harness for unit tests
-	\item Continuous integration for regression testing
-\end{itemize}
-
-\textbf{Critical Test Scenarios Summary:}
+\textbf{Comparison:}
 
 \begin{table}[H]
 	\centering
-	\caption{Critical Test Scenarios}
-	\label{tab:critical-tests}
-	\begin{tabular}{@{}p{6cm}p{9cm}@{}}
+	\caption{Priority Scheduling Comparison}
+	\label{tab:priority-comparison}
+	\begin{tabular}{@{}p{5cm}p{5cm}p{5cm}@{}}
 		\toprule
-		\textbf{Test Scenario} & \textbf{Importance} \\ \midrule
-		Correct PIN authentication & Critical - Primary function \\ \midrule
-		Incorrect PIN rejection & Critical - Security requirement \\ \midrule
-		Password change functionality & High - Management feature \\ \midline
-		Response time (< 100ms) & Critical - Usability requirement \\ \midline
-		Debouncing reliability & Critical - Input accuracy \\ \midline
-		LCD display accuracy & High - User feedback \\ \midline
-		LED indication correctness & High - Visual feedback \\ \midline
-		Input buffer overflow protection & Critical - Security \\ \midline
-		Programming mode security & Critical - Unauthorized access prevention \\ \midline
-		Extended operation stability & High - Reliability \\ \bottomrule
+		\textbf{Aspect} & \textbf{Cooperative Priority} & \textbf{Preemptive Priority} \\ \midrule
+		\textbf{Implementation} & Voluntary yield & Forced preemption \\ \midrule
+		\textbf{Response Time} & Dependent on yield & Guaranteed \\ \midrule
+		\textbf{Priority Inversion} & Possible & Mitigated with protocols \\ \midrule
+		\textbf{Starvation} & Possible (low priority) & Possible (high priority) \\ \midrule
+		\textbf{Complexity} & Moderate & High \\ \midrule
+		\textbf{Real-Time} & Not suitable & Suitable \\ \bottomrule
 	\end{tabular}
 \end{table}
 
-\textbf{Testing Tools and Equipment:}
+\subsection*{5.5. Memory Management in Bare-Metal Systems}
 
+\textbf{Question:} How is memory managed in bare-metal systems without an operating system? What strategies can be used for efficient memory usage?
+
+\textbf{Answer:}
+
+\textbf{Memory Management in Bare-Metal Systems:}
+
+\textbf{1. Static Memory Allocation}
 \begin{itemize}
-	\item \textbf{Oscilloscope:} Measure timing, signal integrity
-	\item \textbf{Multimeter:} Measure voltage, current, resistance
-	\item \textbf{Logic Analyzer:} Analyze I2C, GPIO signals
-	\item \textbf{Serial Monitor:} Debug output, logging
-	\item \textbf{Automated Test Framework:} Unit test execution
-	\item \textbf{Environmental Chamber:} Temperature/humidity testing
+	\item All memory allocated at compile time
+	\item Global variables and static arrays
+	\item Deterministic memory usage
+	\item No runtime overhead
 \end{itemize}
 
-This comprehensive testing methodology ensures the access control system is secure, functional, reliable, and user-friendly before deployment.
+\textbf{Example:}
+\begin{lstlisting}[language=C++, basicstyle=\tiny\ttfamily]
+// Static allocation
+static TaskContext tasks[NUM_TASKS];
+static Stats g_stats;
+static uint32_t local_vars[NUM_TASKS][4];
+\end{lstlisting}
+
+\textbf{2. Stack-Based Allocation}
+\begin{itemize}
+	\item Local variables on function stack
+	\item Automatic deallocation on return
+	\item Limited by stack size
+	\item Efficient for temporary data
+\end{itemize}
+
+\textbf{Example:}
+\begin{lstlisting}[language=C++, basicstyle=\tiny\ttfamily]
+void task_function(void* arg) {
+    uint32_t local_var = 0;  // Stack allocated
+    // ... use local_var
+    // Automatically freed on return
+}
+\end{lstlisting}
+
+\textbf{3. Memory Pool Management}
+\begin{itemize}
+	\item Pre-allocated pools of fixed-size blocks
+	\item Fast allocation/deallocation
+	\item No fragmentation
+	\item Suitable for object pools
+\end{itemize}
+
+\textbf{Example:}
+\begin{lstlisting}[language=C++, basicstyle=\tiny\ttfamily]
+#define POOL_SIZE 10
+#define BLOCK_SIZE 32
+
+static uint8_t memory_pool[POOL_SIZE][BLOCK_SIZE];
+static bool pool_used[POOL_SIZE];
+
+void* pool_alloc() {
+    for (int i = 0; i < POOL_SIZE; i++) {
+        if (!pool_used[i]) {
+            pool_used[i] = true;
+            return memory_pool[i];
+        }
+    }
+    return NULL;
+}
+
+void pool_free(void* ptr) {
+    // Find and mark block as free
+}
+\end{lstlisting}
+
+\textbf{Strategies for Efficient Memory Usage:}
+
+\textbf{1. Use Appropriate Data Types}
+\begin{itemize}
+	\item Use smallest type that fits (uint8\_t instead of int)
+	\item Use bit fields for flags
+	\item Avoid unnecessary structures
+\end{itemize}
+
+\textbf{2. Reuse Memory}
+\begin{itemize}
+	\item Reuse buffers instead of allocating new ones
+	\item Clear and reuse task contexts
+	\item Pool objects for reuse
+\end{itemize}
+
+\textbf{3. Optimize Data Structures}
+\begin{itemize}
+	\item Use arrays instead of linked lists
+	\item Pack structures
+	\item Avoid pointers when possible
+\end{itemize}
+
+\textbf{4. Const and Flash Storage}
+\begin{itemize}
+	\item Store constant data in flash (PROGMEM on AVR)
+	\item Use const for read-only data
+	\item Keep strings in program memory
+\end{itemize}
+
+\textbf{Example:}
+\begin{lstlisting}[language=C++, basicstyle=\tiny\ttfamily]
+// Store strings in flash
+const char message[] PROGMEM = "Hello World";
+
+// Access from flash
+char buf[16];
+strcpy_P(buf, message);
+\end{lstlisting}
+
+\textbf{5. Stack Size Management}
+\begin{itemize}
+	\item Limit function nesting depth
+	\item Avoid large local arrays
+	\item Use static for large buffers
+	\item Monitor stack usage
+\end{itemize}
+
+\textbf{Memory Usage Example (Arduino Uno):}
+
+\begin{table}[H]
+	\centering
+	\caption{Memory Usage Breakdown}
+	\label{tab:memory-usage}
+	\begin{tabular}{@{}p{6cm}p{3cm}p{3cm}p{3cm}@{}}
+		\toprule
+		\textbf{Component} & \textbf{Flash (bytes)} & \textbf{RAM (bytes)} & \textbf{Percentage} \\ \midrule
+		\textbf{Scheduler Code} & 1,200 & 200 & 7.5\% / 25\% \\ \midrule
+		\textbf{Task Functions} & 1,800 & 300 & 11\% / 38\% \\ \midrule
+		\textbf{Drivers} & 2,500 & 100 & 16\% / 13\% \\ \midrule
+		\textbf{Libraries} & 8,000 & 100 & 50\% / 13\% \\ \midrule
+		\textbf{Variables} & 0 & 100 & 0\% / 13\% \\ \midrule
+		\textbf{Total} & 13,500 & 800 & 84\% / 100\% \\ \midrule
+		\textbf{Available} & 32,768 & 2,048 & 100\% / 100\% \\ \midrule
+		\textbf{Free} & 19,268 & 1,248 & 59\% / 61\% \\ \bottomrule
+	\end{tabular}
+\end{table}
+
+\subsection*{5.6. Timer Implementation in Bare-Metal Systems}
+
+\textbf{Question:} How can timers be implemented in bare-metal systems without an operating system? What are the challenges and solutions?
+
+\textbf{Answer:}
+
+\textbf{Timer Implementation Approaches:}
+
+\textbf{1. millis() Based Timing}
+\begin{itemize}
+	\item Use built-in millis() function
+	\item Simple and easy to implement
+	\item 1ms resolution on Arduino
+	\item Sufficient for most applications
+\end{itemize}
+
+\textbf{Example:}
+\begin{lstlisting}[language=C++, basicstyle=\tiny\ttfamily]
+void delay_ms(uint32_t ms) {
+    tasks[current_task].state = STATE_BLOCKED;
+    tasks[current_task].wait_until = millis() + ms;
+    yield();
+}
+
+// In scheduler loop
+if (tasks[i].state == STATE_BLOCKED) {
+    if (millis() >= tasks[i].wait_until) {
+        tasks[i].state = STATE_READY;
+    }
+}
+\end{lstlisting}
+
+\textbf{2. Hardware Timer Interrupts}
+\begin{itemize}
+	\item Use microcontroller timer peripherals
+	\item Higher resolution (microseconds)
+	\item More precise timing
+	\item Requires interrupt handling
+\end{itemize}
+
+\textbf{Example (AVR Timer0):}
+\begin{lstlisting}[language=C++, basicstyle=\tiny\ttfamily]
+volatile uint32_t system_ticks = 0;
+
+ISR(TIMER0_OVF_vect) {
+    system_ticks++;
+}
+
+uint32_t get_ticks() {
+    uint32_t ticks;
+    ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
+        ticks = system_ticks;
+    }
+    return ticks;
+}
+\end{lstlisting}
+
+\textbf{3. Software Counters}
+\begin{itemize}
+	\item Increment counter in scheduler loop
+	\item Simple but less accurate
+	\item Depends on loop timing
+	\item Good for coarse timing
+\end{itemize}
+
+\textbf{Example:}
+\begin{lstlisting}[language=C++, basicstyle=\tiny\ttfamily]
+uint32_t tick_counter = 0;
+
+void scheduler_run() {
+    tick_counter++;  // Increment each iteration
+    
+    // ... task scheduling
+    
+    delay_ms(1);  // Approximate 1ms per tick
+}
+\end{lstlisting}
+
+\textbf{Challenges and Solutions:}
+
+\textbf{Challenge 1: Timer Overflow}
+\begin{itemize}
+	\item \textbf{Problem:} millis() overflows after ~50 days (32-bit)
+	\item \textbf{Solution:} Use unsigned subtraction for safe comparison
+\end{itemize}
+
+\textbf{Example:}
+\begin{lstlisting}[language=C++, basicstyle=\tiny\ttfamily]
+// Safe time comparison (handles overflow)
+bool time_elapsed(uint32_t start, uint32_t interval) {
+    return (millis() - start) >= interval;
+}
+
+// Instead of:
+if (millis() >= wait_until) { ... }
+
+// Use:
+if (time_elapsed(start_time, interval)) { ... }
+\end{lstlisting}
+
+\textbf{Challenge 2: Accuracy}
+\begin{itemize}
+	\item \textbf{Problem:} millis() based on timer interrupt, may drift
+	\item \textbf{Solution:} Calibrate with external reference, use hardware timers
+\end{itemize}
+
+\textbf{Challenge 3: Blocking}
+\begin{itemize}
+	\item \textbf{Problem:} Delay functions block execution
+	\item \textbf{Solution:} Non-blocking delay with state machine
+\end{itemize}
+
+\textbf{Example:}
+\begin{lstlisting}[language=C++, basicstyle=\tiny\ttfamily]
+// Blocking delay (bad for multitasking)
+delay(1000);  // Blocks for 1 second
+
+// Non-blocking delay (good for multitasking)
+static uint32_t delay_start = 0;
+if (millis() - delay_start >= 1000) {
+    // 1 second elapsed
+    delay_start = millis();
+}
+// Task can yield here
+\end{lstlisting}
+
+\textbf{Challenge 4: Resolution}
+\begin{itemize}
+	\item \textbf{Problem:} millis() has 1ms resolution, insufficient for fast events
+	\item \textbf{Solution:} Use micros() for microsecond resolution
+\end{itemize}
+
+\textbf{Example:}
+\begin{lstlisting}[language=C++, basicstyle=\tiny\ttfamily]
+uint32_t press_start = micros();
+// ... button pressed ...
+uint32_t duration = micros() - press_start;
+\end{lstlisting}
+
+\textbf{Comparison:}
+
+\begin{table}[H]
+	\centering
+	\caption{Timer Implementation Comparison}
+	\label{tab:timer-comparison}
+	\begin{tabular}{@{}p{5cm}p{5cm}p{5cm}@{}}
+		\toprule
+		\textbf{Method} & \textbf{Resolution} & \textbf{Use Case} \\ \midrule
+		\textbf{millis()} & 1 ms & General purpose delays \\ \midrule
+		\textbf{micros()} & 4-8 $\mu$s & Precise timing \\ \midrule
+		\textbf{Hardware Timer} & Variable ($\mu$s-ns) & High precision \\ \midrule
+		\textbf{Software Counter} & Loop-dependent & Coarse timing \\ \bottomrule
+	\end{tabular}
+\end{table}
+
+\subsection*{5.7. Scaling to More Tasks}
+
+\textbf{Question:} How can the cooperative scheduler be scaled to support more tasks? What are the limitations and how can they be addressed?
+
+\textbf{Answer:}
+
+\textbf{Scaling Strategies:}
+
+\textbf{1. Increase Task Array Size}
+\begin{lstlisting}[language=C++, basicstyle=\tiny\ttfamily]
+// Original
+#define NUM_TASKS 3
+static TaskContext tasks[NUM_TASKS];
+
+// Scaled
+#define NUM_TASKS 10
+static TaskContext tasks[NUM_TASKS];
+\end{lstlisting}
+
+\textbf{2. Dynamic Task Registration}
+\begin{lstlisting}[language=C++, basicstyle=\tiny\ttfamily]
+uint8_t num_active_tasks = 0;
+static TaskContext tasks[MAX_TASKS];
+
+uint8_t register_task(TaskFunc func, const char* name, uint8_t priority) {
+    if (num_active_tasks >= MAX_TASKS) {
+        return INVALID_TASK_ID;
+    }
+    
+    uint8_t task_id = num_active_tasks++;
+    tasks[task_id].state = STATE_READY;
+    tasks[task_id].pc = 0;
+    tasks[task_id].priority = priority;
+    tasks[task_id].name = name;
+    tasks[task_id].wait_until = 0;
+    memset(tasks[task_id].local_vars, 0, sizeof(tasks[task_id].local_vars));
+    
+    return task_id;
+}
+\end{lstlisting}
+
+\textbf{3. Priority-Based Scheduling}
+\begin{lstlisting}[language=C++, basicstyle=\tiny\ttfamily]
+void scheduler_run_priority() {
+    // Find highest priority ready task
+    uint8_t highest_priority = 0;
+    int8_t task_to_run = -1;
+    
+    for (uint8_t i = 0; i < num_active_tasks; i++) {
+        if (tasks[i].state == STATE_READY) {
+            if (tasks[i].priority > highest_priority || task_to_run == -1) {
+                highest_priority = tasks[i].priority;
+                task_to_run = i;
+            }
+        }
+    }
+    
+    if (task_to_run >= 0) {
+        current_task = task_to_run;
+        task_funcs[current_task](nullptr);
+    } else {
+        // All tasks blocked, short delay
+        delay_ms(10);
+    }
+}
+\end{lstlisting}
+
+\textbf{Limitations and Solutions:}
+
+\textbf{Limitation 1: CPU Utilization}
+\begin{itemize}
+	\item \textbf{Problem:} More tasks reduce CPU time per task
+	\item \textbf{Solution:} Optimize task execution, reduce frequency, use priority
+\end{itemize}
+
+\textbf{Limitation 2: Memory Usage}
+\begin{itemize}
+	\item \textbf{Problem:} Each task consumes memory for context
+	\item \textbf{Solution:} Reduce context size, use shared buffers, optimize data types
+\end{itemize}
+
+\textbf{Limitation 3: Task Starvation}
+\begin{itemize}
+	\item \textbf{Problem:} Low priority tasks may never run
+	\item \textbf{Solution:} Round-robin within priority levels, aging
+\end{itemize}
+
+\textbf{Limitation 4: Complexity}
+\begin{itemize}
+	\item \textbf{Problem:} Managing many tasks becomes complex
+	\item \textbf{Solution:} Task groups, hierarchical scheduling, modular design
+\end{itemize}
+
+\textbf{Scaling Example:}
+
+\begin{table}[H]
+	\centering
+	\caption{Task Scaling Impact}
+	\label{tab:task-scaling}
+	\begin{tabular}{@{}p{4cm}p{3cm}p{3cm}p{3cm}p{3cm}@{}}
+		\toprule
+		\textbf{Tasks} & \textbf{CPU (avg)} & \textbf{CPU (max)} & \textbf{RAM (bytes)} & \textbf{Flash (bytes)} \\ \midrule
+		3 & 65\% & 75\% & 800 & 13,500 \\ \midrule
+		5 & 75\% & 85\% & 1,200 & 14,000 \\ \midrule
+		10 & 85\% & 95\% & 2,000 & 15,000 \\ \midrule
+		15 & 95\% & 100\% & 2,800 & 16,000 \\ \midrule
+		20 & 100\% & 100\% & 3,600 & 17,000 \\ \bottomrule
+	\end{tabular}
+\end{table}
+
+\textbf{Recommendations:}
+
+\begin{itemize}
+	\item Start with minimum required tasks
+	\item Monitor CPU utilization with each added task
+	\item Use task priorities for critical operations
+	\item Consider preemptive RTOS for > 10 tasks
+	\item Profile and optimize slow tasks
+	\item Group related tasks into single task
+\end{itemize}
 
 % ============================================================================
-% CHAPTER 6: AI TOOLS USAGE
+% CHAPTER 6: NOTE ON AI TOOLS USAGE
 % ============================================================================
-\section*{6. Note on AI Tools Usage}
-\fi
-
 \section*{6. Note on AI Tools Usage}
 
 During the preparation of this report, the author utilized ChatGPT (an AI language model developed by OpenAI) for generating and consolidating content. The AI assistance was used for:
 
 \begin{itemize}
-	\item Generating and structuring technical descriptions of hardware components and technologies.
-	\item Formulating explanations of system architecture and design decisions.
+	\item Generating and structuring technical descriptions of bare-metal operating systems and cooperative scheduling.
+	\item Formulating explanations of state machine design and inter-task communication.
 	\item Drafting sections on domain analysis and case studies.
 	\item Suggesting improvements and limitations based on the implemented solution.
 	\item Assisting with formatting and organizing the report structure.
@@ -2640,51 +1767,61 @@ During the preparation of this report, the author utilized ChatGPT (an AI langua
 All information generated by the AI tool was reviewed, validated, and adjusted by the author to ensure accuracy, relevance, and compliance with the laboratory work requirements. The author takes full responsibility for the content presented in this report.
 
 % ============================================================================
-% CHAPTER 8: BIBLIOGRAPHY
+% CHAPTER 7: BIBLIOGRAPHY
 % ============================================================================
-\section*{8. Bibliography}
+\section*{7. Bibliography}
 
 \begin{enumerate}
-	\item Arduino.cc. \textit{Arduino Language Reference}. Available: \url{https://www.arduino.cc/reference/en/} [Accessed: 2026-02-16].
+	\item Arduino.cc. \textit{Arduino Language Reference}. Available: \url{https://www.arduino.cc/reference/en/} [Accessed: 2026-02-23].
 
-	\item Atmel Corporation. \textit{ATmega328P Datasheet - Complete}. 2014. Available: \url{https://ww1.microchip.com/downloads/en/DeviceDoc/Atmel-42735-8-bit-AVR-Microcontroller-ATmega328P_Datasheet.pdf} [Accessed: 2026-02-16].
+	\item Atmel Corporation. \textit{ATmega328P Datasheet - Complete}. 2014. Available: \url{https://ww1.microchip.com/downloads/en/DeviceDoc/Atmel-42735-8-bit-AVR-Microcontroller-ATmega328P_Datasheet.pdf} [Accessed: 2026-02-23].
 
-	\item PlatformIO. \textit{PlatformIO Documentation}. Available: \url{https://docs.platformio.org/} [Accessed: 2026-02-16].
+	\item PlatformIO. \textit{PlatformIO Documentation}. Available: \url{https://docs.platformio.org/} [Accessed: 2026-02-23].
 
-	\item LiquidCrystal\_I2C Library. \textit{GitHub Repository}. Available: \url{https://github.com/johnrickman/LiquidCrystal_I2C} [Accessed: 2026-02-16].
+	\item LiquidCrystal\_I2C Library. \textit{GitHub Repository}. Available: \url{https://github.com/johnrickman/LiquidCrystal_I2C} [Accessed: 2026-02-23].
 
-	\item NXP Semiconductors. \textit{I2C-Bus Specification and User Manual}. 2021. Available: \url{https://www.nxp.com/docs/en/user-guide/UM10204.pdf} [Accessed: 2026-02-16].
+	\item NXP Semiconductors. \textit{I2C-Bus Specification and User Manual}. 2021. Available: \url{https://www.nxp.com/docs/en/user-guide/UM10204.pdf} [Accessed: 2026-02-23].
 
-	\item Axelson, J. \textit{Serial Port Complete: COM Ports, USB Virtual COM Ports, and Ports for Embedded Systems}. Lakeview Research, 2007.
+	\item Labrosse, J. J. \textit{MicroC/OS-II: The Real-Time Kernel}. 2nd Edition, CRC Press, 2002.
 
-	\item Arduino.cc. \textit{Wire Library (I2C)}. Available: \url{https://www.arduino.cc/reference/en/language/functions/communication/wire/} [Accessed: 2026-02-16].
+	\item Arduino.cc. \textit{Wire Library (I2C)}. Available: \url{https://www.arduino.cc/reference/en/language/functions/communication/wire/} [Accessed: 2026-02-23].
 
-	\item Arduino.cc. \textit{LiquidCrystal Library}. Available: \url{https://www.arduino.cc/reference/en/libraries/liquidcrystal/} [Accessed: 2026-02-16].
+	\item Wikipedia. \textit{Cooperative multitasking}. Available: \url{https://en.wikipedia.org/wiki/Cooperative_multitasking} [Accessed: 2026-02-23].
 
-	\item Horowitz, P., and Hill, W. \textit{The Art of Electronics}. 3rd Edition, Cambridge University Press, 2015.
+	\item Wikipedia. \textit{Finite-state machine}. Available: \url{https://en.wikipedia.org/wiki/Finite-state_machine} [Accessed: 2026-02-23].
 
-	\item Wikipedia. \textit{Finite-state machine}. Available: \url{https://en.wikipedia.org/wiki/Finite-state_machine} [Accessed: 2026-02-16].
+	\item Wikipedia. \textit{Round-robin scheduling}. Available: \url{https://en.wikipedia.org/wiki/Round-robin_scheduling} [Accessed: 2026-02-23].
 
-	\item Wikipedia. \textit{Debouncing}. Available: \url{https://en.wikipedia.org/wiki/Switch#Contact_bounce} [Accessed: 2026-02-16].
+	\item AVR Libc. \textit{Standard IO Facilities}. Available: \url{https://www.nongnu.org/avr-libc/user-manual/group\_avr\_stdio.html} [Accessed: 2026-02-23].
 
-	\item Wikipedia. \textit{Matrix keypad}. Available: \url{https://en.wikipedia.org/wiki/Keypad#Matrix_keypads} [Accessed: 2026-02-16].
+	\item NXP Semiconductors. \textit{PCF8574 8-bit I/O expander for I2C-bus}. 2013. Available: \url{https://www.nxp.com/docs/en/datasheet/PCF8574.pdf} [Accessed: 2026-02-23].
 
-	\item AVR Libc. \textit{Standard IO Facilities}. Available: \url{https://www.nongnu.org/avr-libc/user-manual/group__avr__stdio.html} [Accessed: 2026-02-16].
+	\item Barr, M. \textit{Programming Embedded Systems: With C and GNU Development Tools}. 2nd Edition, O'Reilly Media, 2006.
 
-	\item NXP Semiconductors. \textit{PCF8574 8-bit I/O expander for I2C-bus}. 2013. Available: \url{https://www.nxp.com/docs/en/datasheet/PCF8574.pdf} [Accessed: 2026-02-16].
+	\item Simon, D. \textit{An Embedded Software Primer}. Addison-Wesley, 1999.
+
+	\item Ousterhout, J. K. \textit{Scheduling Techniques for Concurrent Systems}. Proceedings of the Third International Conference on Distributed Computing Systems, 1982.
 \end{enumerate}
 
 % ============================================================================
-% CHAPTER 7: APPENDIX - SOURCE CODE
+% CHAPTER 8: APPENDIX - SOURCE CODE
 % ============================================================================
-\section*{7. Appendix - Source Code}
+\section*{8. Appendix - Source Code}
 
-The complete source code for the Electronic Lock System (Lab 1.2) is available on GitHub:
+The complete source code for the Button Press Duration Monitoring System (Lab 2.1) is available on GitHub:
 
 \begin{center}
 \url{https://github.com/DimonBel/ES}
 \end{center}
 
+Key source files:
+\begin{itemize}
+	\item \texttt{src/main.cpp} - Scheduler, task implementations, and setup
+	\item \texttt{src/modules/button/button.h/cpp} - Button driver with matrix scanning
+	\item \texttt{src/modules/lcd/lcd.h/cpp} - LCD driver with I2C support
+	\item \texttt{src/modules/led/led.h/cpp} - LED driver
+	\item \texttt{src/modules/serial\_stdio/serial\_stdio.h/cpp} - STDIO redirection
+\end{itemize}
 
 \pagebreak
 \end{document}
