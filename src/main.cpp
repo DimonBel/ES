@@ -4,19 +4,18 @@
 #include "serial_stdio/serial_stdio.h"
 #include "led/led.h"
 #include "lcd/lcd.h"
-#include "button/button.h"
+#include "joystick/joystick.h"
 
 // ========== PINI ==========
-static const uint8_t ROW_PINS[4] = {4, 5, 6, 7};
-static const uint8_t COL_PINS[4] = {8, 9, 10, 11};
-static const uint8_t LED_GREEN_PIN = 3;
-static const uint8_t LED_RED_PIN = 2;
+static const uint8_t JOYSTICK_X_PIN = A0;
+static const uint8_t JOYSTICK_Y_PIN = A1;
+static const uint8_t JOYSTICK_SW_PIN = 3;
+static const uint8_t LED_RED_PIN = 12;
+static const uint8_t LED_GREEN_PIN = 11;
 static const uint8_t LED_YELLOW_PIN = 13;
 
 // ========== CONFIG ==========
-#define SHORT_PRESS_MS 500
-#define REPORT_PERIOD_MS 10000
-#define NUM_TASKS 3
+#define NUM_TASKS 2
 
 // ========== STRUCTURI CONTEXT ==========
 typedef enum {
@@ -34,28 +33,17 @@ typedef struct TaskContext {
 } TaskContext;
 
 // ========== VARIABILE GLOBALE ==========
-typedef struct {
-    uint32_t total;
-    uint32_t short_cnt;
-    uint32_t long_cnt;
-    uint32_t short_dur;
-    uint32_t long_dur;
-} Stats;
-
-static Stats g_stats;
 static TaskContext tasks[NUM_TASKS];
 static uint8_t current_task = 0;
-static uint32_t last_report = 0;
 static volatile bool g_new_press_flag = false;  // Flag for Task 2
-static volatile bool g_last_press_was_short = true;  // Track last press type
 
 static Led *ledG = nullptr;
 static Led *ledR = nullptr;
 static Led *ledY = nullptr;
 static LcdI2c *lcd = nullptr;
-static Button *button1 = nullptr;
+static Joystick *joystick = nullptr;
 
-// Button state tracking
+// Press counter tracking
 static uint32_t total_presses = 0;
 
 // ========== SCHEDULER BARE-METAL ==========
@@ -82,110 +70,105 @@ void blinkY(uint8_t n) {
     ledY->off();
 }
 
-// State machine: PC 0=check button, 1=wait release, 2=signal
+// State machine: PC 0=wait for press, 1=button pressed (show duration on yellow), 2=button released (show result), 3=wait 5s
 static void task1_detect(void *arg) {
     TaskContext *tc = &tasks[0];
-    
+
     switch (tc->pc) {
-        case 0:  // Check button state
+        case 0:  // Wait for button press
         {
-            button1->scan();
-            
-            // Detectare eliberare (falling edge) - button was pressed and now released
-            uint32_t dur = button1->getPressDuration();
-            if (!button1->isPressed() && dur > 0) {
-                bool is_short = (dur < SHORT_PRESS_MS);
-                
-                // Actualizare statistici
-                g_stats.total++;
-                if (is_short) {
-                    g_stats.short_cnt++;
-                    g_stats.short_dur += dur;
-                } else {
-                    g_stats.long_cnt++;
-                    g_stats.long_dur += dur;
-                }
-                
-                // Store duration for signaling
-                tc->local_vars[0] = dur;
-                tc->local_vars[1] = is_short ? 1 : 0;
-                
-                // Go to signal state
+            joystick->scan();
+
+            if (joystick->isPressed()) {
+                tc->local_vars[0] = millis();  // Store press start time
                 tc->pc = 1;
-                ledY->off();
+                ledR->off();
+                ledG->off();
+                // Yellow LED stays ON
+                printf("State 0->1: Button pressed, Red/Green LEDs OFF, Yellow stays ON\n");
                 return;
             }
-            
-            // Detectare apăsare (rising edge)
-            if (button1->isPressed()) {
-                ledY->on();
-            }
-            
+
             delay_ms(50);
             return;
         }
-        
-        case 1:  // Signal visual 
+
+        case 1:  // Button is pressed - show duration on yellow LED intensity
         {
-            uint32_t dur = tc->local_vars[0];
-            bool is_short = tc->local_vars[1];
-            
-            printf("Press: %lu %s\n", dur, is_short ? "SHORT" : "LONG");
-            
-            // Increment press counter
-            total_presses++;
-            
-            // Store the LED type and start time
-            tc->local_vars[2] = is_short ? 1 : 0;  // 1 = green, 0 = red
-            tc->local_vars[3] = millis();  // Start time
-            
-            // Turn on the LED and update LCD
+            joystick->scan();
+
+            if (!joystick->isPressed()) {
+                uint32_t duration = joystick->getPressDuration();
+                tc->local_vars[1] = duration;  // Store duration
+                tc->pc = 2;
+
+                // Yellow LED stays ON (hardware verification)
+                printf("Button released! Duration: %lu ms\n", duration);
+                return;
+            }
+
+            // Yellow LED stays ON continuously - no blinking
+            // Just add a small delay to avoid spamming
+            delay_ms(50);
+
+            return;
+        }
+
+        case 2:  // Show result (red/green LED and LCD display)
+        {
+            uint32_t duration = tc->local_vars[1];
+
+            // Clear red and green LEDs (yellow stays ON)
+            ledR->off();
+            ledG->off();
+            // Yellow LED stays ON for hardware verification
+            printf("State 1->2: Turning Red/Green LEDs OFF, Yellow stays ON\n");
+
+            // Determine color based on duration
+            if (duration > 500) {
+                ledG->on();  // Green for long press (>500ms)
+                printf("Turning GREEN LED ON (duration %lu ms > 500), Yellow still ON\n", duration);
+            } else {
+                ledR->on();  // Red for short press (<=500ms)
+                printf("Turning RED LED ON (duration %lu ms <= 500), Yellow still ON\n", duration);
+            }
+
+            // Update LCD with result
             lcd->clear();
             delay(10);
             lcd->setCursor(0, 0);
-            lcd->printf("Time: %lums", dur);
-            lcd->setCursor(0, 1);
-            lcd->print("                ");
-            lcd->setCursor(0, 1);
-            if (is_short) {
-                ledG->on();
-                lcd->printf("LED: GREEN");
+            
+            if (duration > 500) {
+                lcd->printf("Green LED:");
             } else {
-                ledR->on();
-                lcd->printf("LED: RED");
+                lcd->printf("Red LED:");
             }
             
-            tc->pc = 2;  // Go to wait state
+            lcd->setCursor(0, 1);
+            lcd->printf("%lu ms", duration);
+
+            tc->local_vars[2] = millis();  // Store result start time
+            tc->pc = 3;
             return;
         }
-        
-        case 2:  // Wait 5 seconds then turn off
+
+        case 3:  // Wait 5 seconds, then show "Press button" again
         {
-            uint32_t start_time = tc->local_vars[3];
-            bool is_short = (tc->local_vars[2] == 1);
-            
-            if (millis() - start_time >= 5000) {
-                if (is_short) {
-                    ledG->off();
-                } else {
-                    ledR->off();
-                }
-                
-                // Show "Press button" 
+            if (millis() - tc->local_vars[2] >= 5000) {
+                ledR->off();
+                ledG->off();
+                // Yellow LED stays ON for hardware verification
+                printf("State 3->0: 5 seconds elapsed, turning Red/Green LEDs OFF, Yellow stays ON\n");
+
                 lcd->clear();
                 delay(10);
                 lcd->setCursor(0, 0);
-                lcd->printf("Press Button");
+                lcd->printf("Press Joystick");
                 lcd->setCursor(0, 1);
-                lcd->printf("to start");
-                
-                // Signal Task 2 to blink
-                g_new_press_flag = true;
-                g_last_press_was_short = is_short;
-                
-                tc->pc = 0;  // Back to checking
+                lcd->printf("Button");
+
+                tc->pc = 0;
             } else {
-                // Wait a bit and check again
                 delay_ms(100);
             }
             return;
@@ -193,124 +176,37 @@ static void task1_detect(void *arg) {
     }
 }
 
-// State machine: PC 0=check new press, 1=blink on, 2=blink off
+// State machine: Not used in this implementation
 static void task2_blink(void *arg) {
     TaskContext *tc = &tasks[1];
-    
+
     switch (tc->pc) {
-        case 0:  // Check if new press detected
+        case 0:
         {
-            if (g_new_press_flag) {
-                g_new_press_flag = false;  // Clear flag
-                
-                // Get press type from global
-                bool was_short = g_last_press_was_short;
-                
-                tc->local_vars[3] = was_short ? 5 : 10;  // Number of blinks
-                tc->local_vars[4] = 0;  // Current blink count
-                tc->pc = 1;
-                return;
-            }
-            
-            delay_ms(20);
-            return;
-        }
-        
-        case 1:  // Turn LED on
-        {
-            ledY->on();
-            tc->pc = 2;
-            delay_ms(80);
-            return;
-        }
-        
-        case 2:  // Turn LED off and check if more blinks needed
-        {
-            ledY->off();
-            tc->local_vars[4]++;  // Increment blink count
-            
-            uint8_t max_blinks = tc->local_vars[3];
-            if (tc->local_vars[4] < max_blinks) {
-                tc->pc = 1;  // Next blink
-                delay_ms(80);
-            } else {
-                tc->pc = 0;  // Done, go back to checking
-            }
+            delay_ms(100);
             return;
         }
     }
 }
 
-// State machine: PC 0=check time, 1=report
-static void task3_report(void *arg) {
-    TaskContext *tc = &tasks[2];
-    
-    switch (tc->pc) {
-        case 0:  // Check if report time
-        {
-            uint32_t elapsed = millis() - last_report;
-            
-            if (elapsed >= REPORT_PERIOD_MS) {
-                tc->pc = 1;
-                return;
-            }
-            
-            delay_ms(100);
-            return;
-        }
-        
-        case 1:  // Generate report
-        {
-            uint32_t t = g_stats.total;
-            uint32_t s = g_stats.short_cnt;
-            uint32_t l = g_stats.long_cnt;
-            uint32_t sd = g_stats.short_dur;
-            uint32_t ld = g_stats.long_dur;
-            float avg = (t > 0) ? ((float)(sd + ld) / t) : 0;
-            
-            printf("\n=== RAPORT (10s) ===\n");
-            printf("Total apasari: %lu\n", t);
-            printf("Apasari scurte: %lu\n", s);
-            printf("Apasari lungi: %lu\n", l);
-            printf("Durata medie: %.2f ms\n", (double)avg);
-            printf("====================\n");
-            
-            // Resetare statistici
-            g_stats.total = 0;
-            g_stats.short_cnt = 0;
-            g_stats.long_cnt = 0;
-            g_stats.short_dur = 0;
-            g_stats.long_dur = 0;
-            
-            // Semnal vizual raport
-            ledY->on();
-            delay_ms(200);
-            ledY->off();
-            
-            last_report = millis();
-            tc->pc = 0;
-            return;
-        }
-    }
-}
+
 
 // Array of task function pointers
 typedef void (*TaskFunc)(void*);
 static TaskFunc task_funcs[NUM_TASKS] = {
     task1_detect,
-    task2_blink,
-    task3_report
+    task2_blink
 };
 
 void init_tasks() {
-    // Task 1 - Detectare (prioritate 2)
+    // Task 1 - Detect (prioritate 2)
     tasks[0].state = STATE_READY;
     tasks[0].priority = 2;
     tasks[0].name = "Detect";
     tasks[0].pc = 0;
     tasks[0].wait_until = 0;
     memset(tasks[0].local_vars, 0, sizeof(tasks[0].local_vars));
-    
+
     // Task 2 - Blink (prioritate 1)
     tasks[1].state = STATE_READY;
     tasks[1].priority = 1;
@@ -318,14 +214,6 @@ void init_tasks() {
     tasks[1].pc = 0;
     tasks[1].wait_until = 0;
     memset(tasks[1].local_vars, 0, sizeof(tasks[1].local_vars));
-    
-    // Task 3 - Report (prioritate 1)
-    tasks[2].state = STATE_READY;
-    tasks[2].priority = 1;
-    tasks[2].name = "Report";
-    tasks[2].pc = 0;
-    tasks[2].wait_until = 0;
-    memset(tasks[2].local_vars, 0, sizeof(tasks[2].local_vars));
 }
 
 void scheduler_run() {
@@ -355,15 +243,15 @@ void scheduler_run() {
 void setup() {
     SerialStdio::begin(9600);
     delay(2000);
-    
-    printf("\n=== LAB 3.2 - BARE-METAL ===\n");
-    printf("Sistem NON-PREEMPTIVE cu scheduling cooperativ\n");
-    printf("LED G: %d\n", LED_GREEN_PIN);
-    printf("LED R: %d\n", LED_RED_PIN);
-    printf("LED Y: %d\n", LED_YELLOW_PIN);
-    printf("Buton: 1 (keypad row0,col0)\n");
-    printf("============================\n");
-    
+
+    printf("\n=== LAB 3.2 - JOYSTICK PRESS DURATION ===\n");
+    printf("Joystick: X=A0, Y=A1, SW=D3\n");
+    printf("LED R: %d, LED G: %d, LED Y: %d\n", LED_RED_PIN, LED_GREEN_PIN, LED_YELLOW_PIN);
+    printf("LCD: I2C (0x27)\n");
+    printf("Press joystick button - Yellow LED blinks during press\n");
+    printf("Red LED: <=500ms, Green LED: >500ms\n");
+    printf("=======================================\n");
+
     // LED-uri
     ledG = new Led(LED_GREEN_PIN);
     ledR = new Led(LED_RED_PIN);
@@ -373,44 +261,54 @@ void setup() {
     ledY->begin();
     ledG->off();
     ledR->off();
-    ledY->off();
-    
-    // Button driver
-    button1 = new Button(ROW_PINS, COL_PINS, 4, 4, 0);
-    button1->begin();
-    
+    ledY->on();  // Keep yellow LED always ON for hardware verification
+    printf("LEDs initialized - Yellow LED ON (pin 10), Red OFF (pin 8), Green OFF (pin 9)\n");
+
+    // Joystick driver
+    joystick = new Joystick(JOYSTICK_X_PIN, JOYSTICK_Y_PIN, JOYSTICK_SW_PIN);
+    joystick->begin();
+
     // Test LED
     printf("Test LED... ");
     ledG->on(); delay(100); ledG->off();
     ledR->on(); delay(100); ledR->off();
     ledY->on(); delay(100); ledY->off();
     printf("OK\n");
-    
+
+    // Fast blink test for yellow LED to verify pin 10
+    printf("Testing yellow LED on pin 10 (blinking 5 times)...\n");
+    for (int i = 0; i < 5; i++) {
+        ledY->on();
+        delay(200);
+        ledY->off();
+        delay(200);
+    }
+    printf("Yellow LED test complete\n");
+
+    // Direct pin 10 test without LED class
+    printf("Direct pin 10 test (3 blinks)...\n");
+    pinMode(LED_YELLOW_PIN, OUTPUT);
+    for (int i = 0; i < 3; i++) {
+        digitalWrite(LED_YELLOW_PIN, HIGH);
+        delay(300);
+        digitalWrite(LED_YELLOW_PIN, LOW);
+        delay(300);
+    }
+    printf("Direct pin 10 test complete\n");
+
     // LCD
     lcd = new LcdI2c(0x27, 16, 2);
     lcd->begin();
     lcd->setCursor(0, 0);
-    lcd->printf("Press Button");
+    lcd->printf("Press Joystick");
     lcd->setCursor(0, 1);
-    lcd->printf("to start");
-    
-    // Keypad pini
-    for (int i = 0; i < 4; i++) {
-        pinMode(ROW_PINS[i], OUTPUT);
-        digitalWrite(ROW_PINS[i], HIGH);
-        pinMode(COL_PINS[i], INPUT_PULLUP);
-    }
-    
-    // Reset statistici
-    memset(&g_stats, 0, sizeof(Stats));
-    last_report = millis();
-    total_presses = 0;
-    
+    lcd->printf("Button");
+
     // Inițializare tasks
     init_tasks();
-    
+
     printf("=== SCHEDULER PORNIT ===\n");
-    printf("Apasa butonul 1...\n\n");
+    printf("Apasa pe joystick...\n\n");
 }
 
 void loop() {
