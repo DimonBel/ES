@@ -1,0 +1,109 @@
+@startuml Sequence Diagram - Code Entry and Verification
+title Sequence Diagram - Keypad Code Entry & Verification (App Module)
+
+actor User
+participant "Keypad" as kp
+participant "App" as app
+participant "LcdI2c" as lcd
+participant "Led (Green)" as ledg
+participant "Led (Red)" as ledr
+participant "Led (Prog)" as ledp
+
+== System Startup ==
+app -> kp : begin()
+app -> lcd : begin()
+app -> ledg : begin()
+app -> ledr : begin()
+app -> ledp : begin()
+app -> lcd : print("Enter Code:")
+app -> lcd : print("[    ]")
+
+== Normal Code Entry - Valid Code ==
+User -> kp : press '1'
+kp --> app : getKey() = '1'
+app -> app : _inputCode[0] = '1'
+app -> lcd : print("[*   ]")
+
+User -> kp : press '2'
+kp --> app : getKey() = '2'
+app -> app : _inputCode[1] = '2'
+app -> lcd : print("[**  ]")
+
+User -> kp : press '3'
+kp --> app : getKey() = '3'
+app -> app : _inputCode[2] = '3'
+app -> lcd : print("[*** ]")
+
+User -> kp : press '4'
+kp --> app : getKey() = '4'
+app -> app : _inputCode[3] = '4'
+app -> lcd : print("[****]")
+
+User -> kp : press '#' (ENTER)
+kp --> app : getKey() = '#'
+app -> app : verifyCode() = true
+
+app -> lcd : print("ACCESS GRANTED!")
+app -> lcd : print("Door Unlocked")
+app -> ledg : on()
+app -> ledr : off()
+note right of ledg : Green LED stays ON\nfor 5 seconds
+app -> ledg : off()
+app -> app : clearInput()
+app -> lcd : print("Enter Code:")
+
+== Normal Code Entry - Invalid Code ==
+User -> kp : press wrong code + '#'
+kp --> app : getKey() sequence
+app -> app : verifyCode() = false
+
+app -> lcd : print("ACCESS DENIED!")
+app -> lcd : print("Wrong Code")
+app -> ledr : on()
+app -> ledg : off()
+
+loop 5 times (blinking)
+    app -> ledr : off()
+    app -> ledr : on()
+end
+app -> ledr : off()
+app -> app : clearInput()
+app -> lcd : print("Enter Code:")
+
+== Clear Input ==
+User -> kp : press '*' (CLEAR)
+kp --> app : getKey() = '*'
+app -> app : clearInput()
+app -> lcd : print("Enter Code:")
+app -> lcd : print("[    ]")
+
+== Programming Mode ==
+User -> kp : press 'D' (at welcome)
+kp --> app : getKey() = 'D'
+app -> app : _programmingMode = true
+app -> ledp : on()
+note right of ledp : Programming LED ON
+app -> lcd : print("PROG MODE")
+app -> lcd : print("New Pass [    ]")
+
+User -> kp : enter new 4-digit code
+kp --> app : digit sequence
+
+User -> kp : press '#' (confirm)
+kp --> app : getKey() = '#'
+app -> app : confirmNewCode()
+app -> app : _correctCode = newCode
+app -> lcd : print("PASSWORD SAVED")
+app -> lcd : print("New: XXXX")
+
+app -> ledg : on()
+app -> ledg : off()
+app -> ledg : on()
+app -> ledg : off()
+note right of ledg : Double blink\nconfirmation
+
+app -> app : _programmingMode = false
+app -> ledp : off()
+app -> lcd : print("Enter Code:")
+
+@enduml

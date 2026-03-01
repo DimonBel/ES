@@ -1,0 +1,98 @@
+@startuml State Machine Diagram
+title State Machine Diagram - System States
+
+[*] --> Initialization
+
+state "Initialization" as init {
+    [*] --> SerialBegin
+    SerialBegin --> InitLEDs : Serial.begin(115200)
+    InitLEDs --> InitJoystick : LEDs created & tested
+    InitJoystick --> InitLCD : Joystick initialized
+    InitLCD --> InitSync : LCD initialized
+    InitSync --> CreateTasks : Semaphores & Mutex created
+    CreateTasks --> [*] : Tasks started
+}
+
+init --> Idle : Scheduler started
+
+state "FreeRTOS Task States" as rtos {
+    state "Idle" as Idle
+    state "Button Pressing" as Pressing
+    state "Result Display" as Result
+
+    Idle : task_state = 0
+    Idle : LCD: "Press Joystick Button"
+    Idle : All LEDs OFF
+
+    Pressing : task_state = 1
+    Pressing : LCD: "Pressing... Button"
+    Pressing : Yellow LED ON
+
+    Result : task_state = 2
+    Result : LCD: LED color + duration
+    Result : Green or Red LED ON
+
+    Idle --> Pressing : Joystick pressed\n[semPressDisplay, semPressLED]
+    Pressing --> Result : Joystick released\n[semReleaseDisplay, semReleaseLED]
+    Result --> Idle : 5 second timeout\n[task_state = 0]
+}
+
+state "LED Control States" as ledstates {
+    state "All OFF" as alloff
+    state "Yellow ON" as yellow
+    state "Green ON" as green
+    state "Red ON" as red
+
+    alloff : Idle state
+    yellow : Button being pressed
+    green : Long press (>500ms)
+    red : Short press (<=500ms)
+
+    alloff --> yellow : Button press detected
+    yellow --> green : Released, duration > 500ms
+    yellow --> red : Released, duration <= 500ms
+    green --> alloff : 5s timeout
+    red --> alloff : 5s timeout
+}
+
+state "App Module States (Keypad)" as appstates {
+    state "Welcome" as welcome
+    state "Code Entry" as entry
+    state "Access Granted" as granted
+    state "Access Denied" as denied
+    state "Programming Mode" as progmode
+    state "Password Saved" as saved
+
+    welcome : LCD: "Enter Code:"
+    welcome : LCD: "[    ]"
+
+    entry : LCD: "[*...]"
+    entry : Input position tracked
+
+    granted : LCD: "ACCESS GRANTED!"
+    granted : Green LED ON 5s
+
+    denied : LCD: "ACCESS DENIED!"
+    denied : Red LED blinks 5x
+
+    progmode : LCD: "PROG MODE"
+    progmode : Programming LED ON
+
+    saved : LCD: "PASSWORD SAVED"
+    saved : Green LED double blink
+
+    [*] --> welcome
+    welcome --> entry : Digit/A-C pressed
+    welcome --> progmode : 'D' pressed
+    entry --> entry : More digits
+    entry --> welcome : '*' (clear)
+    entry --> granted : '#' + correct code
+    entry --> denied : '#' + wrong code
+    granted --> welcome : After 3s delay
+    denied --> welcome : After 3s delay
+    progmode --> welcome : '*' (cancel)
+    progmode --> saved : '#' + 4 digits
+    saved --> welcome : After 2s delay
+}
+
+@enduml
