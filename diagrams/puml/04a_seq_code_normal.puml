@@ -9,36 +9,109 @@ participant "Led (Green)" as ledg
 participant "Led (Red)" as ledr
 
 == Welcome Screen ==
-app -> lcd : "Enter Code:"
-app -> lcd : "[    ]"
+app -> lcd : clear()
+lcd --> app : void
+app -> lcd : print("Enter Code:")
+lcd --> app : void
+app -> lcd : print("[    ]")
+lcd --> app : void
 
 == Digit Entry ==
-User -> kp : press digits (e.g. 1,2,3,4)
-kp --> app : getKey()
-app -> lcd : update "[*...]"
+User -> kp : press '1'
+app -> kp : getKey()
+kp --> app : char: '1'
+app -> lcd : setCursor(0, 1)
+lcd --> app : void
+app -> lcd : print("[*   ]")
+lcd --> app : void
+
+User -> kp : press '2'
+app -> kp : getKey()
+kp --> app : char: '2'
+app -> lcd : print("[**  ]")
+lcd --> app : void
+
+User -> kp : press '3'
+app -> kp : getKey()
+kp --> app : char: '3'
+app -> lcd : print("[*** ]")
+lcd --> app : void
+
+User -> kp : press '4'
+app -> kp : getKey()
+kp --> app : char: '4'
+app -> lcd : print("[****]")
+lcd --> app : void
 
 == Valid Code ==
 User -> kp : press '#' (ENTER)
-app -> app : verifyCode() = true
-app -> lcd : "ACCESS GRANTED!"
-app -> lcd : "Door Unlocked"
+app -> kp : getKey()
+kp --> app : char: '#'
+app -> app : verifyCode()
+app --> app : bool: true
+app -> lcd : clear()
+lcd --> app : void
+app -> lcd : print("ACCESS GRANTED!")
+lcd --> app : void
+app -> lcd : print("Door Unlocked")
+lcd --> app : void
 app -> ledg : on()
-note right : Green ON 5 seconds
+ledg --> app : void
+app -> ledr : off()
+ledr --> app : void
+note right of ledg : Green ON 5 seconds
 app -> ledg : off()
-app -> lcd : back to Welcome
+ledg --> app : void
+app -> app : clearInput()
+app --> app : void
+app -> lcd : clear()
+lcd --> app : void
+app -> lcd : print("Enter Code:")
+lcd --> app : void
 
 == Invalid Code ==
 User -> kp : press '#' (ENTER)
-app -> app : verifyCode() = false
-app -> lcd : "ACCESS DENIED!"
-app -> lcd : "Wrong Code"
-app -> ledr : on() + blink 5x
+app -> kp : getKey()
+kp --> app : char: '#'
+app -> app : verifyCode()
+app --> app : bool: false
+app -> lcd : clear()
+lcd --> app : void
+app -> lcd : print("ACCESS DENIED!")
+lcd --> app : void
+app -> lcd : print("Wrong Code")
+lcd --> app : void
+app -> ledr : on()
+ledr --> app : void
+app -> ledg : off()
+ledg --> app : void
+
+loop 5 times (blinking)
+    app -> ledr : off()
+    ledr --> app : void
+    app -> ledr : on()
+    ledr --> app : void
+end
 app -> ledr : off()
-app -> lcd : back to Welcome
+ledr --> app : void
+app -> app : clearInput()
+app --> app : void
+app -> lcd : clear()
+lcd --> app : void
+app -> lcd : print("Enter Code:")
+lcd --> app : void
 
 == Clear ==
 User -> kp : press '*'
+app -> kp : getKey()
+kp --> app : char: '*'
 app -> app : clearInput()
-app -> lcd : back to Welcome
+app --> app : void
+app -> lcd : clear()
+lcd --> app : void
+app -> lcd : print("Enter Code:")
+lcd --> app : void
+app -> lcd : print("[    ]")
+lcd --> app : void
 
 @enduml

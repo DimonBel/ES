@@ -9,40 +9,84 @@ participant "vTaskLED\n(Priority 1)" as ledtask
 participant "Led (R/G/Y)" as leds
 
 == Button Press Response ==
-sem --> display : semPressDisplay.take()
+display -> sem : semPressDisplay.take(100)
+sem --> display : bool: true
 display -> mutex : take(100)
-display -> lcd : "Pressing..." / "Button"
+mutex --> display : bool: true
+display -> lcd : clear()
+lcd --> display : void
+display -> lcd : print("Pressing...")
+lcd --> display : void
+display -> lcd : print("Button")
+lcd --> display : void
 display -> mutex : give()
+mutex --> display : bool: true
 
-sem --> ledtask : semPressLED.take()
+ledtask -> sem : semPressLED.take(100)
+sem --> ledtask : bool: true
+ledtask -> leds : ledR.off()
+leds --> ledtask : void
+ledtask -> leds : ledG.off()
+leds --> ledtask : void
 ledtask -> leds : ledY.on()
+leds --> ledtask : void
 note right : Yellow ON while pressing
 
 == Button Release Response ==
-sem --> display : semReleaseDisplay.take()
+display -> sem : semReleaseDisplay.take(100)
+sem --> display : bool: true
 display -> mutex : take(100)
+mutex --> display : bool: true
+display -> lcd : clear()
+lcd --> display : void
 
 alt duration > 500ms
-    display -> lcd : "Green LED:" + duration
+    display -> lcd : print("Green LED:")
+    lcd --> display : void
 else duration <= 500ms
-    display -> lcd : "Red LED:" + duration
+    display -> lcd : print("Red LED:")
+    lcd --> display : void
 end
 
+display -> lcd : print(duration + " ms")
+lcd --> display : void
 display -> mutex : give()
+mutex --> display : bool: true
 
-sem --> ledtask : semReleaseLED.take()
-ledtask -> leds : all LEDs off
+ledtask -> sem : semReleaseLED.take(100)
+sem --> ledtask : bool: true
+ledtask -> leds : ledY.off()
+leds --> ledtask : void
+ledtask -> leds : ledR.off()
+leds --> ledtask : void
+ledtask -> leds : ledG.off()
+leds --> ledtask : void
 
 alt duration > 500ms
     ledtask -> leds : ledG.on()
+    leds --> ledtask : void
     note right : Green = long press
 else duration <= 500ms
     ledtask -> leds : ledR.on()
+    leds --> ledtask : void
     note right : Red = short press
 end
 
 == 5 Second Timeout ==
-display -> lcd : "Press Joystick Button"
-ledtask -> leds : all LEDs off
+display -> mutex : take(100)
+mutex --> display : bool: true
+display -> lcd : clear()
+lcd --> display : void
+display -> lcd : print("Press Joystick Button")
+lcd --> display : void
+display -> mutex : give()
+mutex --> display : bool: true
+
+ledtask -> leds : ledR.off()
+leds --> ledtask : void
+ledtask -> leds : ledG.off()
+leds --> ledtask : void
+ledtask -> leds : ledY.off()
+leds --> ledtask : void
 
 @enduml

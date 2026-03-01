@@ -11,99 +11,180 @@ participant "Led (Prog)" as ledp
 
 == System Startup ==
 app -> kp : begin()
+kp --> app : void
 app -> lcd : begin()
+lcd --> app : void
 app -> ledg : begin()
+ledg --> app : void
 app -> ledr : begin()
+ledr --> app : void
 app -> ledp : begin()
+ledp --> app : void
+app -> lcd : clear()
+lcd --> app : void
 app -> lcd : print("Enter Code:")
+lcd --> app : void
 app -> lcd : print("[    ]")
+lcd --> app : void
 
 == Normal Code Entry - Valid Code ==
 User -> kp : press '1'
-kp --> app : getKey() = '1'
+app -> kp : getKey()
+kp --> app : char: '1'
 app -> app : _inputCode[0] = '1'
+app --> app : void
+app -> lcd : setCursor(0, 1)
+lcd --> app : void
 app -> lcd : print("[*   ]")
+lcd --> app : void
 
 User -> kp : press '2'
-kp --> app : getKey() = '2'
+app -> kp : getKey()
+kp --> app : char: '2'
 app -> app : _inputCode[1] = '2'
+app --> app : void
 app -> lcd : print("[**  ]")
+lcd --> app : void
 
 User -> kp : press '3'
-kp --> app : getKey() = '3'
+app -> kp : getKey()
+kp --> app : char: '3'
 app -> app : _inputCode[2] = '3'
+app --> app : void
 app -> lcd : print("[*** ]")
+lcd --> app : void
 
 User -> kp : press '4'
-kp --> app : getKey() = '4'
+app -> kp : getKey()
+kp --> app : char: '4'
 app -> app : _inputCode[3] = '4'
+app --> app : void
 app -> lcd : print("[****]")
+lcd --> app : void
 
 User -> kp : press '#' (ENTER)
-kp --> app : getKey() = '#'
-app -> app : verifyCode() = true
+app -> kp : getKey()
+kp --> app : char: '#'
+app -> app : verifyCode()
+app --> app : bool: true
 
+app -> lcd : clear()
+lcd --> app : void
 app -> lcd : print("ACCESS GRANTED!")
+lcd --> app : void
 app -> lcd : print("Door Unlocked")
+lcd --> app : void
 app -> ledg : on()
+ledg --> app : void
 app -> ledr : off()
+ledr --> app : void
 note right of ledg : Green LED stays ON\nfor 5 seconds
 app -> ledg : off()
+ledg --> app : void
 app -> app : clearInput()
+app --> app : void
+app -> lcd : clear()
+lcd --> app : void
 app -> lcd : print("Enter Code:")
+lcd --> app : void
 
 == Normal Code Entry - Invalid Code ==
 User -> kp : press wrong code + '#'
-kp --> app : getKey() sequence
-app -> app : verifyCode() = false
+app -> kp : getKey()
+kp --> app : char: '#'
+app -> app : verifyCode()
+app --> app : bool: false
 
+app -> lcd : clear()
+lcd --> app : void
 app -> lcd : print("ACCESS DENIED!")
+lcd --> app : void
 app -> lcd : print("Wrong Code")
+lcd --> app : void
 app -> ledr : on()
+ledr --> app : void
 app -> ledg : off()
+ledg --> app : void
 
 loop 5 times (blinking)
     app -> ledr : off()
+    ledr --> app : void
     app -> ledr : on()
+    ledr --> app : void
 end
 app -> ledr : off()
+ledr --> app : void
 app -> app : clearInput()
+app --> app : void
+app -> lcd : clear()
+lcd --> app : void
 app -> lcd : print("Enter Code:")
+lcd --> app : void
 
 == Clear Input ==
 User -> kp : press '*' (CLEAR)
-kp --> app : getKey() = '*'
+app -> kp : getKey()
+kp --> app : char: '*'
 app -> app : clearInput()
+app --> app : void
+app -> lcd : clear()
+lcd --> app : void
 app -> lcd : print("Enter Code:")
+lcd --> app : void
 app -> lcd : print("[    ]")
+lcd --> app : void
 
 == Programming Mode ==
 User -> kp : press 'D' (at welcome)
-kp --> app : getKey() = 'D'
+app -> kp : getKey()
+kp --> app : char: 'D'
 app -> app : _programmingMode = true
+app --> app : void
 app -> ledp : on()
+ledp --> app : void
 note right of ledp : Programming LED ON
+app -> lcd : clear()
+lcd --> app : void
 app -> lcd : print("PROG MODE")
+lcd --> app : void
 app -> lcd : print("New Pass [    ]")
+lcd --> app : void
 
 User -> kp : enter new 4-digit code
-kp --> app : digit sequence
+app -> kp : getKey()
+kp --> app : char: digit (x4)
 
 User -> kp : press '#' (confirm)
-kp --> app : getKey() = '#'
+app -> kp : getKey()
+kp --> app : char: '#'
 app -> app : confirmNewCode()
+app --> app : void
 app -> app : _correctCode = newCode
+app --> app : void
+app -> lcd : clear()
+lcd --> app : void
 app -> lcd : print("PASSWORD SAVED")
+lcd --> app : void
 app -> lcd : print("New: XXXX")
+lcd --> app : void
 
 app -> ledg : on()
+ledg --> app : void
 app -> ledg : off()
+ledg --> app : void
 app -> ledg : on()
+ledg --> app : void
 app -> ledg : off()
+ledg --> app : void
 note right of ledg : Double blink\nconfirmation
 
 app -> app : _programmingMode = false
+app --> app : void
 app -> ledp : off()
+ledp --> app : void
+app -> lcd : clear()
+lcd --> app : void
 app -> lcd : print("Enter Code:")
+lcd --> app : void
 
 @enduml

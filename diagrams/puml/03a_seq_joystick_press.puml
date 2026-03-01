@@ -8,31 +8,47 @@ participant "Semaphores" as sem
 
 == Polling Loop (every 20ms) ==
 detect -> joy : scan()
-joy --> detect : isPressed()
+joy --> detect : void
+detect -> joy : isPressed()
+joy --> detect : bool: false
 
 == Button Press Detected ==
 detect -> joy : scan()
-joy --> detect : isPressed() = true
+joy --> detect : void
+detect -> joy : isPressed()
+joy --> detect : bool: true
 
 detect -> data : button_pressed = true
+data --> detect : void
 detect -> data : task_state = 1
+data --> detect : void
 detect -> sem : semPressDisplay.give()
+sem --> detect : bool: true
 detect -> sem : semPressLED.give()
+sem --> detect : bool: true
 
 note right of detect : Signals both Display\nand LED tasks
 
 == Button Release Detected ==
 detect -> joy : scan()
-joy --> detect : isPressed() = false
+joy --> detect : void
+detect -> joy : isPressed()
+joy --> detect : bool: false
 
 detect -> joy : getPressDuration()
-joy --> detect : duration (ms)
+joy --> detect : uint32_t: duration_ms
 
 detect -> data : button_pressed = false
-detect -> data : press_duration = duration
+data --> detect : void
+detect -> data : press_duration = duration_ms
+data --> detect : void
 detect -> data : new_press_detected = true
+data --> detect : void
 detect -> data : task_state = 2
+data --> detect : void
 detect -> sem : semReleaseDisplay.give()
+sem --> detect : bool: true
 detect -> sem : semReleaseLED.give()
+sem --> detect : bool: true
 
 @enduml
