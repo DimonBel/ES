@@ -23,7 +23,7 @@ public:
     int printf(const char *format, ...);
 
 private:
-    LiquidCrystal_I2C _lcd;
+    LiquidCrystal_I2C* _lcd;
     uint8_t _cols;
     uint8_t _rows;
 };
