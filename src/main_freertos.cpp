@@ -8,15 +8,14 @@
 #include <FreeRTOS.h>
 #include <task.h>
 #include <semphr.h>
-#include <queue.h>
 
-// ========== PINI ESP32 ==========
-static const uint8_t JOYSTICK_X_PIN = 34;  // ADC1_CH6 (input only)
-static const uint8_t JOYSTICK_Y_PIN = 35;  // ADC1_CH7 (input only)
-static const uint8_t JOYSTICK_SW_PIN = 2;   // GPIO 2
-static const uint8_t LED_RED_PIN = 12;     // GPIO 12
-static const uint8_t LED_GREEN_PIN = 14;   // GPIO 14
-static const uint8_t LED_YELLOW_PIN = 13;  // GPIO 13
+// ========== PINI ==========
+static const uint8_t JOYSTICK_X_PIN = A0;
+static const uint8_t JOYSTICK_Y_PIN = A1;
+static const uint8_t JOYSTICK_SW_PIN = 3;
+static const uint8_t LED_RED_PIN = 12;
+static const uint8_t LED_GREEN_PIN = 11;
+static const uint8_t LED_YELLOW_PIN = 13;
 
 // ========== STRUCTURI SHARED DATA ==========
 typedef struct {
@@ -33,17 +32,16 @@ static Led *ledY = nullptr;
 static LcdI2c *lcd = nullptr;
 static Joystick *joystick = nullptr;
 
-// MECANISME DE SINCRONIZARE FreeRTOS
+// MECANISME DE SINCRONIZARE
 static SemaphoreHandle_t xMutexLCD = nullptr;      // Mutex pentru acces LCD
 static SemaphoreHandle_t xSemaphorePress = nullptr; // Binary semaphore pentru semnalizare press
 static SemaphoreHandle_t xSemaphoreRelease = nullptr; // Binary semaphore pentru semnalizare release
-static QueueHandle_t xQueueData = nullptr;          // Queue pentru transfer date intre task-uri
 
-// DATE PARTAJATE (PROTEJATE DE MUTEX/QUEUE)
+// DATE PARTAJATE (PROTEJATE DE MUTEX)
 static SharedData shared_data = {0, false, false, 0};
 
-// ========== TASK PARAMETERS FreeRTOS ==========
-#define TASK_STACK_SIZE 4096  // ESP32 are mult mai multa memorie
+// ========== TASK PARAMETERS ==========
+#define TASK_STACK_SIZE 256
 #define TASK_PRIORITY_DETECT (tskIDLE_PRIORITY + 3)
 #define TASK_PRIORITY_DISPLAY (tskIDLE_PRIORITY + 2)
 #define TASK_PRIORITY_LED (tskIDLE_PRIORITY + 1)
@@ -52,11 +50,10 @@ static SharedData shared_data = {0, false, false, 0};
 void vTaskDetect(void *pvParameters);
 void vTaskDisplay(void *pvParameters);
 void vTaskLED(void *pvParameters);
-void vTaskStats(void *pvParameters);
 
 // ========== HELPER FUNCTIONS ==========
 void updateLCD(const char *line1, const char *line2) {
-    if (xMutexLCD != nullptr && xSemaphoreTake(xMutexLCD, pdMS_TO_TICKS(100)) == pdTRUE) {
+    if (xSemaphoreTake(xMutexLCD, pdMS_TO_TICKS(100)) == pdTRUE) {
         lcd->clear();
         vTaskDelay(pdMS_TO_TICKS(50));
         lcd->setCursor(0, 0);
@@ -68,12 +65,10 @@ void updateLCD(const char *line1, const char *line2) {
     }
 }
 
-// ========== TASK 1: DETECT JOYSTICK PRESS (HIGH PRIORITY) ==========
+// ========== TASK 1: DETECT JOYSTICK PRESS ==========
 void vTaskDetect(void *pvParameters) {
     TickType_t xLastWakeTime = xTaskGetTickCount();
     const TickType_t xFrequency = pdMS_TO_TICKS(20); // 20ms scan rate
-
-    printf("[DETECT] Task started, scan rate: 20ms\n");
 
     for (;;) {
         vTaskDelayUntil(&xLastWakeTime, xFrequency);
@@ -87,16 +82,10 @@ void vTaskDetect(void *pvParameters) {
                 shared_data.button_pressed = true;
                 shared_data.task_state = 1;
 
-                // Signal other tasks using semaphore
+                // Signal other tasks
                 xSemaphoreGive(xSemaphorePress);
 
-                // Send to queue
-                if (xQueueData != nullptr) {
-                    uint32_t event = 1; // PRESS_EVENT
-                    xQueueSend(xQueueData, &event, pdMS_TO_TICKS(10));
-                }
-
-                printf("[DETECT] Button pressed at %lu ms\n", millis());
+                printf("[DETECT] Button pressed\n");
             }
         } else {
             if (shared_data.button_pressed) {
@@ -110,27 +99,20 @@ void vTaskDetect(void *pvParameters) {
                 // Signal release event
                 xSemaphoreGive(xSemaphoreRelease);
 
-                // Send to queue
-                if (xQueueData != nullptr) {
-                    uint32_t event = 2; // RELEASE_EVENT
-                    xQueueSend(xQueueData, &event, pdMS_TO_TICKS(10));
-                }
-
                 printf("[DETECT] Button released! Duration: %lu ms\n", duration);
             }
         }
     }
 }
 
-// ========== TASK 2: DISPLAY ON LCD (MEDIUM PRIORITY) ==========
+// ========== TASK 2: DISPLAY ON LCD ==========
 void vTaskDisplay(void *pvParameters) {
-    printf("[DISPLAY] Task started\n");
+    TickType_t xLastWakeTime = xTaskGetTickCount();
 
     for (;;) {
         // Wait for press event
         if (xSemaphoreTake(xSemaphorePress, pdMS_TO_TICKS(100)) == pdTRUE) {
             updateLCD("Pressing...", "Button");
-            printf("[DISPLAY] Showing 'Pressing...'\n");
         }
 
         // Wait for release event
@@ -146,7 +128,6 @@ void vTaskDisplay(void *pvParameters) {
             snprintf(line2, sizeof(line2), "%lu ms", shared_data.press_duration);
 
             updateLCD(line1, line2);
-            printf("[DISPLAY] %s %s\n", line1, line2);
 
             // Wait 5 seconds then show "Press Joystick"
             vTaskDelay(pdMS_TO_TICKS(5000));
@@ -154,16 +135,15 @@ void vTaskDisplay(void *pvParameters) {
 
             shared_data.task_state = 0;
             shared_data.new_press_detected = false;
-            printf("[DISPLAY] Ready for next press\n");
         }
 
         vTaskDelay(pdMS_TO_TICKS(50));
     }
 }
 
-// ========== TASK 3: CONTROL LEDs (LOW PRIORITY) ==========
+// ========== TASK 3: CONTROL LEDs ==========
 void vTaskLED(void *pvParameters) {
-    printf("[LED] Task started\n");
+    TickType_t xLastWakeTime = xTaskGetTickCount();
 
     for (;;) {
         // Wait for press event
@@ -200,54 +180,16 @@ void vTaskLED(void *pvParameters) {
     }
 }
 
-// ========== TASK 4: STATS AND MONITORING (LOWEST PRIORITY) ==========
-void vTaskStats(void *pvParameters) {
-    printf("[STATS] Task started, printing stats every 5 seconds\n");
-
-    for (;;) {
-        vTaskDelay(pdMS_TO_TICKS(5000));
-
-        // Print FreeRTOS stats
-        char pcWriteBuffer[512];
-        vTaskList(pcWriteBuffer);
-        printf("\n=== FreeRTOS Task Stats ===\n");
-        printf("%s", pcWriteBuffer);
-        printf("===========================\n");
-
-        // Print heap info
-        printf("Heap free: %d bytes\n", ESP.getFreeHeap());
-        printf("Heap min free: %d bytes\n", ESP.getMinFreeHeap());
-        printf("Stack high water mark:\n");
-        printf("  Detect: %u\n", uxTaskGetStackHighWaterMark(NULL));
-    }
-}
-
 // ========== SETUP ==========
 void setup() {
-    Serial.begin(115200);
+    SerialStdio::begin(9600);
     vTaskDelay(pdMS_TO_TICKS(2000));
 
-    printf("\n");
-    printf("========================================\n");
-    printf("=== LAB 3.2.2 - FreeRTOS on ESP32 ===\n");
-    printf("========================================\n");
-    printf("Board: ESP32-WROOM-32D\n");
-    printf("CPU Speed: %d MHz\n", ESP.getCpuFreqMHz());
-    printf("Free Heap: %d bytes\n", ESP.getFreeHeap());
-    printf("========================================\n");
-    printf("Joystick: X=GPIO34, Y=GPIO35, SW=GPIO2\n");
-    printf("LED R: GPIO%d, LED G: GPIO%d, LED Y: GPIO%d\n",
-           LED_RED_PIN, LED_GREEN_PIN, LED_YELLOW_PIN);
-    printf("LCD: I2C (SDA=GPIO21, SCL=GPIO22)\n");
-    printf("========================================\n");
-    printf("FreeRTOS Features:\n");
-    printf("  - Binary Semaphores\n");
-    printf("  - Mutex for LCD\n");
-    printf("  - Queue for events\n");
-    printf("  - Preemptive scheduling\n");
-    printf("  - Rate limiting (20ms)\n");
-    printf("  - Task monitoring\n");
-    printf("========================================\n");
+    printf("\n=== LAB 3.2.2 - FreeRTOS JOYSTICK & LED ===\n");
+    printf("Joystick: X=A0, Y=A1, SW=D3\n");
+    printf("LED R: %d, LED G: %d, LED Y: %d\n", LED_RED_PIN, LED_GREEN_PIN, LED_YELLOW_PIN);
+    printf("LCD: I2C (0x27)\n");
+    printf("==========================================\n");
 
     // Initialize LEDs
     ledG = new Led(LED_GREEN_PIN);
@@ -259,22 +201,22 @@ void setup() {
     ledG->off();
     ledR->off();
     ledY->off();
-    printf("[SETUP] LEDs initialized\n");
+    printf("LEDs initialized\n");
 
     // Initialize Joystick
     joystick = new Joystick(JOYSTICK_X_PIN, JOYSTICK_Y_PIN, JOYSTICK_SW_PIN);
     joystick->begin();
-    printf("[SETUP] Joystick initialized\n");
+    printf("Joystick initialized\n");
 
     // Test LEDs
-    printf("[SETUP] Testing LEDs...\n");
+    printf("Testing LEDs...\n");
     ledG->on(); vTaskDelay(pdMS_TO_TICKS(100)); ledG->off();
     ledR->on(); vTaskDelay(pdMS_TO_TICKS(100)); ledR->off();
     ledY->on(); vTaskDelay(pdMS_TO_TICKS(100)); ledY->off();
-    printf("[SETUP] LED test complete\n");
+    printf("LED test complete\n");
 
     // Initialize LCD
-    printf("[SETUP] Initializing LCD...\n");
+    printf("Initializing LCD...\n");
     vTaskDelay(pdMS_TO_TICKS(200));
     lcd = new LcdI2c(0x27, 16, 2);
     lcd->begin();
@@ -285,24 +227,20 @@ void setup() {
     lcd->setCursor(0, 1);
     lcd->print("Button");
     vTaskDelay(pdMS_TO_TICKS(100));
-    printf("[SETUP] LCD initialized\n");
+    printf("LCD initialized\n");
 
-    // Create FreeRTOS synchronization objects
+    // Create synchronization objects
     xMutexLCD = xSemaphoreCreateMutex();
     xSemaphorePress = xSemaphoreCreateBinary();
     xSemaphoreRelease = xSemaphoreCreateBinary();
-    xQueueData = xQueueCreate(5, sizeof(uint32_t));
 
-    if (xMutexLCD == nullptr || xSemaphorePress == nullptr ||
-        xSemaphoreRelease == nullptr || xQueueData == nullptr) {
-        printf("[SETUP] ERROR: Failed to create semaphores/mutex/queue!\n");
+    if (xMutexLCD == nullptr || xSemaphorePress == nullptr || xSemaphoreRelease == nullptr) {
+        printf("ERROR: Failed to create semaphores/mutex!\n");
         while (1);
     }
 
-    printf("[SETUP] FreeRTOS objects created successfully\n");
-
     // Create tasks
-    printf("[SETUP] Creating FreeRTOS tasks...\n");
+    printf("Creating FreeRTOS tasks...\n");
 
     BaseType_t xReturned1 = xTaskCreate(
         vTaskDetect,
@@ -331,44 +269,28 @@ void setup() {
         nullptr
     );
 
-    BaseType_t xReturned4 = xTaskCreate(
-        vTaskStats,
-        "Stats",
-        TASK_STACK_SIZE,
-        nullptr,
-        tskIDLE_PRIORITY,
-        nullptr
-    );
-
-    if (xReturned1 == pdPASS && xReturned2 == pdPASS &&
-        xReturned3 == pdPASS && xReturned4 == pdPASS) {
-        printf("[SETUP] === FREE-RTOS SCHEDULER STARTED ===\n");
-        printf("[SETUP] Tasks running:\n");
-        printf("[SETUP]   - Detect (priority %d, stack %d)\n",
-               TASK_PRIORITY_DETECT, TASK_STACK_SIZE);
-        printf("[SETUP]   - Display (priority %d, stack %d)\n",
-               TASK_PRIORITY_DISPLAY, TASK_STACK_SIZE);
-        printf("[SETUP]   - LED (priority %d, stack %d)\n",
-               TASK_PRIORITY_LED, TASK_STACK_SIZE);
-        printf("[SETUP]   - Stats (priority %d, stack %d)\n",
-               tskIDLE_PRIORITY, TASK_STACK_SIZE);
-        printf("[SETUP] ======================================\n");
-        printf("[SETUP] Press joystick button...\n\n");
+    if (xReturned1 == pdPASS && xReturned2 == pdPASS && xReturned3 == pdPASS) {
+        printf("=== FREE-RTOS SCHEDULER STARTED ===\n");
+        printf("Tasks running:\n");
+        printf("  - Detect (priority %d)\n", TASK_PRIORITY_DETECT);
+        printf("  - Display (priority %d)\n", TASK_PRIORITY_DISPLAY);
+        printf("  - LED (priority %d)\n", TASK_PRIORITY_LED);
+        printf("=====================================\n");
+        printf("Press joystick button...\n\n");
     } else {
-        printf("[SETUP] ERROR: Failed to create tasks!\n");
+        printf("ERROR: Failed to create tasks!\n");
         while (1);
     }
 
-    // Start scheduler - FreeRTOS takes control
+    // Start scheduler
     vTaskStartScheduler();
 
     // Should never reach here
-    printf("[SETUP] ERROR: Scheduler returned!\n");
+    printf("ERROR: Scheduler returned!\n");
     while (1);
 }
 
 // ========== LOOP (not used in FreeRTOS) ==========
 void loop() {
     // Empty - FreeRTOS handles everything
-    vTaskDelete(NULL);
 }
