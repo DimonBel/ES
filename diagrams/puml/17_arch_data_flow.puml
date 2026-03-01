@@ -1,0 +1,40 @@
+@startuml Data Flow Architecture
+skinparam defaultFontSize 13
+skinparam padding 6
+
+title Data Flow Architecture
+
+rectangle "Joystick\n(Input)" as input #Wheat
+
+rectangle "vTaskDetect" as detect #LightBlue
+rectangle "SharedData" as shared #LightGray
+rectangle "Semaphores\n(Event Signals)" as sems #Orange
+
+rectangle "vTaskDisplay" as display #LightGreen
+rectangle "vTaskLED" as ledtask #LightYellow
+
+rectangle "LCD\n(Output)" as lcd #PaleGreen
+rectangle "LEDs\n(Output)" as leds #Khaki
+
+input -right-> detect : Analog/Digital\nread
+detect -down-> shared : Write:\npress_duration\nbutton_pressed\ntask_state
+detect -right-> sems : Signal:\npress/release events
+
+sems -down-> display : Notify
+sems -down-> ledtask : Notify
+
+shared -down-> display : Read:\nduration, state
+shared -down-> ledtask : Read:\nduration, state
+
+display -down-> lcd : Show:\nstatus, duration
+ledtask -down-> leds : Control:\nR/G/Y on/off
+
+note right of sems
+  4 binary semaphores:
+  - semPressDisplay
+  - semReleaseDisplay
+  - semPressLED
+  - semReleaseLED
+end note
+
+@enduml

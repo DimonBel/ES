@@ -19,6 +19,16 @@ This folder contains UML analysis diagrams for the ESP32 FreeRTOS embedded syste
 | 11 | Communication Diagram | Behavioral | Inter-task communication via semaphores, mutex, and shared data |
 | 12 | Timing Diagram | Behavioral | Timeline of joystick press events showing short press vs long press behavior |
 
+### Small Architecture Diagrams
+
+| # | Diagram | Description |
+|---|---------|-------------|
+| 13 | High-Level Architecture | Simplified overview: User, ESP32 system, and hardware peripherals |
+| 14 | Software Layer Architecture | Layered view: Application, Abstraction, Kernel Primitives, Platform, Hardware |
+| 15 | FreeRTOS Task Architecture | Task priorities, semaphore signaling, and SharedData flow between 3 tasks |
+| 16 | Hardware Connection Architecture | ESP32 GPIO/I2C/UART pin connections to joystick, LEDs, LCD, and serial |
+| 17 | Data Flow Architecture | Input-to-output data flow through tasks, shared memory, and semaphores |
+
 ## File Structure
 
 ```

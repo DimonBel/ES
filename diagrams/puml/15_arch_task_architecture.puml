@@ -1,0 +1,47 @@
+@startuml FreeRTOS Task Architecture
+skinparam defaultFontSize 13
+skinparam padding 6
+
+title FreeRTOS Task Architecture
+
+rectangle "vTaskDetect\n(Priority 3 - Highest)" as detect #LightBlue {
+    card "Scan joystick\nevery 20ms"
+}
+
+rectangle "vTaskDisplay\n(Priority 2 - Medium)" as display #LightGreen {
+    card "Update LCD\nvia Mutex"
+}
+
+rectangle "vTaskLED\n(Priority 1 - Lowest)" as ledtask #LightYellow {
+    card "Control R/G/Y\nLEDs"
+}
+
+database "SharedData" as shared #LightGray
+
+hexagon "semPress\nDisplay" as spd #Orange
+hexagon "semRelease\nDisplay" as srd #Orange
+hexagon "semPress\nLED" as spl #Orange
+hexagon "semRelease\nLED" as srl #Orange
+
+detect --> shared : write
+detect --> spd : give()
+detect --> srd : give()
+detect --> spl : give()
+detect --> srl : give()
+
+spd --> display : take()
+srd --> display : take()
+display --> shared : read
+
+spl --> ledtask : take()
+srl --> ledtask : take()
+ledtask --> shared : read
+
+note bottom of shared
+  press_duration
+  button_pressed
+  task_state
+  new_press_detected
+end note
+
+@enduml

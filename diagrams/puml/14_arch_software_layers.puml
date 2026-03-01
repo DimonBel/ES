@@ -1,0 +1,58 @@
+@startuml Software Layer Architecture
+skinparam defaultFontSize 13
+skinparam padding 6
+
+title Software Layer Architecture
+
+rectangle "Application Layer" as app #LightGreen {
+    rectangle "freertos_app" as fapp
+    rectangle "init / tasks / sync / state" as submod
+}
+
+rectangle "Abstraction Layer" as abs #LightBlue {
+    rectangle "Led" as led
+    rectangle "LcdI2c" as lcd
+    rectangle "Joystick" as joy
+    rectangle "Keypad" as kp
+    rectangle "Button" as btn
+}
+
+rectangle "Kernel Primitives Layer" as kpl #Wheat {
+    rectangle "Task\n(create, delay)" as task
+    rectangle "Mutex" as mutex
+    rectangle "BinarySemaphore" as sem
+}
+
+rectangle "Platform Layer" as platform #Pink {
+    rectangle "Arduino Framework" as arduino
+    rectangle "FreeRTOS" as freertos
+    rectangle "ESP-IDF" as espidf
+}
+
+rectangle "Hardware" as hw #LightGray {
+    rectangle "ESP32 (GPIO, ADC, I2C, UART)" as esp
+}
+
+app -[hidden]-> abs
+abs -[hidden]-> kpl
+kpl -[hidden]-> platform
+platform -[hidden]-> hw
+
+fapp --> submod
+submod --> led
+submod --> lcd
+submod --> joy
+submod --> task
+submod --> mutex
+submod --> sem
+led --> arduino
+lcd --> arduino
+joy --> arduino
+task --> freertos
+mutex --> freertos
+sem --> freertos
+arduino --> espidf
+freertos --> espidf
+espidf --> esp
+
+@enduml
