@@ -1,0 +1,42 @@
+@startuml Sequence - Programming Mode
+title Sequence Diagram - Programming Mode (Password Change)
+
+actor User
+participant "Keypad" as kp
+participant "App" as app
+participant "LcdI2c" as lcd
+participant "Led (Green)" as ledg
+participant "Led (Prog)" as ledp
+
+== Enter Programming Mode ==
+User -> kp : press 'D' (at welcome)
+kp --> app : getKey() = 'D'
+app -> app : _programmingMode = true
+app -> ledp : on()
+note right : Programming LED ON
+app -> lcd : "PROG MODE"
+app -> lcd : "New Pass [    ]"
+
+== Enter New Password ==
+User -> kp : digit (x4)
+kp --> app : getKey()
+app -> lcd : update "[*...]"
+
+== Confirm New Password ==
+User -> kp : press '#'
+kp --> app : getKey() = '#'
+app -> app : _correctCode = newCode
+app -> lcd : "PASSWORD SAVED"
+app -> lcd : "New: XXXX"
+app -> ledg : double blink
+app -> app : _programmingMode = false
+app -> ledp : off()
+app -> lcd : back to Welcome
+
+== Cancel ==
+User -> kp : press '*'
+app -> app : _programmingMode = false
+app -> ledp : off()
+app -> lcd : back to Welcome
+
+@enduml

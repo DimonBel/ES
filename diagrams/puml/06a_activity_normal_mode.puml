@@ -1,0 +1,44 @@
+@startuml Activity - Normal Code Entry
+title Activity Diagram - App Normal Mode (Code Entry)
+
+start
+
+:Display Welcome;
+:LCD: "Enter Code:" / "[    ]";
+:All LEDs OFF;
+
+repeat
+    :key = keypad.getKey();
+    
+    if (key != '\\0'?) then (key pressed)
+        if (key == 'D' AND pos == 0?) then (yes)
+            :Enter Programming Mode;
+            stop
+        elseif (key == '*'?) then (clear)
+            :clearInput();
+            :Display Welcome;
+        elseif (key == '#'?) then (enter)
+            if (_inputPos > 0?) then (has input)
+                if (verifyCode()?) then (valid)
+                    #LightGreen:LCD: "ACCESS GRANTED!";
+                    :Green LED ON 5s;
+                    :Green LED OFF;
+                else (invalid)
+                    #Pink:LCD: "ACCESS DENIED!";
+                    :Red LED blink 5x;
+                    :Red LED OFF;
+                endif
+                :Wait 3s;
+                :clearInput();
+                :Display Welcome;
+            endif
+        elseif (digit or A-C?) then (character)
+            if (pos < 4?) then (room)
+                :Store in _inputCode;
+                :Update LCD mask "[*...]";
+            endif
+        endif
+    endif
+repeat while (forever)
+
+@enduml

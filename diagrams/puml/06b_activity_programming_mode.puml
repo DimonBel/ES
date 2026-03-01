@@ -1,0 +1,44 @@
+@startuml Activity - Programming Mode
+title Activity Diagram - App Programming Mode
+
+start
+
+:_programmingMode = true;
+:Programming LED ON;
+:LCD: "PROG MODE";
+:LCD: "New Pass [    ]";
+
+repeat
+    :key = keypad.getKey();
+    
+    if (key != '\\0'?) then (key pressed)
+        if (key == '*'?) then (cancel)
+            :_programmingMode = false;
+            :Clear new code buffer;
+            :Programming LED OFF;
+            :Display Welcome;
+            stop
+        elseif (key == '#'?) then (confirm)
+            if (_newCodePos == 4?) then (complete)
+                :Copy newCode to _correctCode;
+                :LCD: "PASSWORD SAVED";
+                :LCD: show new code;
+                :Green LED double blink;
+                :_programmingMode = false;
+                :Programming LED OFF;
+                :Display Welcome;
+                stop
+            else (incomplete)
+                :Print "Need 4 digits";
+            endif
+        elseif (isdigit(key)?) then (digit)
+            if (pos < 4?) then (room)
+                :Store digit;
+                :_newCodePos++;
+                :Update LCD "[*...]";
+            endif
+        endif
+    endif
+repeat while (in programming mode)
+
+@enduml

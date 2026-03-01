@@ -1,0 +1,34 @@
+@startuml Component Diagram - FreeRTOS Application
+skinparam componentStyle rectangle
+
+title Component Diagram (Part 1) - FreeRTOS Application Module
+
+package "Entry Point" {
+    [main.cpp] as main
+}
+
+package "FreeRTOS Application Module" {
+    [freertos_app.h/cpp] as fapp
+    [init.h/cpp] as init
+    [tasks.h/cpp] as tasks
+    [sync.h/cpp] as sync
+    [state.h/cpp] as state
+}
+
+main --> fapp : setup() / loop()
+fapp --> init : setupApplication()
+init --> state : read/write globals
+init --> sync : initSyncPrimitives()
+init --> tasks : createApplicationTasks()
+tasks --> state : access SharedData
+tasks --> sync : updateLCD()
+
+note bottom of state
+  Contains:
+  - SharedData struct
+  - Global pointers (LEDs, LCD, Joystick)
+  - Pin definitions
+  - Sync primitives (Mutex, Semaphores)
+end note
+
+@enduml

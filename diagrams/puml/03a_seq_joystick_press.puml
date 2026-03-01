@@ -1,0 +1,38 @@
+@startuml Sequence - Joystick Press Detection
+title Sequence Diagram (Part 1) - Joystick Press Detection
+
+participant "vTaskDetect\n(Priority 3)" as detect
+participant "Joystick" as joy
+participant "SharedData" as data
+participant "Semaphores" as sem
+
+== Polling Loop (every 20ms) ==
+detect -> joy : scan()
+joy --> detect : isPressed()
+
+== Button Press Detected ==
+detect -> joy : scan()
+joy --> detect : isPressed() = true
+
+detect -> data : button_pressed = true
+detect -> data : task_state = 1
+detect -> sem : semPressDisplay.give()
+detect -> sem : semPressLED.give()
+
+note right of detect : Signals both Display\nand LED tasks
+
+== Button Release Detected ==
+detect -> joy : scan()
+joy --> detect : isPressed() = false
+
+detect -> joy : getPressDuration()
+joy --> detect : duration (ms)
+
+detect -> data : button_pressed = false
+detect -> data : press_duration = duration
+detect -> data : new_press_detected = true
+detect -> data : task_state = 2
+detect -> sem : semReleaseDisplay.give()
+detect -> sem : semReleaseLED.give()
+
+@enduml

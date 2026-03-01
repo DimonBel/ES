@@ -1,0 +1,38 @@
+@startuml State Machine - FreeRTOS System
+title State Machine Diagram (Part 1) - FreeRTOS System & LED States
+
+[*] --> Initialization
+
+state "Initialization" as init {
+    [*] --> SerialBegin
+    SerialBegin --> InitLEDs
+    InitLEDs --> InitJoystick
+    InitJoystick --> InitLCD
+    InitLCD --> InitSync
+    InitSync --> CreateTasks
+    CreateTasks --> [*]
+}
+
+init --> Idle : Scheduler started
+
+state "Idle" as idle
+state "Button Pressing" as pressing
+state "Result Display" as result
+
+idle : task_state = 0
+idle : LCD: "Press Joystick Button"
+idle : All LEDs OFF
+
+pressing : task_state = 1
+pressing : LCD: "Pressing... Button"
+pressing : Yellow LED ON
+
+result : task_state = 2
+result : LCD: color + duration
+result : Green or Red LED ON
+
+idle --> pressing : Joystick pressed
+pressing --> result : Joystick released
+result --> idle : 5s timeout
+
+@enduml

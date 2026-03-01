@@ -1,0 +1,48 @@
+@startuml Sequence - Display & LED Response
+title Sequence Diagram (Part 2) - Display & LED Response to Joystick
+
+participant "Semaphores" as sem
+participant "vTaskDisplay\n(Priority 2)" as display
+participant "Mutex\n(lcdMutex)" as mutex
+participant "LcdI2c" as lcd
+participant "vTaskLED\n(Priority 1)" as ledtask
+participant "Led (R/G/Y)" as leds
+
+== Button Press Response ==
+sem --> display : semPressDisplay.take()
+display -> mutex : take(100)
+display -> lcd : "Pressing..." / "Button"
+display -> mutex : give()
+
+sem --> ledtask : semPressLED.take()
+ledtask -> leds : ledY.on()
+note right : Yellow ON while pressing
+
+== Button Release Response ==
+sem --> display : semReleaseDisplay.take()
+display -> mutex : take(100)
+
+alt duration > 500ms
+    display -> lcd : "Green LED:" + duration
+else duration <= 500ms
+    display -> lcd : "Red LED:" + duration
+end
+
+display -> mutex : give()
+
+sem --> ledtask : semReleaseLED.take()
+ledtask -> leds : all LEDs off
+
+alt duration > 500ms
+    ledtask -> leds : ledG.on()
+    note right : Green = long press
+else duration <= 500ms
+    ledtask -> leds : ledR.on()
+    note right : Red = short press
+end
+
+== 5 Second Timeout ==
+display -> lcd : "Press Joystick Button"
+ledtask -> leds : all LEDs off
+
+@enduml

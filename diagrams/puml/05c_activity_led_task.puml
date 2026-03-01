@@ -1,0 +1,33 @@
+@startuml Activity - vTaskLED
+title Activity Diagram - vTaskLED (Priority 1)
+
+start
+
+repeat
+    if (semPressLED.take(100)?) then (got signal)
+        :ledR->off();
+        :ledG->off();
+        :ledY->on();
+        note right: Yellow = pressing
+    endif
+    
+    if (semReleaseLED.take(100)?) then (got signal)
+        :All LEDs off;
+        
+        if (press_duration > 500ms?) then (long press)
+            :ledG->on();
+            note right: Green ON
+        else (short press)
+            :ledR->on();
+            note right: Red ON
+        endif
+    endif
+    
+    if (task_state == 0?) then (idle)
+        :All LEDs off;
+    endif
+    
+    :delay 50ms;
+repeat while (forever)
+
+@enduml

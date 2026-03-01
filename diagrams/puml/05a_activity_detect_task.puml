@@ -1,0 +1,36 @@
+@startuml Activity - vTaskDetect
+title Activity Diagram - vTaskDetect (Priority 3)
+
+start
+
+:Initialize xLastWakeTime;
+
+repeat
+    :Wait 20ms (delayUntil);
+    
+    if (joystick == nullptr?) then (yes)
+        :delay 100ms;
+    else (no)
+        :joystick->scan();
+        
+        if (isPressed()?) then (yes)
+            if (!button_pressed?) then (first press)
+                :button_pressed = true;
+                :task_state = 1;
+                :semPressDisplay.give();
+                :semPressLED.give();
+            endif
+        else (no)
+            if (button_pressed?) then (was pressed)
+                :duration = getPressDuration();
+                :button_pressed = false;
+                :press_duration = duration;
+                :task_state = 2;
+                :semReleaseDisplay.give();
+                :semReleaseLED.give();
+            endif
+        endif
+    endif
+repeat while (forever)
+
+@enduml

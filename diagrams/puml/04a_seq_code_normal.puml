@@ -1,0 +1,44 @@
+@startuml Sequence - Normal Code Entry
+title Sequence Diagram - Normal Code Entry & Verification
+
+actor User
+participant "Keypad" as kp
+participant "App" as app
+participant "LcdI2c" as lcd
+participant "Led (Green)" as ledg
+participant "Led (Red)" as ledr
+
+== Welcome Screen ==
+app -> lcd : "Enter Code:"
+app -> lcd : "[    ]"
+
+== Digit Entry ==
+User -> kp : press digits (e.g. 1,2,3,4)
+kp --> app : getKey()
+app -> lcd : update "[*...]"
+
+== Valid Code ==
+User -> kp : press '#' (ENTER)
+app -> app : verifyCode() = true
+app -> lcd : "ACCESS GRANTED!"
+app -> lcd : "Door Unlocked"
+app -> ledg : on()
+note right : Green ON 5 seconds
+app -> ledg : off()
+app -> lcd : back to Welcome
+
+== Invalid Code ==
+User -> kp : press '#' (ENTER)
+app -> app : verifyCode() = false
+app -> lcd : "ACCESS DENIED!"
+app -> lcd : "Wrong Code"
+app -> ledr : on() + blink 5x
+app -> ledr : off()
+app -> lcd : back to Welcome
+
+== Clear ==
+User -> kp : press '*'
+app -> app : clearInput()
+app -> lcd : back to Welcome
+
+@enduml

@@ -1,0 +1,69 @@
+@startuml Class Diagram - Application Classes
+skinparam classAttributeIconSize 0
+
+title Class Diagram (Part 3) - Application & Utility Classes
+
+class App {
+    - _keypad : Keypad&
+    - _lcd : LcdI2c&
+    - _ledGreen : Led&
+    - _ledRed : Led&
+    - _ledProgramming : Led&
+    - _correctCode : char[5]
+    - _inputCode : char[5]
+    - _inputPos : int
+    - _programmingMode : bool
+    - _newCode : char[5]
+    + App(keypad, lcd, ledG, ledR, ledP)
+    + begin() : void
+    + run() : void
+    - clearInput() : void
+    - displayWelcome() : void
+    - processInput(key) : void
+    - verifyCode() : bool
+    - handleValidCode() : void
+    - handleInvalidCode() : void
+    - enterProgrammingMode() : void
+    - processProgrammingInput(key) : void
+    - confirmNewCode() : void
+}
+
+enum CommandType {
+    CMD_LED1_ON
+    CMD_LED1_OFF
+    CMD_LED2_ON
+    CMD_LED2_OFF
+    CMD_BOTH_ON
+    CMD_BOTH_OFF
+    CMD_UNKNOWN
+    CMD_EMPTY
+}
+
+class CommandParser {
+    + {static} parse(input) : CommandType
+    + {static} isValid(cmd) : bool
+    + {static} toString(cmd) : const char*
+}
+
+class I2CScanner {
+    + {static} scan() : void
+}
+
+class SerialStdio {
+    + {static} begin(baudRate) : void
+    + {static} printWelcome() : void
+    + {static} readLine(buf, size) : int
+}
+
+App "1" o-- "1" Keypad : uses
+App "1" o-- "1" LcdI2c : uses
+App "1" o-- "3" Led : uses
+CommandParser ..> CommandType : returns
+
+note bottom of App
+  Keypad security system:
+  code entry, verification,
+  and programming mode
+end note
+
+@enduml

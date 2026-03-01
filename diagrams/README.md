@@ -1,33 +1,95 @@
 # Analysis Diagrams - ESP32 FreeRTOS Embedded System (lab2.2)
 
 This folder contains UML analysis diagrams for the ESP32 FreeRTOS embedded system project.
+Both full (combined) and split (smaller, easier to read) versions are provided.
 
-## Diagrams Overview
+## Full Diagrams (Combined)
 
 | # | Diagram | Type | Description |
 |---|---------|------|-------------|
-| 1 | Class Diagram | Structural | All classes (Led, LcdI2c, Joystick, Keypad, Button, App, Mutex, BinarySemaphore, etc.) with attributes, methods, and relationships |
-| 2 | Component Diagram | Structural | Module architecture showing FreeRTOS app, hardware abstraction, kernel primitives, and external libraries |
-| 3 | Sequence - Joystick Press | Behavioral | Full interaction flow when joystick button is pressed/released, including semaphore signaling between tasks |
-| 4 | Sequence - Code Entry | Behavioral | Keypad code entry, verification, access grant/deny, and programming mode flows |
-| 5 | Activity - FreeRTOS Tasks | Behavioral | Parallel activity flows for vTaskDetect, vTaskDisplay, and vTaskLED |
-| 6 | Activity - Code Verification | Behavioral | Detailed flowchart of App code entry logic including normal and programming modes |
-| 7 | State Machine Diagram | Behavioral | System states: initialization, idle, pressing, result display, LED states, and App keypad states |
-| 8 | Use Case Diagram | Behavioral | All user interactions: joystick control, keypad security, and system management |
-| 9 | Deployment Diagram | Physical | Hardware architecture: ESP32, joystick, LEDs, LCD, keypad with GPIO pin mappings |
-| 10 | Package/Module Diagram | Structural | Source code file organization and inter-module dependencies |
-| 11 | Communication Diagram | Behavioral | Inter-task communication via semaphores, mutex, and shared data |
-| 12 | Timing Diagram | Behavioral | Timeline of joystick press events showing short press vs long press behavior |
+| 1 | Class Diagram | Structural | All classes with attributes, methods, and relationships |
+| 2 | Component Diagram | Structural | Full module architecture |
+| 3 | Sequence - Joystick Press | Behavioral | Full joystick interaction flow |
+| 4 | Sequence - Code Entry | Behavioral | Full keypad code entry flow |
+| 5 | Activity - FreeRTOS Tasks | Behavioral | All 3 task activity flows |
+| 6 | Activity - Code Verification | Behavioral | Full App code entry flowchart |
+| 7 | State Machine Diagram | Behavioral | All system states combined |
+| 8 | Use Case Diagram | Behavioral | All user interactions |
+| 9 | Deployment Diagram | Physical | Hardware architecture with pin mappings |
+| 10 | Package/Module Diagram | Structural | Full file organization |
+| 11 | Communication Diagram | Behavioral | Inter-task communication |
+| 12 | Timing Diagram | Behavioral | Joystick press event timeline |
 
-### Small Architecture Diagrams
+## Split Diagrams (Smaller, Easier to Read)
+
+### Class Diagram (split into 3)
+
+| File | Description |
+|------|-------------|
+| 01a - Hardware Drivers | Led, LcdI2c, Joystick, Keypad, Button classes |
+| 01b - Kernel Primitives | Mutex, BinarySemaphore, SharedData |
+| 01c - Application Classes | App, CommandParser, I2CScanner, SerialStdio |
+
+### Component Diagram (split into 2)
+
+| File | Description |
+|------|-------------|
+| 02a - FreeRTOS Application | Entry point, freertos_app module internals |
+| 02b - Hardware & Kernel | Hardware drivers, kernel primitives, external libs |
+
+### Sequence - Joystick (split into 2)
+
+| File | Description |
+|------|-------------|
+| 03a - Press Detection | vTaskDetect polling, press/release detection, signaling |
+| 03b - Display & LED Response | vTaskDisplay and vTaskLED response to events |
+
+### Sequence - Code Entry (split into 2)
+
+| File | Description |
+|------|-------------|
+| 04a - Normal Code Entry | Digit entry, verification, access granted/denied |
+| 04b - Programming Mode | Enter prog mode, set new password, cancel |
+
+### Activity - FreeRTOS Tasks (split into 3)
+
+| File | Description |
+|------|-------------|
+| 05a - vTaskDetect | Joystick polling and event detection logic |
+| 05b - vTaskDisplay | LCD update logic with mutex protection |
+| 05c - vTaskLED | LED control logic based on press duration |
+
+### Activity - Code Verification (split into 2)
+
+| File | Description |
+|------|-------------|
+| 06a - Normal Mode | Code entry, verification, access grant/deny flow |
+| 06b - Programming Mode | New password entry and confirmation flow |
+
+### State Machine (split into 3)
+
+| File | Description |
+|------|-------------|
+| 07a - FreeRTOS System | Init, Idle, Pressing, Result states |
+| 07b - LED States | All OFF, Yellow, Green, Red transitions |
+| 07c - App Keypad | Welcome, Entry, Granted, Denied, Programming states |
+
+### Package/Module (split into 2)
+
+| File | Description |
+|------|-------------|
+| 10a - FreeRTOS App Module | freertos_app internal module dependencies |
+| 10b - Drivers & Kernel | Hardware drivers, kernel primitives, other modules |
+
+## Small Architecture Diagrams
 
 | # | Diagram | Description |
 |---|---------|-------------|
-| 13 | High-Level Architecture | Simplified overview: User, ESP32 system, and hardware peripherals |
-| 14 | Software Layer Architecture | Layered view: Application, Abstraction, Kernel Primitives, Platform, Hardware |
-| 15 | FreeRTOS Task Architecture | Task priorities, semaphore signaling, and SharedData flow between 3 tasks |
-| 16 | Hardware Connection Architecture | ESP32 GPIO/I2C/UART pin connections to joystick, LEDs, LCD, and serial |
-| 17 | Data Flow Architecture | Input-to-output data flow through tasks, shared memory, and semaphores |
+| 13 | High-Level Architecture | Simplified overview: User, ESP32 system, hardware |
+| 14 | Software Layer Architecture | Layered view: App, Abstraction, Kernel, Platform, HW |
+| 15 | FreeRTOS Task Architecture | Task priorities, semaphores, SharedData flow |
+| 16 | Hardware Connection Architecture | GPIO/I2C/UART pin connections |
+| 17 | Data Flow Architecture | Input-to-output data flow |
 
 ## File Structure
 
@@ -39,8 +101,6 @@ diagrams/
 ```
 
 ## Regenerating Diagrams
-
-To regenerate PNG images from PlantUML sources:
 
 ```bash
 # Requires Java and Graphviz
