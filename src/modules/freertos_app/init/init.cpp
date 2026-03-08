@@ -13,31 +13,27 @@ void setupApplication() {
     Serial.begin(115200);
     kernel_primitives::delayMs(2000);
 
-    printf("\n=== LAB 3.2.2 - FreeRTOS JOYSTICK & LED ===\n");
-    printf("Joystick: X=A0, Y=A1, SW=D3\n");
-    printf("LED R: %d, LED G: %d, LED Y: %d\n", LED_RED_PIN, LED_GREEN_PIN, LED_YELLOW_PIN);
-    printf("LCD: I2C (0x27)\n");
+    printf("\n=== LAB 2.2 - Sound Detection System ===\n");
+    printf("Sound Sensor: D0=%d, A0=%d\n", SOUND_SENSOR_D0_PIN, SOUND_SENSOR_A0_PIN);
+    printf("LED: %d\n", LED_PIN);
+    printf("LCD: I2C SDA=%d, SCL=%d (0x27)\n", LCD_SDA_PIN, LCD_SCL_PIN);
     printf("==========================================\n");
 
-    ledG = new Led(LED_GREEN_PIN);
-    ledR = new Led(LED_RED_PIN);
-    ledY = new Led(LED_YELLOW_PIN);
-    ledG->begin();
-    ledR->begin();
-    ledY->begin();
-    ledG->off();
-    ledR->off();
-    ledY->off();
-    printf("LEDs initialized\n");
+    led = new Led(LED_PIN);
+    led->begin();
+    led->off();
+    printf("LED initialized\n");
 
-    joystick = new Joystick(JOYSTICK_X_PIN, JOYSTICK_Y_PIN, JOYSTICK_SW_PIN);
-    joystick->begin();
-    printf("Joystick initialized\n");
+    soundSensor = new SoundSensor(SOUND_SENSOR_D0_PIN, SOUND_SENSOR_A0_PIN);
+    soundSensor->begin();
+    soundSensor->setThreshold(SOUND_THRESHOLD);
+    soundSensor->setHysteresis(SOUND_HYSTERESIS);
+    printf("Sound sensor initialized\n");
+    printf("  Threshold: %d\n", SOUND_THRESHOLD);
+    printf("  Hysteresis: %d\n", SOUND_HYSTERESIS);
 
-    printf("Testing LEDs...\n");
-    if (ledG) { ledG->on(); kernel_primitives::delayMs(100); ledG->off(); }
-    if (ledR) { ledR->on(); kernel_primitives::delayMs(100); ledR->off(); }
-    if (ledY) { ledY->on(); kernel_primitives::delayMs(100); ledY->off(); }
+    printf("Testing LED...\n");
+    if (led) { led->on(); kernel_primitives::delayMs(200); led->off(); }
     printf("LED test complete\n");
 
     printf("Initializing LCD...\n");
@@ -47,10 +43,10 @@ void setupApplication() {
         lcd->begin();
         kernel_primitives::delayMs(500);
         lcd->setCursor(0, 0);
-        lcd->print("Press Joystick");
+        lcd->print("Sound Detection");
         kernel_primitives::delayMs(100);
         lcd->setCursor(0, 1);
-        lcd->print("Button");
+        lcd->print("System Ready");
         kernel_primitives::delayMs(100);
         printf("LCD initialized\n");
     } else {
@@ -71,7 +67,7 @@ void setupApplication() {
         printf("  - Display (priority %d)\n", TASK_PRIORITY_DISPLAY);
         printf("  - LED (priority %d)\n", TASK_PRIORITY_LED);
         printf("=====================================\n");
-        printf("Press joystick button...\n\n");
+        printf("Sound detection active...\n\n");
     } else {
         printf("ERROR: Failed to create tasks!\n");
         while (1);

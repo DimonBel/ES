@@ -12,110 +12,118 @@ namespace freertos_app::internal {
 void vTaskDetect(void *pvParameters) {
     (void)pvParameters;
     TickType_t xLastWakeTime = xTaskGetTickCount();
+    const TickType_t xFrequency = pdMS_TO_TICKS(20);
 
     for (;;) {
-        kernel_primitives::delayUntilMs(&xLastWakeTime, 20);
+        vTaskDelayUntil(&xLastWakeTime, xFrequency);
 
-        if (joystick == nullptr) {
+        if (soundSensor == nullptr) {
             kernel_primitives::delayMs(100);
             continue;
         }
 
-        joystick->scan();
+        // Read analog value
+        uint16_t currentValue = soundSensor->readAnalog();
+        sharedData.analog_value = currentValue;
 
-        if (joystick->isPressed()) {
-            if (!sharedData.button_pressed) {
-                sharedData.button_pressed = true;
-                sharedData.task_state = 1;
+        // Read digital value for sound detection
+        bool soundDetected = soundSensor->isSoundDetected();
+        uint32_t currentTime = xTaskGetTickCount();
 
-                semPressDisplay.give();
-                semPressLED.give();
-
-                printf("[DETECT] Button pressed\n");
-            }
+        // Threshold detection with hysteresis
+        bool currentThresholdState = false;
+        if (sharedData.led_state) {
+            // LED is ON, require value below (threshold - hysteresis) to turn off
+            currentThresholdState = (currentValue > (SOUND_THRESHOLD - SOUND_HYSTERESIS));
         } else {
-            if (sharedData.button_pressed) {
-                uint32_t duration = joystick->getPressDuration();
-                sharedData.button_pressed = false;
-                sharedData.press_duration = duration;
-                sharedData.new_press_detected = true;
-                sharedData.task_state = 2;
+            // LED is OFF, require value above threshold to turn on
+            currentThresholdState = (currentValue > SOUND_THRESHOLD);
+        }
 
-                semReleaseDisplay.give();
-                semReleaseLED.give();
+        // Debounce: only change state if stable for minimum time
+        if (currentThresholdState != sharedData.threshold_exceeded) {
+            if (soundDetected || (currentTime - sharedData.last_sound_time >= pdMS_TO_TICKS(SOUND_DEBOUNCE_TIME))) {
+                sharedData.threshold_exceeded = currentThresholdState;
+                
+                if (sharedData.threshold_exceeded) {
+                    sharedData.sound_count++;
+                    sharedData.last_sound_time = currentTime;
+                    sharedData.led_state = true;
+                    sharedData.led_turn_off_time = currentTime + pdMS_TO_TICKS(1000);
+                    sharedData.task_state = 1;
 
-                printf("[DETECT] Button released! Duration: %lu ms\n", duration);
+                    semSoundDisplay.give();
+                    semSoundLED.give();
+
+                    printf("[DETECT] Sound detected! Analog: %d, Threshold: %d\n", 
+                           currentValue, SOUND_THRESHOLD);
+                } else {
+                    sharedData.led_state = false;
+                    sharedData.task_state = 0;
+
+                    semSoundDisplay.give();
+
+                    printf("[DETECT] Sound level below threshold. Analog: %d\n", currentValue);
+                }
             }
+        }
+
+        // Also check digital detection for immediate response
+        if (soundDetected && !sharedData.sound_detected) {
+            sharedData.sound_detected = true;
+            sharedData.sound_count++;
+            sharedData.last_sound_time = currentTime;
+            
+            // Trigger LED pulse for 1 second
+            sharedData.led_state = true;
+            sharedData.led_turn_off_time = currentTime + pdMS_TO_TICKS(1000);
+            semSoundLED.give();
+            
+            printf("[DETECT] Digital sound detected! Count: %lu\n", sharedData.sound_count);
+        } else if (!soundDetected) {
+            sharedData.sound_detected = false;
         }
     }
 }
 
 void vTaskDisplay(void *pvParameters) {
     (void)pvParameters;
-    TickType_t resultDeadline = 0;
-    bool resultVisible = false;
+    TickType_t xLastWakeTime = xTaskGetTickCount();
+    const TickType_t xFrequency = pdMS_TO_TICKS(500);
 
     for (;;) {
-        if (semPressDisplay.take(100)) {
-            updateLCD("Pressing...", "Button");
-            resultVisible = false;
-        }
+        vTaskDelayUntil(&xLastWakeTime, xFrequency);
 
-        if (semReleaseDisplay.take(100)) {
-            char line1[16];
-            char line2[16];
+        char line1[16];
+        char line2[16];
 
-            if (sharedData.press_duration > 500) {
-                snprintf(line1, sizeof(line1), "Green LED:");
-            } else {
-                snprintf(line1, sizeof(line1), "Red LED:");
-            }
-            snprintf(line2, sizeof(line2), "%lu ms", sharedData.press_duration);
+        snprintf(line1, sizeof(line1), "Count:");
+        snprintf(line2, sizeof(line2), "%lu", sharedData.sound_count);
 
-            updateLCD(line1, line2);
-            resultDeadline = xTaskGetTickCount() + pdMS_TO_TICKS(5000);
-            resultVisible = true;
-        }
-
-        if (resultVisible && xTaskGetTickCount() >= resultDeadline) {
-            updateLCD("Press Joystick", "Button");
-            sharedData.task_state = 0;
-            sharedData.new_press_detected = false;
-            resultVisible = false;
-        }
-
-        kernel_primitives::delayMs(50);
+        updateLCD(line1, line2);
     }
 }
 
 void vTaskLED(void *pvParameters) {
     (void)pvParameters;
     for (;;) {
-        if (semPressLED.take(100)) {
-            if (ledR) ledR->off();
-            if (ledG) ledG->off();
-            if (ledY) ledY->on();
-            printf("[LED] Yellow ON, others OFF\n");
-        }
-
-        if (semReleaseLED.take(100)) {
-            if (ledY) ledY->off();
-            if (ledR) ledR->off();
-            if (ledG) ledG->off();
-
-            if (sharedData.press_duration > 500) {
-                if (ledG) ledG->on();
-                printf("[LED] Green ON (duration > 500ms)\n");
-            } else {
-                if (ledR) ledR->on();
-                printf("[LED] Red ON (duration <= 500ms)\n");
+        uint32_t currentTime = xTaskGetTickCount();
+        
+        // Check if LED should be turned off (1-second timeout)
+        if (sharedData.led_state && currentTime >= sharedData.led_turn_off_time) {
+            sharedData.led_state = false;
+            if (led) {
+                led->off();
+                printf("[LED] LED OFF (timeout)\n");
             }
         }
 
-        if (sharedData.task_state == 0) {
-            if (ledR) ledR->off();
-            if (ledG) ledG->off();
-            if (ledY) ledY->off();
+        // Turn on LED when signal received
+        if (semSoundLED.take(0)) {
+            if (led && sharedData.led_state) {
+                led->on();
+                printf("[LED] LED ON (sound detected)\n");
+            }
         }
 
         kernel_primitives::delayMs(50);

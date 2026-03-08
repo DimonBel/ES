@@ -7,16 +7,10 @@ namespace freertos_app::internal {
 
 bool initSyncPrimitives() {
     bool mutexOk = lcdMutex.init();
-    bool semPressDisplayOk = semPressDisplay.init();
-    bool semReleaseDisplayOk = semReleaseDisplay.init();
-    bool semPressLedOk = semPressLED.init();
-    bool semReleaseLedOk = semReleaseLED.init();
+    bool semSoundDisplayOk = semSoundDisplay.init();
+    bool semSoundLedOk = semSoundLED.init();
 
-    return mutexOk &&
-           semPressDisplayOk &&
-           semReleaseDisplayOk &&
-           semPressLedOk &&
-           semReleaseLedOk;
+    return mutexOk && semSoundDisplayOk && semSoundLedOk;
 }
 
 void updateLCD(const char *line1, const char *line2) {
