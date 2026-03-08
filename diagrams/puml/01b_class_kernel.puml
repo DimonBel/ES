@@ -1,0 +1,46 @@
+@startuml Class Diagram - Kernel Primitives
+skinparam classAttributeIconSize 0
+
+title Class Diagram (Part 2) - Kernel Primitives & Shared Data
+
+class Mutex {
+    - handle_ : SemaphoreHandle_t
+    + init() : bool
+    + take(timeoutMs : uint32_t) : bool
+    + give() : bool
+    + native() : SemaphoreHandle_t
+}
+
+class BinarySemaphore {
+    - handle_ : SemaphoreHandle_t
+    + init() : bool
+    + take(timeoutMs : uint32_t) : bool
+    + give() : bool
+    + native() : SemaphoreHandle_t
+}
+
+struct SharedData {
+    + press_duration : uint32_t
+    + new_press_detected : bool
+    + button_pressed : bool
+    + task_state : uint8_t
+}
+
+note right of Mutex
+  Wraps FreeRTOS
+  xSemaphoreCreateMutex()
+end note
+
+note right of BinarySemaphore
+  Wraps FreeRTOS
+  xSemaphoreCreateBinary()
+end note
+
+note bottom of SharedData
+  Global state shared
+  between FreeRTOS tasks
+  (written by Detect,
+  read by Display & LED)
+end note
+
+@enduml

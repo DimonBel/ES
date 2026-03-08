@@ -1,0 +1,91 @@
+@startuml Deployment Diagram
+title Deployment Diagram - Hardware Architecture
+
+node "ESP32 DevKit V1" as esp32 {
+    component "Arduino Framework" as arduino
+    component "FreeRTOS Kernel" as freertos
+    
+    component "Application Software" as sw {
+        [main.cpp]
+        [freertos_app]
+        [App Module]
+    }
+    
+    artifact "Flash Memory" as flash {
+        [Firmware Binary]
+    }
+    
+    artifact "SRAM" as sram {
+        [Task Stacks (4096B each)]
+        [SharedData struct]
+        [Semaphores & Mutex]
+    }
+}
+
+node "Joystick Module" as joystick_hw {
+    component "X-Axis Potentiometer" as jx
+    component "Y-Axis Potentiometer" as jy
+    component "Push Button (SW)" as jsw
+}
+
+node "LED Array" as leds_hw {
+    component "Red LED" as rl
+    component "Green LED" as gl
+    component "Yellow LED" as yl
+}
+
+node "LCD Module (16x2)" as lcd_hw {
+    component "HD44780 Controller" as hd
+    component "PCF8574 I2C Expander" as pcf
+}
+
+node "4x4 Matrix Keypad" as keypad_hw {
+    component "4 Row Lines" as rows
+    component "4 Column Lines" as cols
+}
+
+cloud "USB Serial" as serial {
+    component "UART Monitor\n(115200 baud)" as uart
+}
+
+' Connections with pin mappings
+esp32 -- joystick_hw : "GPIO34 (X-ADC)\nGPIO35 (Y-ADC)\nGPIO2 (SW-Digital)"
+esp32 -- leds_hw : "GPIO12 (Red)\nGPIO14 (Green)\nGPIO13 (Yellow)"
+esp32 -- lcd_hw : "I2C Bus\nSDA/SCL\nAddr: 0x27"
+esp32 -- keypad_hw : "GPIO Rows (OUTPUT)\nGPIO Cols (INPUT_PULLUP)"
+esp32 -- serial : "USB-UART\n115200 baud"
+
+' Internal LCD connection
+hd <--> pcf : "4-bit parallel"
+
+note right of esp32
+  **ESP32 Specifications:**
+  - Dual-core Xtensa LX6
+  - 240 MHz clock
+  - 520 KB SRAM
+  - 4 MB Flash
+  - WiFi + Bluetooth
+  - FreeRTOS built-in
+end note
+
+note bottom of joystick_hw
+  **Analog Input:**
+  X, Y: 0-1023 (12-bit ADC)
+  SW: Active LOW with
+  internal pull-up
+end note
+
+note bottom of lcd_hw
+  **I2C LCD:**
+  Address: 0x27
+  16 columns x 2 rows
+  Using LiquidCrystal_I2C lib
+end note
+
+note bottom of leds_hw
+  **Digital Output:**
+  Active HIGH
+  Direct GPIO drive
+end note
+
+@enduml

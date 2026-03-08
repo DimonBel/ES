@@ -1,0 +1,48 @@
+@startuml Component Diagram - Hardware & Kernel
+skinparam componentStyle rectangle
+
+title Component Diagram (Part 2) - Hardware Drivers & Kernel Primitives
+
+package "Hardware Abstraction Modules" {
+    [Led] as led
+    [LcdI2c] as lcd
+    [Joystick] as joystick
+    [Keypad] as keypad
+    [Button] as button
+}
+
+package "Kernel Primitives" {
+    [Mutex] as mutex
+    [BinarySemaphore] as bsem
+    [Task Wrapper] as task
+}
+
+package "External Libraries" {
+    [Arduino Framework] as arduino
+    [FreeRTOS] as freertos
+    [LiquidCrystal_I2C] as lci2c
+    [Wire (I2C)] as wire
+}
+
+package "Hardware Peripherals" {
+    [GPIO Pins] as gpio
+    [I2C Bus] as i2cbus
+    [ADC (Analog)] as adc
+    [UART Serial] as uart
+}
+
+led --> arduino
+led --> gpio : digitalWrite
+joystick --> arduino
+joystick --> gpio : digitalRead
+joystick --> adc : analogRead
+keypad --> gpio : digitalRead/Write
+button --> gpio : digitalRead/Write
+lcd --> lci2c : wraps
+lci2c --> i2cbus
+
+task --> freertos : xTaskCreate, vTaskDelay
+mutex --> freertos : xSemaphoreCreateMutex
+bsem --> freertos : xSemaphoreCreateBinary
+
+@enduml

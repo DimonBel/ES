@@ -1,0 +1,67 @@
+@startuml Communication Diagram
+title Communication Diagram - Inter-Task Communication via FreeRTOS Primitives
+
+rectangle "vTaskDetect\n(Priority 3)" as detect #LightBlue
+rectangle "vTaskDisplay\n(Priority 2)" as display #LightGreen
+rectangle "vTaskLED\n(Priority 1)" as ledtask #LightYellow
+
+database "SharedData" as shared #LightGray {
+    card "press_duration : uint32_t"
+    card "new_press_detected : bool"
+    card "button_pressed : bool"
+    card "task_state : uint8_t"
+}
+
+hexagon "semPressDisplay" as spd #Orange
+hexagon "semReleaseDisplay" as srd #Orange
+hexagon "semPressLED" as spl #Orange
+hexagon "semReleaseLED" as srl #Orange
+hexagon "lcdMutex" as lm #Red
+
+rectangle "Joystick" as joy #Wheat
+rectangle "LcdI2c" as lcd #Wheat
+rectangle "Led R/G/Y" as leds #Wheat
+
+' Detect task interactions
+detect --> joy : 1. scan()
+detect --> shared : 2. write state
+detect --> spd : 3a. give() on press
+detect --> spl : 3b. give() on press
+detect --> srd : 4a. give() on release
+detect --> srl : 4b. give() on release
+
+' Display task interactions
+spd --> display : 5a. take() - press event
+srd --> display : 5b. take() - release event
+display --> lm : 6. take()/give()
+display --> lcd : 7. updateLCD()
+display --> shared : 8. read duration\n& write task_state
+
+' LED task interactions
+spl --> ledtask : 9a. take() - press event
+srl --> ledtask : 9b. take() - release event
+ledtask --> leds : 10. on()/off()
+ledtask --> shared : 11. read duration\n& task_state
+
+note bottom of spd
+  **Binary Semaphores** are used
+  for event signaling between tasks.
+  
+  Press events: semPressDisplay + semPressLED
+  Release events: semReleaseDisplay + semReleaseLED
+end note
+
+note bottom of lm
+  **Mutex** protects
+  LCD I2C bus access
+  from concurrent writes
+end note
+
+note right of shared
+  **Shared memory** is accessed
+  by all three tasks.
+  Written by Detect,
+  read by Display & LED.
+end note
+
+@enduml

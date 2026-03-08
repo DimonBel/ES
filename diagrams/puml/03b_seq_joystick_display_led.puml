@@ -1,0 +1,92 @@
+@startuml Sequence - Display & LED Response
+title Sequence Diagram (Part 2) - Display & LED Response to Joystick
+
+participant "Semaphores" as sem
+participant "vTaskDisplay\n(Priority 2)" as display
+participant "Mutex\n(lcdMutex)" as mutex
+participant "LcdI2c" as lcd
+participant "vTaskLED\n(Priority 1)" as ledtask
+participant "Led (R/G/Y)" as leds
+
+== Button Press Response ==
+display -> sem : semPressDisplay.take(100)
+sem --> display : bool: true
+display -> mutex : take(100)
+mutex --> display : bool: true
+display -> lcd : clear()
+lcd --> display : void
+display -> lcd : print("Pressing...")
+lcd --> display : void
+display -> lcd : print("Button")
+lcd --> display : void
+display -> mutex : give()
+mutex --> display : bool: true
+
+ledtask -> sem : semPressLED.take(100)
+sem --> ledtask : bool: true
+ledtask -> leds : ledR.off()
+leds --> ledtask : void
+ledtask -> leds : ledG.off()
+leds --> ledtask : void
+ledtask -> leds : ledY.on()
+leds --> ledtask : void
+note right : Yellow ON while pressing
+
+== Button Release Response ==
+display -> sem : semReleaseDisplay.take(100)
+sem --> display : bool: true
+display -> mutex : take(100)
+mutex --> display : bool: true
+display -> lcd : clear()
+lcd --> display : void
+
+alt duration > 500ms
+    display -> lcd : print("Green LED:")
+    lcd --> display : void
+else duration <= 500ms
+    display -> lcd : print("Red LED:")
+    lcd --> display : void
+end
+
+display -> lcd : print(duration + " ms")
+lcd --> display : void
+display -> mutex : give()
+mutex --> display : bool: true
+
+ledtask -> sem : semReleaseLED.take(100)
+sem --> ledtask : bool: true
+ledtask -> leds : ledY.off()
+leds --> ledtask : void
+ledtask -> leds : ledR.off()
+leds --> ledtask : void
+ledtask -> leds : ledG.off()
+leds --> ledtask : void
+
+alt duration > 500ms
+    ledtask -> leds : ledG.on()
+    leds --> ledtask : void
+    note right : Green = long press
+else duration <= 500ms
+    ledtask -> leds : ledR.on()
+    leds --> ledtask : void
+    note right : Red = short press
+end
+
+== 5 Second Timeout ==
+display -> mutex : take(100)
+mutex --> display : bool: true
+display -> lcd : clear()
+lcd --> display : void
+display -> lcd : print("Press Joystick Button")
+lcd --> display : void
+display -> mutex : give()
+mutex --> display : bool: true
+
+ledtask -> leds : ledR.off()
+leds --> ledtask : void
+ledtask -> leds : ledG.off()
+leds --> ledtask : void
+ledtask -> leds : ledY.off()
+leds --> ledtask : void
+
+@enduml

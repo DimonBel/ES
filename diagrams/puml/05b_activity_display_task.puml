@@ -1,0 +1,41 @@
+@startuml Activity - vTaskDisplay
+title Activity Diagram - vTaskDisplay (Priority 2)
+
+start
+
+:resultVisible = false;
+
+repeat
+    if (semPressDisplay.take(100)?) then (got signal)
+        :updateLCD("Pressing...", "Button");
+        :resultVisible = false;
+    endif
+    
+    if (semReleaseDisplay.take(100)?) then (got signal)
+        if (press_duration > 500ms?) then (yes)
+            :line1 = "Green LED:";
+        else (no)
+            :line1 = "Red LED:";
+        endif
+        :line2 = duration + " ms";
+        :updateLCD(line1, line2);
+        :resultDeadline = now + 5000ms;
+        :resultVisible = true;
+    endif
+    
+    if (resultVisible AND deadline?) then (timeout)
+        :updateLCD("Press Joystick", "Button");
+        :task_state = 0;
+        :resultVisible = false;
+    endif
+    
+    :delay 50ms;
+repeat while (forever)
+
+note right
+  updateLCD() uses
+  lcdMutex to protect
+  I2C bus access
+end note
+
+@enduml

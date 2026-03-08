@@ -1,0 +1,45 @@
+@startuml Hardware Connection Architecture
+skinparam defaultFontSize 13
+skinparam padding 6
+
+title Hardware Connection Architecture
+
+rectangle "ESP32 DevKit" as esp #LightBlue {
+    portin "GPIO34 (ADC)" as g34
+    portin "GPIO35 (ADC)" as g35
+    portin "GPIO2" as g2
+    portout "GPIO12" as g12
+    portout "GPIO14" as g14
+    portout "GPIO13" as g13
+    port "SDA/SCL\n(I2C)" as i2c
+    port "USB\nUART" as uart
+}
+
+rectangle "Joystick Module" as joy #Wheat {
+    card "X-Axis" as jx
+    card "Y-Axis" as jy
+    card "Button (SW)" as jsw
+}
+
+rectangle "LED Array" as leds #LightYellow {
+    card "Red LED" as rl
+    card "Green LED" as gl
+    card "Yellow LED" as yl
+}
+
+rectangle "LCD 16x2\n(I2C @ 0x27)" as lcd #LightGreen
+
+rectangle "Serial Monitor\n(115200 baud)" as serial #LightGray
+
+jx --> g34
+jy --> g35
+jsw --> g2
+
+g12 --> rl
+g14 --> gl
+g13 --> yl
+
+i2c <--> lcd
+uart <--> serial
+
+@enduml

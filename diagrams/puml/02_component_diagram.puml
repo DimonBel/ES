@@ -1,0 +1,105 @@
+@startuml Component Diagram
+skinparam componentStyle rectangle
+
+title Component Diagram - ESP32 FreeRTOS Embedded System (lab2.2)
+
+package "ESP32 Microcontroller" {
+
+    [main.cpp] as main
+
+    package "FreeRTOS Application Module" {
+        [freertos_app] as fapp
+        [init] as init
+        [tasks] as tasks
+        [sync] as sync
+        [state] as state
+    }
+
+    package "Hardware Abstraction Modules" {
+        [Led] as led
+        [LcdI2c] as lcd
+        [Joystick] as joystick
+        [Keypad] as keypad
+        [Button] as button
+    }
+
+    package "Kernel Primitives" {
+        [Mutex] as mutex
+        [BinarySemaphore] as bsem
+        [Task Wrapper] as task
+    }
+
+    package "Application Module" {
+        [App] as app
+        [CommandParser] as cmd
+    }
+
+    package "Utility Modules" {
+        [I2CScanner] as i2c
+        [SerialStdio] as serial
+        [StdioRedirect] as stdio
+    }
+}
+
+package "External Libraries" {
+    [Arduino Framework] as arduino
+    [FreeRTOS] as freertos
+    [LiquidCrystal_I2C] as lci2c
+    [Wire (I2C)] as wire
+}
+
+package "Hardware Peripherals" {
+    [GPIO Pins] as gpio
+    [I2C Bus] as i2cbus
+    [ADC (Analog)] as adc
+    [UART Serial] as uart
+}
+
+' Main entry point
+main --> fapp : calls setup()/loop()
+
+' FreeRTOS app internal
+fapp --> init : setupApplication()
+fapp --> task : delayMs()
+init --> state : reads/writes globals
+init --> sync : initSyncPrimitives()
+init --> tasks : createApplicationTasks()
+init --> led : creates & initializes
+init --> lcd : creates & initializes
+init --> joystick : creates & initializes
+tasks --> state : accesses SharedData
+tasks --> sync : updateLCD()
+tasks --> joystick : scan(), isPressed()
+tasks --> led : on()/off()
+tasks --> bsem : give()/take()
+sync --> mutex : take()/give()
+sync --> lcd : print/clear/setCursor
+
+' Kernel primitives to FreeRTOS
+task --> freertos : xTaskCreate, vTaskDelay
+mutex --> freertos : xSemaphoreCreateMutex
+bsem --> freertos : xSemaphoreCreateBinary
+
+' Hardware abstraction to hardware
+led --> gpio : digitalWrite
+joystick --> gpio : digitalRead
+joystick --> adc : analogRead
+keypad --> gpio : digitalRead/Write
+button --> gpio : digitalRead/Write
+lcd --> lci2c : wraps
+lci2c --> i2cbus : I2C protocol
+i2c --> wire : Wire library
+serial --> uart : Serial I/O
+
+' App module
+app --> keypad : getKey()
+app --> lcd : display
+app --> led : on()/off()
+
+' Arduino framework
+led --> arduino
+lcd --> arduino
+joystick --> arduino
+keypad --> arduino
+
+@enduml

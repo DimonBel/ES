@@ -1,0 +1,40 @@
+@startuml Package - FreeRTOS App Module
+skinparam packageStyle frame
+
+title Package Diagram (Part 1) - FreeRTOS Application Module
+
+artifact "main.cpp" as main
+
+package "freertos_app/" {
+    artifact "freertos_app.h/cpp" as fapp
+    
+    package "init/" {
+        artifact "init.h/cpp" as init_mod
+    }
+    
+    package "tasks/" {
+        artifact "tasks.h/cpp" as tasks_mod
+        note bottom : vTaskDetect (prio 3)\nvTaskDisplay (prio 2)\nvTaskLED (prio 1)
+    }
+    
+    package "sync/" {
+        artifact "sync.h/cpp" as sync_mod
+        note bottom : initSyncPrimitives()\nupdateLCD()
+    }
+    
+    package "state/" {
+        artifact "state.h/cpp" as state_mod
+        note bottom : SharedData, globals,\npin defs, sync primitives
+    }
+}
+
+main --> fapp
+fapp --> init_mod
+init_mod --> state_mod
+init_mod --> sync_mod
+init_mod --> tasks_mod
+tasks_mod --> state_mod
+tasks_mod --> sync_mod
+sync_mod --> state_mod
+
+@enduml

@@ -1,0 +1,92 @@
+@startuml Activity Diagram - Code Verification Logic
+title Activity Diagram - App Code Entry & Verification Logic
+
+start
+
+:Display Welcome Screen;
+:LCD: "Enter Code:" / "[    ]";
+:All LEDs OFF;
+
+repeat
+    :Read keypad input;
+    :key = keypad.getKey();
+    
+    if (key != '\\0'?) then (key pressed)
+        if (_programmingMode?) then (yes)
+            :=== PROGRAMMING MODE ===;
+            
+            if (key == '*'?) then (cancel)
+                :_programmingMode = false;
+                :Clear new code buffer;
+                :Programming LED OFF;
+                :Display Welcome;
+            elseif (key == '#'?) then (confirm)
+                if (_newCodePos == 4?) then (complete)
+                    :Copy new code to _correctCode;
+                    :LCD: "PASSWORD SAVED";
+                    :LCD: show new code;
+                    :Green LED double blink;
+                    :_programmingMode = false;
+                    :Programming LED OFF;
+                    :Display Welcome;
+                else (incomplete)
+                    :printf("Need 4 digits");
+                endif
+            elseif (isdigit(key)?) then (digit)
+                if (_newCodePos < 4?) then (room)
+                    :Store digit in _newCode;
+                    :_newCodePos++;
+                    :Update LCD with '*' mask;
+                endif
+            endif
+            
+        else (no - Normal Mode)
+            :=== NORMAL MODE ===;
+            
+            if (key == 'D' AND _inputPos == 0?) then (program)
+                :_programmingMode = true;
+                :Programming LED ON;
+                :LCD: "PROG MODE";
+                :LCD: "New Pass [    ]";
+                
+            elseif (key == '*'?) then (clear)
+                :clearInput();
+                :Display Welcome;
+                
+            elseif (key == '#'?) then (enter)
+                if (_inputPos > 0?) then (has input)
+                    :Null-terminate input;
+                    
+                    if (verifyCode()?) then (valid)
+                        #LightGreen:LCD: "ACCESS GRANTED!";
+                        #LightGreen:LCD: "Door Unlocked";
+                        :Green LED ON;
+                        :Red LED OFF;
+                        :Wait 5 seconds;
+                        :Green LED OFF;
+                    else (invalid)
+                        #Pink:LCD: "ACCESS DENIED!";
+                        #Pink:LCD: "Wrong Code";
+                        :Red LED ON, Green OFF;
+                        :Red LED blink 5 times;
+                        :Red LED OFF;
+                    endif
+                    
+                    :Wait 3 seconds;
+                    :clearInput();
+                    :Display Welcome;
+                endif
+                
+            elseif (isdigit(key) OR A-C?) then (character)
+                if (_inputPos < 4?) then (room)
+                    :Store in _inputCode;
+                    :_inputPos++;
+                    :Update LCD with '*' mask;
+                endif
+            endif
+        endif
+    endif
+    
+repeat while (forever)
+
+@enduml

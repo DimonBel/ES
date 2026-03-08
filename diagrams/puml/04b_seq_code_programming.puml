@@ -1,0 +1,104 @@
+@startuml Sequence - Programming Mode
+title Sequence Diagram - Programming Mode (Password Change)
+
+actor User
+participant "Keypad" as kp
+participant "App" as app
+participant "LcdI2c" as lcd
+participant "Led (Green)" as ledg
+participant "Led (Prog)" as ledp
+
+== Enter Programming Mode ==
+User -> kp : press 'D' (at welcome)
+app -> kp : getKey()
+kp --> app : char: 'D'
+app -> app : _programmingMode = true
+app --> app : void
+app -> ledp : on()
+ledp --> app : void
+note right of ledp : Programming LED ON
+app -> lcd : clear()
+lcd --> app : void
+app -> lcd : print("PROG MODE")
+lcd --> app : void
+app -> lcd : print("New Pass [    ]")
+lcd --> app : void
+
+== Enter New Password (4 digits) ==
+User -> kp : press digit
+app -> kp : getKey()
+kp --> app : char: digit
+app -> lcd : setCursor(0, 1)
+lcd --> app : void
+app -> lcd : print("New Pass [*   ]")
+lcd --> app : void
+
+User -> kp : press digit
+app -> kp : getKey()
+kp --> app : char: digit
+app -> lcd : print("New Pass [**  ]")
+lcd --> app : void
+
+User -> kp : press digit
+app -> kp : getKey()
+kp --> app : char: digit
+app -> lcd : print("New Pass [*** ]")
+lcd --> app : void
+
+User -> kp : press digit
+app -> kp : getKey()
+kp --> app : char: digit
+app -> lcd : print("New Pass [****]")
+lcd --> app : void
+
+== Confirm New Password ==
+User -> kp : press '#'
+app -> kp : getKey()
+kp --> app : char: '#'
+app -> app : confirmNewCode()
+app --> app : void
+app -> app : _correctCode = newCode
+app --> app : void
+
+app -> lcd : clear()
+lcd --> app : void
+app -> lcd : print("PASSWORD SAVED")
+lcd --> app : void
+app -> lcd : print("New: XXXX")
+lcd --> app : void
+
+app -> ledg : on()
+ledg --> app : void
+app -> ledg : off()
+ledg --> app : void
+app -> ledg : on()
+ledg --> app : void
+app -> ledg : off()
+ledg --> app : void
+note right of ledg : Double blink confirmation
+
+app -> app : _programmingMode = false
+app --> app : void
+app -> ledp : off()
+ledp --> app : void
+app -> lcd : clear()
+lcd --> app : void
+app -> lcd : print("Enter Code:")
+lcd --> app : void
+
+== Cancel Programming ==
+User -> kp : press '*'
+app -> kp : getKey()
+kp --> app : char: '*'
+app -> app : _programmingMode = false
+app --> app : void
+app -> ledp : off()
+ledp --> app : void
+app -> app : clearInput()
+app --> app : void
+app -> lcd : clear()
+lcd --> app : void
+app -> lcd : print("Enter Code:")
+lcd --> app : void
+
+@enduml

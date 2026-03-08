@@ -1,0 +1,59 @@
+@startuml Timing Diagram
+title Timing Diagram - Joystick Press Event Timeline
+
+robust "Joystick Button" as JOY
+robust "task_state" as STATE
+robust "Yellow LED" as YLLED
+robust "Green LED" as GLED
+robust "Red LED" as RLED
+robust "LCD Display" as LCD
+
+@0
+JOY is Released
+STATE is "0 (Idle)"
+YLLED is OFF
+GLED is OFF
+RLED is OFF
+LCD is "Press Joystick\nButton"
+
+@100
+JOY is Pressed
+STATE is "1 (Pressing)"
+YLLED is ON
+LCD is "Pressing...\nButton"
+
+@350
+note bottom of JOY : Short press\n(250ms < 500ms)
+JOY is Released
+STATE is "2 (Result)"
+YLLED is OFF
+RLED is ON
+LCD is "Red LED:\n250 ms"
+
+@5350
+note bottom of LCD : 5 second timeout
+STATE is "0 (Idle)"
+RLED is OFF
+LCD is "Press Joystick\nButton"
+
+@6000
+JOY is Pressed
+STATE is "1 (Pressing)"
+YLLED is ON
+LCD is "Pressing...\nButton"
+
+@6800
+note bottom of JOY : Long press\n(800ms > 500ms)
+JOY is Released
+STATE is "2 (Result)"
+YLLED is OFF
+GLED is ON
+LCD is "Green LED:\n800 ms"
+
+@11800
+note bottom of LCD : 5 second timeout
+STATE is "0 (Idle)"
+GLED is OFF
+LCD is "Press Joystick\nButton"
+
+@enduml

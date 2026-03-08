@@ -1,0 +1,202 @@
+@startuml Class Diagram
+skinparam classAttributeIconSize 0
+skinparam linetype ortho
+skinparam packageStyle rectangle
+
+title Class Diagram - ESP32 FreeRTOS Embedded System (lab2.2)
+
+package "Hardware Abstraction" {
+    class Led {
+        - _pin : uint8_t
+        - _state : bool
+        + Led(pin : uint8_t)
+        + begin() : void
+        + on() : void
+        + off() : void
+        + toggle() : void
+        + state() : bool
+    }
+
+    class LcdI2c {
+        - _lcd : LiquidCrystal_I2C*
+        - _cols : uint8_t
+        - _rows : uint8_t
+        + LcdI2c(address : uint8_t, cols : uint8_t, rows : uint8_t)
+        + begin() : void
+        + print(text : const char*) : void
+        + println(text : const char*) : void
+        + setCursor(col : uint8_t, row : uint8_t) : void
+        + clear() : void
+        + backlight() : void
+        + noBacklight() : void
+        + write(value : uint8_t) : void
+        + printf(format : const char*, ...) : int
+    }
+
+    class Joystick {
+        - _pinX : uint8_t
+        - _pinY : uint8_t
+        - _pinSW : uint8_t
+        - _lastState : bool
+        - _pressed : bool
+        - _wasPressed : bool
+        - _pressStartTime : uint32_t
+        - _duration : uint32_t
+        - _x : uint16_t
+        - _y : uint16_t
+        - {static} CENTER_THRESHOLD : uint16_t = 100
+        - {static} CENTER : uint16_t = 512
+        + {static} DIR_NONE : int8_t = 0
+        + {static} DIR_UP : int8_t = 1
+        + {static} DIR_DOWN : int8_t = 2
+        + {static} DIR_LEFT : int8_t = 3
+        + {static} DIR_RIGHT : int8_t = 4
+        + {static} DIR_CENTER : int8_t = 5
+        + Joystick(pinX : uint8_t, pinY : uint8_t, pinSW : uint8_t)
+        + begin() : void
+        + scan() : bool
+        + isPressed() : bool
+        + wasPressed() : bool
+        + getX() : uint16_t
+        + getY() : uint16_t
+        + getDirection() : int8_t
+        + getPressDuration() : uint32_t
+    }
+
+    class Keypad {
+        - _rowPins : const uint8_t*
+        - _colPins : const uint8_t*
+        - _rows : uint8_t
+        - _cols : uint8_t
+        - _keys : char[4][4]
+        - _lastKeyTime : unsigned long
+        - _lastKey : char
+        - {static} DEBOUNCE_MS : unsigned long = 200
+        + Keypad(rowPins : const uint8_t*, colPins : const uint8_t*, rows : uint8_t, cols : uint8_t)
+        + begin() : void
+        + getKey() : char
+        + keyPressed() : bool
+        - isValidKey(c : char) : bool
+        - scanMatrix() : char
+    }
+
+    class Button {
+        - _rowPins : const uint8_t*
+        - _colPins : const uint8_t*
+        - _rows : uint8_t
+        - _cols : uint8_t
+        - _buttonId : uint8_t
+        - _lastState : bool
+        - _pressed : bool
+        - _pressStartTime : uint32_t
+        - _duration : uint32_t
+        + Button(rowPins : const uint8_t*, colPins : const uint8_t*, rows : uint8_t, cols : uint8_t, buttonId : uint8_t)
+        + begin() : void
+        + isPressed() : bool
+        + scan() : bool
+        + getPressDuration() : uint32_t
+        - scanMatrix() : bool
+    }
+}
+
+package "Application Logic" {
+    class App {
+        - _keypad : Keypad&
+        - _lcd : LcdI2c&
+        - _ledGreen : Led&
+        - _ledRed : Led&
+        - _ledProgramming : Led&
+        - _correctCode : char[5]
+        - {static} CODE_LENGTH : int = 4
+        - {static} CLEAR_KEY : char = '*'
+        - {static} ENTER_KEY : char = '#'
+        - {static} PROGRAM_KEY : char = 'D'
+        - _inputCode : char[5]
+        - _inputPos : int
+        - _programmingMode : bool
+        - _newCode : char[5]
+        - _newCodePos : int
+        + App(keypad : Keypad&, lcd : LcdI2c&, ledGreen : Led&, ledRed : Led&, ledProgramming : Led&)
+        + begin() : void
+        + run() : void
+        - clearInput() : void
+        - displayWelcome() : void
+        - processInput(key : char) : void
+        - verifyCode() : bool
+        - handleValidCode() : void
+        - handleInvalidCode() : void
+        - enterProgrammingMode() : void
+        - processProgrammingInput(key : char) : void
+        - confirmNewCode() : void
+    }
+
+    enum CommandType {
+        CMD_LED1_ON
+        CMD_LED1_OFF
+        CMD_LED2_ON
+        CMD_LED2_OFF
+        CMD_BOTH_ON
+        CMD_BOTH_OFF
+        CMD_UNKNOWN
+        CMD_EMPTY
+    }
+
+    class CommandParser {
+        - {static} MAX_CMD_LENGTH : int = 32
+        + {static} parse(input : const char*) : CommandType
+        + {static} isValid(cmd : CommandType) : bool
+        + {static} toString(cmd : CommandType) : const char*
+    }
+}
+
+package "Kernel Primitives" {
+    class Mutex {
+        - handle_ : SemaphoreHandle_t
+        + init() : bool
+        + take(timeoutMs : uint32_t) : bool
+        + give() : bool
+        + native() : SemaphoreHandle_t
+    }
+
+    class BinarySemaphore {
+        - handle_ : SemaphoreHandle_t
+        + init() : bool
+        + take(timeoutMs : uint32_t) : bool
+        + give() : bool
+        + native() : SemaphoreHandle_t
+    }
+}
+
+package "FreeRTOS Application" {
+    struct SharedData {
+        + press_duration : uint32_t
+        + new_press_detected : bool
+        + button_pressed : bool
+        + task_state : uint8_t
+    }
+}
+
+package "Utility" {
+    class I2CScanner {
+        + {static} scan() : void
+    }
+
+    class SerialStdio {
+        + {static} begin(baudRate : unsigned long) : void
+        + {static} printWelcome() : void
+        + {static} readLine(buffer : char*, bufferSize : int) : int
+        - {static} serialPutchar(c : char, stream : FILE*) : int
+        - {static} serialGetchar(stream : FILE*) : int
+        - {static} serial_stdout : FILE
+        - {static} serial_stdin : FILE
+    }
+}
+
+' Relationships
+App "1" o-- "1" Keypad : uses >
+App "1" o-- "1" LcdI2c : uses >
+App "1" o-- "3" Led : uses >
+CommandParser ..> CommandType : returns >
+LcdI2c *-- "1" LiquidCrystal_I2C : wraps >
+
+@enduml

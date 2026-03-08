@@ -1,0 +1,35 @@
+@startuml State Machine - App Keypad
+title State Machine Diagram (Part 3) - App Keypad States
+
+[*] --> Welcome
+
+state "Welcome" as welcome
+state "Code Entry" as entry
+state "Access Granted" as granted
+state "Access Denied" as denied
+state "Programming Mode" as progmode
+state "Password Saved" as saved
+
+welcome : LCD: "Enter Code:"
+entry : LCD: "[*...]"
+granted : LCD: "ACCESS GRANTED!"
+granted : Green LED ON 5s
+denied : LCD: "ACCESS DENIED!"
+denied : Red LED blinks 5x
+progmode : LCD: "PROG MODE"
+progmode : Programming LED ON
+saved : LCD: "PASSWORD SAVED"
+
+welcome --> entry : Digit / A-C pressed
+welcome --> progmode : 'D' pressed
+entry --> entry : More digits
+entry --> welcome : '*' (clear)
+entry --> granted : '#' + correct code
+entry --> denied : '#' + wrong code
+granted --> welcome : After 3s
+denied --> welcome : After 3s
+progmode --> welcome : '*' (cancel)
+progmode --> saved : '#' + 4 digits entered
+saved --> welcome : After 2s
+
+@enduml

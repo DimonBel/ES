@@ -1,0 +1,121 @@
+@startuml Package/Module Diagram
+title Package / Module Organization Diagram
+
+skinparam packageStyle frame
+
+package "src/" {
+    
+    artifact "main.cpp" as main {
+    }
+    
+    package "modules/" {
+        
+        package "freertos_app/" <<Framework>> {
+            artifact "freertos_app.h/cpp" as fapp_entry
+            
+            package "init/" {
+                artifact "init.h/cpp" as init_mod
+                note bottom : setupApplication()\nHardware init + task creation
+            }
+            
+            package "tasks/" {
+                artifact "tasks.h/cpp" as tasks_mod
+                note bottom : vTaskDetect (prio 3)\nvTaskDisplay (prio 2)\nvTaskLED (prio 1)
+            }
+            
+            package "sync/" {
+                artifact "sync.h/cpp" as sync_mod
+                note bottom : initSyncPrimitives()\nupdateLCD()
+            }
+            
+            package "state/" {
+                artifact "state.h/cpp" as state_mod
+                note bottom : SharedData struct\nGlobal pointers\nPin definitions\nSync primitives
+            }
+        }
+        
+        package "kernel_primitives/" <<Framework>> {
+            package "task/" {
+                artifact "task.h/cpp" as kp_task
+                note bottom : delayMs()\ndelayUntilMs()\ncreateTask()
+            }
+            package "mutex/" {
+                artifact "mutex.h/cpp" as kp_mutex
+                note bottom : Mutex class\nFreeRTOS wrapper
+            }
+            package "semaphore/" {
+                artifact "binary_semaphore.h/cpp" as kp_sem
+                note bottom : BinarySemaphore class\nFreeRTOS wrapper
+            }
+        }
+        
+        package "Hardware Drivers" <<Node>> {
+            package "led/" {
+                artifact "led.h/cpp" as led_mod
+            }
+            package "lcd/" {
+                artifact "lcd.h/cpp" as lcd_mod
+            }
+            package "joystick/" {
+                artifact "joystick.h/cpp" as joy_mod
+            }
+            package "keypad/" {
+                artifact "keypad.h/cpp" as kp_mod
+            }
+            package "button/" {
+                artifact "button.h/cpp" as btn_mod
+            }
+        }
+        
+        package "app/" <<Application>> {
+            artifact "app.h/cpp" as app_mod
+            note bottom : Keypad security system\nCode entry & programming
+        }
+        
+        package "command/" {
+            artifact "command.h/cpp" as cmd_mod
+            note bottom : CommandParser\nLED command parsing
+        }
+        
+        package "utils/" {
+            artifact "i2c_scanner.h" as i2c_mod
+        }
+        
+        package "serial_stdio/" {
+            artifact "serial_stdio.h" as sstdio_mod
+        }
+        
+        package "stdio_redirect/" {
+            artifact "stdio_redirect.h" as stdio_mod
+        }
+    }
+}
+
+' Dependencies
+main --> fapp_entry
+fapp_entry --> init_mod
+fapp_entry --> kp_task
+init_mod --> state_mod
+init_mod --> sync_mod
+init_mod --> tasks_mod
+init_mod --> kp_task
+init_mod --> led_mod
+init_mod --> lcd_mod
+init_mod --> joy_mod
+tasks_mod --> state_mod
+tasks_mod --> sync_mod
+tasks_mod --> kp_task
+sync_mod --> state_mod
+sync_mod --> kp_task
+state_mod --> led_mod
+state_mod --> lcd_mod
+state_mod --> joy_mod
+state_mod --> kp_mutex
+state_mod --> kp_sem
+app_mod --> kp_mod
+app_mod --> lcd_mod
+app_mod --> led_mod
+stdio_mod --> lcd_mod
+stdio_mod --> kp_mod
+
+@enduml

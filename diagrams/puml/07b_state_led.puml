@@ -1,0 +1,22 @@
+@startuml State Machine - LED States
+title State Machine Diagram (Part 2) - LED Control States
+
+[*] --> AllOFF
+
+state "All OFF" as AllOFF
+state "Yellow ON" as yellow
+state "Green ON" as green
+state "Red ON" as red
+
+AllOFF : Idle / timeout state
+yellow : Button being pressed
+green : Long press (>500ms)
+red : Short press (<=500ms)
+
+AllOFF --> yellow : Button press detected
+yellow --> green : Released, duration > 500ms
+yellow --> red : Released, duration <= 500ms
+green --> AllOFF : 5s timeout
+red --> AllOFF : 5s timeout
+
+@enduml

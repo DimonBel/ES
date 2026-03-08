@@ -1,0 +1,56 @@
+@startuml Package - Drivers & Kernel
+skinparam packageStyle frame
+
+title Package Diagram (Part 2) - Hardware Drivers & Kernel Primitives
+
+package "Hardware Drivers" {
+    package "led/" {
+        artifact "led.h/cpp" as led_mod
+    }
+    package "lcd/" {
+        artifact "lcd.h/cpp" as lcd_mod
+    }
+    package "joystick/" {
+        artifact "joystick.h/cpp" as joy_mod
+    }
+    package "keypad/" {
+        artifact "keypad.h/cpp" as kp_mod
+    }
+    package "button/" {
+        artifact "button.h/cpp" as btn_mod
+    }
+}
+
+package "kernel_primitives/" {
+    package "task/" {
+        artifact "task.h/cpp" as kp_task
+        note bottom : delayMs()\ncreateTask()
+    }
+    package "mutex/" {
+        artifact "mutex.h/cpp" as kp_mutex
+    }
+    package "semaphore/" {
+        artifact "binary_semaphore.h/cpp" as kp_sem
+    }
+}
+
+package "Other Modules" {
+    package "app/" {
+        artifact "app.h/cpp" as app_mod
+    }
+    package "command/" {
+        artifact "command.h/cpp" as cmd_mod
+    }
+    package "utils/" {
+        artifact "i2c_scanner.h" as i2c_mod
+    }
+}
+
+app_mod --> kp_mod : getKey()
+app_mod --> lcd_mod : display
+app_mod --> led_mod : on()/off()
+kp_task --> FreeRTOS : wraps API
+kp_mutex --> FreeRTOS : wraps API
+kp_sem --> FreeRTOS : wraps API
+
+@enduml

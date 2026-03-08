@@ -1,0 +1,69 @@
+@startuml Use Case Diagram
+title Use Case Diagram - ESP32 Embedded System
+
+left to right direction
+
+actor "User" as user
+actor "ESP32\nMicrocontroller" as esp
+
+rectangle "Joystick & LED System (FreeRTOS)" {
+    usecase "Press Joystick\nButton" as UC1
+    usecase "View Press\nDuration on LCD" as UC2
+    usecase "Observe LED\nColor Feedback" as UC3
+    usecase "Short Press\n(<= 500ms)" as UC4
+    usecase "Long Press\n(> 500ms)" as UC5
+}
+
+rectangle "Keypad Security System (App)" {
+    usecase "Enter Access\nCode via Keypad" as UC6
+    usecase "Verify Access\nCode" as UC7
+    usecase "Unlock Door\n(Valid Code)" as UC8
+    usecase "Deny Access\n(Invalid Code)" as UC9
+    usecase "Clear Input\n(* key)" as UC10
+    usecase "Enter Programming\nMode (D key)" as UC11
+    usecase "Set New\nPassword" as UC12
+    usecase "Confirm New\nPassword (# key)" as UC13
+    usecase "Cancel Programming\n(* key)" as UC14
+}
+
+rectangle "System Management" {
+    usecase "Initialize\nHardware" as UC15
+    usecase "Create FreeRTOS\nTasks" as UC16
+    usecase "Initialize Sync\nPrimitives" as UC17
+    usecase "Scan I2C\nDevices" as UC18
+    usecase "Serial Monitor\nDebugging" as UC19
+}
+
+' User interactions
+user --> UC1
+user --> UC2
+user --> UC3
+user --> UC6
+user --> UC10
+user --> UC11
+user --> UC19
+
+' Joystick system
+UC1 --> UC4 : <<extend>>
+UC1 --> UC5 : <<extend>>
+UC4 --> UC3 : Red LED
+UC5 --> UC3 : Green LED
+UC1 --> UC2 : <<include>>
+
+' Keypad system
+UC6 --> UC7 : <<include>>
+UC7 --> UC8 : <<extend>>\n[code correct]
+UC7 --> UC9 : <<extend>>\n[code wrong]
+UC11 --> UC12 : <<include>>
+UC12 --> UC13 : <<include>>
+UC12 --> UC14 : <<extend>>
+
+' ESP32 system management
+esp --> UC15
+esp --> UC16
+esp --> UC17
+UC15 ..> UC16 : <<include>>
+UC15 ..> UC17 : <<include>>
+esp --> UC18
+
+@enduml

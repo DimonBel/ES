@@ -1,0 +1,78 @@
+@startuml Class Diagram - Hardware Drivers
+skinparam classAttributeIconSize 0
+
+title Class Diagram (Part 1) - Hardware Driver Classes
+
+class Led {
+    - _pin : uint8_t
+    - _state : bool
+    + Led(pin : uint8_t)
+    + begin() : void
+    + on() : void
+    + off() : void
+    + toggle() : void
+    + state() : bool
+}
+
+class LcdI2c {
+    - _lcd : LiquidCrystal_I2C*
+    - _cols : uint8_t
+    - _rows : uint8_t
+    + LcdI2c(address, cols, rows)
+    + begin() : void
+    + print(text) : void
+    + println(text) : void
+    + setCursor(col, row) : void
+    + clear() : void
+    + backlight() : void
+    + noBacklight() : void
+    + write(value) : void
+    + printf(format, ...) : int
+}
+
+class Joystick {
+    - _pinX : uint8_t
+    - _pinY : uint8_t
+    - _pinSW : uint8_t
+    - _pressed : bool
+    - _duration : uint32_t
+    - _x : uint16_t
+    - _y : uint16_t
+    + Joystick(pinX, pinY, pinSW)
+    + begin() : void
+    + scan() : bool
+    + isPressed() : bool
+    + wasPressed() : bool
+    + getX() : uint16_t
+    + getY() : uint16_t
+    + getDirection() : int8_t
+    + getPressDuration() : uint32_t
+}
+
+class Keypad {
+    - _rowPins : const uint8_t*
+    - _colPins : const uint8_t*
+    - _keys : char[4][4]
+    + Keypad(rowPins, colPins, rows, cols)
+    + begin() : void
+    + getKey() : char
+    + keyPressed() : bool
+    - isValidKey(c) : bool
+    - scanMatrix() : char
+}
+
+class Button {
+    - _buttonId : uint8_t
+    - _pressed : bool
+    - _duration : uint32_t
+    + Button(rowPins, colPins, rows, cols, id)
+    + begin() : void
+    + isPressed() : bool
+    + scan() : bool
+    + getPressDuration() : uint32_t
+    - scanMatrix() : bool
+}
+
+note "All classes use Arduino\nGPIO/ADC/I2C functions" as N1
+
+@enduml

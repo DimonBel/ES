@@ -1,0 +1,32 @@
+@startuml High-Level Architecture
+skinparam componentStyle rectangle
+skinparam defaultFontSize 14
+skinparam padding 8
+
+title High-Level System Architecture
+
+rectangle "User" as user #LightGray
+
+package "ESP32 System" {
+    rectangle "main.cpp\n(Entry Point)" as main #LightBlue
+    rectangle "FreeRTOS App" as fapp #LightGreen
+    rectangle "Hardware Drivers" as hw #Wheat
+    rectangle "FreeRTOS Kernel" as kernel #Pink
+}
+
+rectangle "Hardware" as hardware #LightYellow {
+    rectangle "Joystick" as joy
+    rectangle "3x LEDs\n(R/G/Y)" as leds
+    rectangle "LCD 16x2\n(I2C)" as lcd
+}
+
+user --> joy : Press
+user <-- leds : See LED feedback
+user <-- lcd : Read display
+
+main --> fapp : setup() / loop()
+fapp --> kernel : Tasks, Semaphores,\nMutex
+fapp --> hw : Control peripherals
+hw --> hardware : GPIO / I2C
+
+@enduml
