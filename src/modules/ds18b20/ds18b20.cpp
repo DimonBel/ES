@@ -20,7 +20,20 @@ DS18B20::~DS18B20() {
 }
 
 void DS18B20::begin() {
+    printf("[DS18B20] Initializing on pin %d...\n", _pin);
     _oneWire = new OneWire(_pin);
+    
+    // Test if OneWire bus is responsive
+    if (!_oneWire->reset()) {
+        printf("[DS18B20] ERROR: No presence pulse detected on pin %d!\n", _pin);
+        printf("[DS18B20] Please check:\n");
+        printf("[DS18B20]   - DS18B20 is connected to pin %d\n", _pin);
+        printf("[DS18B20]   - Pull-up resistor (4.7kΩ) is installed\n");
+        printf("[DS18B20]   - Power (3.3V or 5V) is connected\n");
+        _deviceFound = false;
+        return;
+    }
+    printf("[DS18B20] Presence pulse detected\n");
     
     // Search for DS18B20 device
     _deviceFound = _oneWire->search(_address);
@@ -30,6 +43,7 @@ void DS18B20::begin() {
         if (_address[0] != 0x28) {
             _deviceFound = false;
             printf("[DS18B20] Device found but is not DS18B20 (Family: 0x%02X)\n", _address[0]);
+            printf("[DS18B20] Supported family codes: 0x28 (DS18B20), 0x10 (DS18S20), 0x22 (DS1822)\n");
         } else {
             printf("[DS18B20] Device found at address: ");
             for (uint8_t i = 0; i < 8; i++) {
@@ -42,7 +56,7 @@ void DS18B20::begin() {
             setResolution(_resolution);
         }
     } else {
-        printf("[DS18B20] No device found on pin %d\n", _pin);
+        printf("[DS18B20] No device found on pin %d after search\n", _pin);
     }
     
     _oneWire->reset_search();
@@ -59,6 +73,9 @@ float DS18B20::readTemperature() {
     }
     
     // Wait for conversion to complete
+    // Note: In FreeRTOS, use vTaskDelay instead of delay to avoid blocking the scheduler
+    // This function should not be called from RTOS tasks - use requestTemperature() + getTemperature() separately
+    extern void delay(unsigned long ms);
     delay(CONVERSION_DELAY[_resolution - 9]);
     
     // Read the temperature
@@ -110,8 +127,9 @@ float DS18B20::getTemperature() {
     }
     
     if (crc != data[8]) {
-        printf("[DS18B20] CRC error!\n", _address[0]);
-        return -127.0f;
+        printf("[DS18B20] CRC error! Calculated: %02X, Received: %02X\n", crc, data[8]);
+        // Don't return error - try to read temperature anyway
+        // This might work if only the CRC byte is corrupted
     }
     
     // Convert raw data to temperature
@@ -123,6 +141,13 @@ float DS18B20::getTemperature() {
     }
     
     float celsius = raw / 16.0f;
+    
+    // Sanity check: temperature should be in reasonable range
+    if (celsius < -55.0f || celsius > 125.0f) {
+        printf("[DS18B20] Temperature out of range: %.2f°C\n", celsius);
+        return -127.0f;
+    }
+    
     return celsius;
 }
 

@@ -3,13 +3,13 @@
 namespace freertos_app::internal {
 
 const uint8_t SOUND_SENSOR_D0_PIN = 12;
-const uint8_t SOUND_SENSOR_A0_PIN = 32;
+const uint8_t SOUND_SENSOR_A0_PIN = 34;
 const uint8_t LED_PIN = 14;
 const uint8_t LCD_SDA_PIN = 21;
 const uint8_t LCD_SCL_PIN = 22;
 
 // Temperature sensor pin
-const uint8_t DS18B20_PIN = 13;
+const uint8_t DS18B20_PIN = 4;
 
 // RGB LED pins
 const uint8_t RGB_LED_R_PIN = 25;
@@ -43,7 +43,7 @@ kernel_primitives::BinarySemaphore semTempDisplay;
 SharedData sharedData = {
     0, false, false, 0, 0, 0, false, 0,
     0.0f, 0.0f, false, 0,
-    {0.0f, 0.0f, 0.0f, 0.0f, 0.0f}, 0
+    {20.0f, 20.0f, 20.0f, 20.0f, 20.0f}, 0
 };
 
 }
