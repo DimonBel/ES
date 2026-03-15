@@ -97,8 +97,14 @@ void vTaskDisplay(void *pvParameters) {
         char line1[16];
         char line2[16];
 
-        snprintf(line1, sizeof(line1), "Count:");
-        snprintf(line2, sizeof(line2), "%lu", sharedData.sound_count);
+        // Display temperature
+        if (sharedData.temperature_available) {
+            snprintf(line1, sizeof(line1), "Temp: %.1f C", sharedData.temperature);
+            snprintf(line2, sizeof(line2), "Filt: %.1f C", sharedData.temperature_filtered);
+        } else {
+            snprintf(line1, sizeof(line1), "Temp: ---.- C");
+            snprintf(line2, sizeof(line2), "Waiting...");
+        }
 
         updateLCD(line1, line2);
     }
@@ -130,6 +136,66 @@ void vTaskLED(void *pvParameters) {
     }
 }
 
+void vTaskTemperature(void *pvParameters) {
+    (void)pvParameters;
+    TickType_t xLastWakeTime = xTaskGetTickCount();
+    const TickType_t xFrequency = pdMS_TO_TICKS(100);  // 100ms period
+
+    for (;;) {
+        vTaskDelayUntil(&xLastWakeTime, xFrequency);
+
+        if (tempSensor == nullptr) {
+            kernel_primitives::delayMs(100);
+            continue;
+        }
+
+        // Request temperature conversion
+        tempSensor->requestTemperature();
+        
+        // Wait for conversion (DS18B20 takes ~750ms for 12-bit resolution)
+        // We'll read it in the next cycle
+        
+        // Read temperature (may return -127 if conversion not ready)
+        float temp = tempSensor->readTemperature();
+        
+        if (temp > -100.0f) {  // Valid temperature
+            sharedData.temperature = temp;
+            sharedData.temperature_available = true;
+            sharedData.last_temperature_time = xTaskGetTickCount();
+            
+            // Add to filter buffer (circular buffer)
+            sharedData.temperature_buffer[sharedData.temperature_buffer_index] = temp;
+            sharedData.temperature_buffer_index = (sharedData.temperature_buffer_index + 1) % 5;
+            
+            // Calculate median filter
+            float sorted[5];
+            for (int i = 0; i < 5; i++) {
+                sorted[i] = sharedData.temperature_buffer[i];
+            }
+            
+            // Simple bubble sort
+            for (int i = 0; i < 4; i++) {
+                for (int j = 0; j < 4 - i; j++) {
+                    if (sorted[j] > sorted[j + 1]) {
+                        float temp = sorted[j];
+                        sorted[j] = sorted[j + 1];
+                        sorted[j + 1] = temp;
+                    }
+                }
+            }
+            
+            // Median is the middle value
+            sharedData.temperature_filtered = sorted[2];
+            
+            // Signal display task to update
+            semTempDisplay.give();
+            
+            printf("[TEMP] Temperature: %.2f°C, Filtered: %.2f°C\n", 
+                   sharedData.temperature, sharedData.temperature_filtered);
+        }
+    }
+}
+
 bool createApplicationTasks() {
     bool detectCreated = kernel_primitives::createTask(
         vTaskDetect,
@@ -158,7 +224,16 @@ bool createApplicationTasks() {
         nullptr
     );
 
-    return detectCreated && displayCreated && ledCreated;
+    bool tempCreated = kernel_primitives::createTask(
+        vTaskTemperature,
+        "Temperature",
+        TASK_STACK_SIZE,
+        nullptr,
+        TASK_PRIORITY_TEMP,
+        nullptr
+    );
+
+    return detectCreated && displayCreated && ledCreated && tempCreated;
 }
 
 }

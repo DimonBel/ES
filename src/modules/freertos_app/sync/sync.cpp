@@ -9,8 +9,9 @@ bool initSyncPrimitives() {
     bool mutexOk = lcdMutex.init();
     bool semSoundDisplayOk = semSoundDisplay.init();
     bool semSoundLedOk = semSoundLED.init();
+    bool semTempDisplayOk = semTempDisplay.init();
 
-    return mutexOk && semSoundDisplayOk && semSoundLedOk;
+    return mutexOk && semSoundDisplayOk && semSoundLedOk && semTempDisplayOk;
 }
 
 void updateLCD(const char *line1, const char *line2) {
