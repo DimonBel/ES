@@ -1,0 +1,23 @@
+graph LR
+    subgraph Hardware_Temp["Hardware Temperature Layer"]
+        ONEWIRE[OneWire Bus<br/>Pin: 4<br/>Function: Digital comm<br/>Protocol: 1-Wire<br/>Pull-up: 4.7kΩ]
+
+        DS18B20[DS18B20 Sensor<br/>Function: Measure temp<br/>Range: -55°C to +125°C<br/>Resolution: 12-bit<br/>Power: 3.3V/5V]
+    end
+
+    subgraph HAL_Temp["HAL Temperature Layer"]
+        Temp[DS18B20<br/>requestTemperature(): Start conv<br/>getTemperature(): Read result<br/>setResolution(): 9-12 bits<br/>_pin: 4<br/>_address: 8 bytes<br/>_resolution: 12<br/>_deviceFound: bool<br/>_oneWire: OneWire*]
+    end
+
+    subgraph Task_Temp["Task Temperature Layer"]
+        TempTask[vTaskTemperature<br/>Function: Read temp<br/>Period: 100ms<br/>Priority: 3<br/>State machine: 3 states]
+    end
+
+    DS18B20 -->|digital 1-wire| ONEWIRE
+    ONEWIRE -->|digital protocol| Temp
+
+    Temp -->|request| ONEWIRE
+    Temp -->|read| ONEWIRE
+
+    Temp -->|temperature float| TempTask
+    Temp -->|success bool| TempTask

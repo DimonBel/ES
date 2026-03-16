@@ -1,0 +1,46 @@
+graph LR
+    subgraph Display_Task["vTaskDisplay Output"]
+        Wait[Wait 100ms<br/>Function: vTaskDelayUntil<br/>Period: 100ms<br/>Priority: 2]
+
+        CheckTime[Check Time<br/>Function: Compare timestamps<br/>Logic: now - last_sound_time<br/>Duration: 2000ms]
+
+        FormatSound[Format Sound<br/>Function: snprintf<br/>Format: Sound --> %d<br/>Buffer: 16 chars]
+
+        FormatTemp[Format Temp<br/>Function: snprintf<br/>Format: Temp: %.1f C<br/>Buffer: 16 chars]
+
+        Lock[Lock Mutex<br/>Function: lcdMutex.take<br/>Timeout: 100ms<br/>Purpose: Protect I2C]
+    end
+
+    subgraph LCD_Hardware["LCD Hardware"]
+        I2C[I2C Bus<br/>SDA: Pin 21<br/>SCL: Pin 22<br/>Address: 0x27<br/>Speed: 100kHz]
+
+        LCD[LCD Controller<br/>Type: PCF8574<br/>Size: 16x2 chars<br/>Function: Display text]
+    end
+
+    subgraph LCD_Ops["LCD Operations"]
+        Cursor[Set Cursor<br/>Row 0: 0x80<br/>Row 1: 0xC0<br/>Function: lcd.setCursor]
+
+        Write[Write Text<br/>Function: lcd.print<br/>Chars: ASCII<br/>Returns: void]
+
+        NoClear[No Clear<br/>Optimization: Don't clear<br/>Purpose: Reduce flicker]
+    end
+
+    Wait --> CheckTime
+
+    CheckTime -->|< 2000ms| FormatSound
+    CheckTime -->|>= 2000ms| FormatTemp
+
+    FormatSound --> Lock
+    FormatTemp --> Lock
+
+    Lock --> I2C
+    I2C --> LCD
+
+    LCD --> NoClear
+    NoClear --> Cursor
+    Cursor --> Write
+
+    Unlock[Unlock Mutex<br/>Function: lcdMutex.give<br/>Release I2C<br/>Next task]
+
+    Write --> Unlock
+    Unlock --> I2C

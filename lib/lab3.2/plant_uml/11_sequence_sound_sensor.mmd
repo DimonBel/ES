@@ -1,0 +1,49 @@
+sequenceDiagram
+    participant T as vTaskDetect
+    participant SS as SoundSensor
+    participant HW as ESP32 GPIO/ADC
+    participant SD as SharedData
+
+    Note over T,HW: Every 20ms cycle
+
+    T->>SS: readDigital()
+    SS->>HW: digitalRead(PIN 12)
+    HW-->>SS: HIGH/LOW (bool)
+    SS-->>T: HIGH/LOW (bool)
+
+    T->>SS: readAnalog()
+    SS->>HW: analogRead(PIN 34)
+    HW-->>SS: 0-4095 (uint16)
+    SS-->>T: 0-4095 (uint16)
+
+    alt Rising edge detected
+        T->>T: Check 5s interval
+        T-->>T: elapsed (bool)
+
+        T->>SD: sound_count++
+        SD-->>T: new count (uint32)
+
+        T->>SD: led_state = true
+        SD-->>T: confirmed (bool)
+
+        T->>SD: led_turn_off_time = now + 1000ms
+        SD-->>T: timestamp (uint32)
+
+        T->>SD: last_sound_time = now
+        SD-->>T: timestamp (uint32)
+
+        T->>SD: analog_value = current_value
+        SD-->>T: stored (bool)
+
+        T->>T: give(semSoundDisplay)
+        T-->>T: success (bool)
+
+        T->>T: give(semSoundLED)
+        T-->>T: success (bool)
+
+        T->>T: Set wasAboveThreshold = true
+    else Below threshold
+        T->>T: Set wasAboveThreshold = false
+    end
+
+    Note over T,HW: Wait until next 20ms period

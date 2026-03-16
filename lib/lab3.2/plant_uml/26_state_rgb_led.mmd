@@ -1,0 +1,22 @@
+stateDiagram-v2
+    [*] --> Red
+
+    Red --> Green: clap detected<br/>(semSoundLED)
+    Green --> Red: 1s timeout<br/>(led_turn_off_time)
+
+    note right of Red
+        State: Idle
+        Color: RED
+        Pin 25: HIGH
+        Pin 26: LOW
+        Pin 27: LOW
+    end note
+
+    note right of Green
+        State: Active
+        Color: GREEN
+        Pin 25: LOW
+        Pin 26: HIGH
+        Pin 27: LOW
+        Duration: 1s
+    end note

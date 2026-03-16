@@ -21,11 +21,6 @@ void setupApplication() {
     printf("LCD: I2C SDA=%d, SCL=%d (0x27)\n", LCD_SDA_PIN, LCD_SCL_PIN);
     printf("==========================================\n");
 
-    led = new Led(LED_PIN);
-    led->begin();
-    led->off();
-    printf("LED initialized\n");
-
     // Initialize RGB LED and set it to red
     rgbLed = new RgbLed(RGB_LED_R_PIN, RGB_LED_G_PIN, RGB_LED_B_PIN);
     rgbLed->begin();
@@ -46,10 +41,6 @@ void setupApplication() {
     tempSensor->setResolution(12);  // 12-bit resolution (0.0625°C precision)
     printf("DS18B20 temperature sensor initialized\n");
     printf("  Resolution: 12 bits\n");
-
-    printf("Testing LED...\n");
-    if (led) { led->on(); kernel_primitives::delayMs(200); led->off(); }
-    printf("LED test complete\n");
 
     printf("Initializing LCD...\n");
     kernel_primitives::delayMs(200);

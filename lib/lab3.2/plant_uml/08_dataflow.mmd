@@ -1,0 +1,12 @@
+graph LR
+    Sensor[Sound Sensor] -->|analog/digital| Detect[Detect]
+    Detect -->|count/state| SharedData[SharedData]
+    TempSensor[DS18B20] -->|temperature| TempTask[Temperature]
+    TempTask -->|temp/filtered| SharedData
+    SharedData -->|last_sound_time| Display[Display]
+    SharedData -->|temp| Display
+    Display -->|Sound/Temp| LCD[LCD]
+    SharedData -->|led_state| LED[LED]
+    LED -->|Red/Green| RGB[RGB HW]
+
+    note1{Thresh: 1500<br/>Filter: Median}

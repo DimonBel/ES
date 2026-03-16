@@ -1,0 +1,83 @@
+sequenceDiagram
+    participant D as vTaskDisplay
+    participant SD as SharedData
+    participant M as lcdMutex
+    participant LCD as LcdI2c
+    participant I2C as I2C Bus
+
+    Note over D,I2C: Display Auto-Switch Logic
+
+    Note over D,SD: Initial state (idle)
+    D->>SD: Check last_sound_time
+    SD-->>D: timestamp
+
+    D->>D: now - last_sound_time >= 2000ms
+    D-->>D: true (show temp)
+
+    D->>M: take(100ms)
+    activate M
+    M-->>D: true
+    deactivate M
+
+    D->>LCD: print("Temp: 26.5 C")
+    activate LCD
+    LCD->>I2C: I2C write
+    I2C-->>LCD: ACK
+    LCD-->>D: written
+    deactivate LCD
+
+    D->>LCD: print("Filt: 26.6 C")
+    activate LCD
+    LCD->>I2C: I2C write
+    I2C-->>LCD: ACK
+    LCD-->>D: written
+    deactivate LCD
+
+    D->>M: give()
+    activate M
+    M-->>D: released
+    deactivate M
+
+    Note over D,SD: Clap detected (by vTaskDetect)
+    D->>SD: last_sound_time = now
+    SD-->>D: updated
+
+    Note over D,SD: Next display cycle (< 2s)
+    D->>SD: Check last_sound_time
+    SD-->>D: timestamp
+
+    D->>D: now - last_sound_time < 2000ms
+    D-->>D: true (show sound)
+
+    D->>M: take(100ms)
+    activate M
+    M-->>D: true
+    deactivate M
+
+    D->>LCD: print("Sound --> 2527")
+    activate LCD
+    LCD->>I2C: I2C write
+    I2C-->>LCD: ACK
+    LCD-->>D: written
+    deactivate LCD
+
+    D->>LCD: print("Clap!")
+    activate LCD
+    LCD->>I2C: I2C write
+    I2C-->>LCD: ACK
+    LCD-->>D: written
+    deactivate LCD
+
+    D->>M: give()
+    activate M
+    M-->>D: released
+    deactivate M
+
+    Note over D,SD: 2 seconds elapsed
+    D->>SD: Check last_sound_time
+    SD-->>D: timestamp
+
+    D->>D: now - last_sound_time >= 2000ms
+    D-->>D: true (show temp)
+
+    Note over D,SD: Returns to temperature display

@@ -1,0 +1,19 @@
+graph TB
+    ESP32_Hardware[ESP32 Hardware<br/>ADC0: Pin 34<br/>GPIO12: Digital<br/>GPIO4: OneWire<br/>RGB: 25,26,27<br/>I2C: SDA21/SCL22]
+
+    HAL[HAL Layer<br/>SoundSensor<br/>_digitalPin: 12<br/>_analogPin: 34<br/>_threshold: 1500<br/>_hysteresis: 50<br/><br/>DS18B20<br/>_pin: 4<br/>_resolution: 12<br/>_address: 8 bytes<br/>_deviceFound: bool<br/><br/>RgbLed<br/>_redPin: 25<br/>_greenPin: 26<br/>_bluePin: 27<br/><br/>LcdI2c<br/>_address: 0x27<br/>_cols: 16<br/>_rows: 2]
+
+    Tasks[FreeRTOS Tasks<br/>vTaskDetect: 20ms P3<br/>Stack: 4096<br/><br/>vTaskTemperature: 100ms P3<br/>Stack: 4096<br/><br/>vTaskDisplay: 100ms P2<br/>Stack: 4096<br/><br/>vTaskLED: Continuous P1<br/>Stack: 4096]
+
+    Sync[Sync Primitives<br/>lcdMutex: Mutex<br/>Timeout: 100ms<br/>Protects: LCD I2C<br/><br/>semSoundDisplay: Binary<br/>Trigger: Display<br/><br/>semSoundLED: Binary<br/>Trigger: LED<br/><br/>semTempDisplay: Binary<br/>Trigger: Display]
+
+    Data[SharedData<br/>uint16_t analog_value<br/>uint32_t sound_count<br/>float temperature<br/>float temperature_filtered<br/>bool led_state<br/>uint32_t led_turn_off_time<br/>uint32_t last_sound_time<br/>uint32_t last_temperature_time<br/>float temperature_buffer[5]<br/>uint8_t temperature_buffer_index]
+
+    Config[Configuration<br/>SOUND_THRESHOLD: 1500<br/>SOUND_HYSTERESIS: 50<br/>MIN_INTERVAL: 5000ms<br/>SOUND_DISPLAY: 2000ms<br/>TEMP_RESOLUTION: 12bits<br/>FILTER_SIZE: 5 samples]
+
+    ESP32_Hardware -->|GPIO/ADC/OneWire| HAL
+    HAL -->|methods| Tasks
+    Tasks -->|uses| Sync
+    Tasks -->|updates| Data
+    Sync -->|protects| Data
+    Config -->|used by| Tasks

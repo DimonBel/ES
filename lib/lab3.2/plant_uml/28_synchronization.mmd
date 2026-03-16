@@ -1,0 +1,72 @@
+sequenceDiagram
+    participant D as vTaskDetect
+    participant T as vTaskTemperature
+    participant SD as SharedData
+    participant SemD as semSoundDisplay
+    participant SemL as semSoundLED
+    participant SemT as semTempDisplay
+    participant Disp as vTaskDisplay
+    participant LED as vTaskLED
+    participant M as lcdMutex
+
+    Note over D,M: System Operation
+
+    par Parallel Execution
+        D->>D: Read sound sensor
+        D->>D: Check rising edge
+        D->>D: Check 5s interval
+
+        alt Clap detected
+            D->>SD: Update sound data
+            D->>SemD: give()
+            D->>SemL: give()
+        end
+
+        Note over SemD,Disp: Display auto-switch logic
+
+        opt < 2s since clap
+            Disp->>SemD: take()
+            Disp->>M: take()
+            Disp->>LCD: Show sound
+            Disp->>M: give()
+        else >= 2s
+            alt Temp available
+                Disp->>SemT: take()
+                Disp->>M: take()
+                Disp->>LCD: Show temperature
+                Disp->>M: give()
+            end
+        end
+
+        Note over SemL,LED: LED timeout logic
+
+        opt Semaphore signaled
+            LED->>SemL: take()
+            LED->>LED: Set GREEN
+        end
+
+        opt 1s elapsed
+            LED->>LED: Check timeout
+            LED->>LED: Set RED
+        end
+    and
+        T->>T: Check state
+
+        alt State: Request
+            T->>T: requestTemperature()
+            T->>T: Set state=Wait
+        else State: Wait
+            T->>T: waitCycles++
+            alt waitCycles >= 8
+                T->>T: Move to Read
+            end
+        else State: Read
+            T->>T: getTemperature()
+            T->>T: Median filter
+            T->>SD: Update temp data
+            T->>SemT: give()
+            T->>T: Set state=Request
+        end
+    end
+
+    Note over D,M: Next cycle

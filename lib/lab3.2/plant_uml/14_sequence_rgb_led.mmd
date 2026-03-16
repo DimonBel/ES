@@ -1,0 +1,63 @@
+sequenceDiagram
+    participant L as vTaskLED
+    participant SD as SharedData
+    participant S as semSoundLED
+    participant RGB as RgbLed
+    participant HW as GPIO 25,26,27
+
+    Note over L,HW: Continuous loop (every 50ms)
+
+    L->>L: Delay 50ms
+    L-->>L: elapsed (bool)
+
+    alt Semaphore signaled
+        L->>S: take(0ms)
+        activate S
+        S-->>L: true (signal received)
+        deactivate S
+
+        L->>SD: Read led_state
+        SD-->>L: led_state (bool)
+
+        alt LED should be ON (true)
+            L->>RGB: green()
+            activate RGB
+            RGB->>HW: digitalWrite(25, LOW)
+            HW-->>RGB: success
+            RGB->>HW: digitalWrite(26, HIGH)
+            HW-->>RGB: success
+            RGB->>HW: digitalWrite(27, LOW)
+            HW-->>RGB: success
+            RGB-->>L: void
+            deactivate RGB
+        end
+    end
+
+    alt Timeout check (every 50ms)
+        L->>SD: Read led_turn_off_time
+        SD-->>L: timestamp (uint32)
+
+        L->>L: currentTime = xTaskGetTickCount()
+        L-->>L: current ticks
+
+        alt currentTime >= led_turn_off_time
+            L->>SD: led_state = false
+            SD-->>L: confirmed (bool)
+
+            L->>RGB: red()
+            activate RGB
+            RGB->>HW: digitalWrite(25, HIGH)
+            HW-->>RGB: success
+            RGB->>HW: digitalWrite(26, LOW)
+            HW-->>RGB: success
+            RGB->>HW: digitalWrite(27, LOW)
+            HW-->>RGB: success
+            RGB-->>L: void
+            deactivate RGB
+        else Keep current state
+            L->>SD: Read led_state
+            SD-->>L: current state (bool)
+        end
+    end
+
+    Note over L,HW: Loop continues every 50ms

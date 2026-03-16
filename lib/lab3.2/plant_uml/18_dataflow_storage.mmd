@@ -1,0 +1,46 @@
+graph TB
+    subgraph Shared_Data["SharedData Structure"]
+        Analog[analog_value<br/>Type: uint16<br/>Purpose: Store current ADC<br/>Writer: vTaskDetect<br/>Range: 0-4095]
+
+        SoundCount[sound_count<br/>Type: uint32<br/>Purpose: Event counter<br/>Writer: vTaskDetect<br/>Reader: vTaskDisplay]
+
+        LED_State[led_state<br/>Type: bool<br/>Purpose: RGB LED state<br/>Writer: vTaskDetect<br/>Reader: vTaskLED]
+
+        LED_Time[led_turn_off_time<br/>Type: uint32<br/>Purpose: 1s timeout<br/>Writer: vTaskDetect<br/>Reader: vTaskLED]
+
+        Last_Sound[last_sound_time<br/>Type: uint32<br/>Purpose: Last clap time<br/>Writer: vTaskDetect<br/>Reader: vTaskDisplay]
+
+        Temperature[temperature<br/>Type: float<br/>Purpose: Raw temp reading<br/>Writer: vTaskTemperature<br/>Reader: vTaskDisplay]
+
+        TempFiltered[temperature_filtered<br/>Type: float<br/>Purpose: Filtered temp<br/>Writer: vTaskTemperature<br/>Reader: vTaskDisplay]
+
+        TempBuffer[temperature_buffer[5]<br/>Type: float array<br/>Purpose: Circular buffer<br/>Writer: vTaskTemperature<br/>Size: 5 samples]
+    end
+
+    subgraph Memory["Memory Access"]
+        WriteDetect[Write: vTaskDetect<br/>Period: 20ms<br/>Priority: 3<br/>Writes: sound_count, led_state,<br/>last_sound_time, analog_value]
+
+        WriteTemp[Write: vTaskTemperature<br/>Period: 800ms<br/>Priority: 3<br/>Writes: temperature,<br/>temperature_filtered,<br/>temperature_buffer]
+
+        ReadDisplay[Read: vTaskDisplay<br/>Period: 100ms<br/>Priority: 2<br/>Reads: sound_count,<br/>temperature, temperature_filtered]
+
+        ReadLED[Read: vTaskLED<br/>Continuous<br/>Priority: 1<br/>Reads: led_state,<br/>led_turn_off_time]
+    end
+
+    WriteDetect -->|store| Analog
+    WriteDetect -->|increment| SoundCount
+    WriteDetect -->|set| LED_State
+    WriteDetect -->|set| LED_Time
+    WriteDetect -->|set| Last_Sound
+
+    WriteTemp -->|set| Temperature
+    WriteTemp -->|set| TempFiltered
+    WriteTemp -->|update| TempBuffer
+
+    ReadDisplay -->|read| SoundCount
+    ReadDisplay -->|read| Temperature
+    ReadDisplay -->|read| TempFiltered
+    ReadDisplay -->|read| Last_Sound
+
+    ReadLED -->|read| LED_State
+    ReadLED -->|read| LED_Time

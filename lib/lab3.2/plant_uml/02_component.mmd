@@ -1,0 +1,31 @@
+graph TB
+    subgraph HW["Hardware"]
+        SoundSensor[SoundSensor<br/>D0:12, A0:34]
+        TempSensor[DS18B20<br/>Pin:4]
+        RGBLed[RGB LED<br/>R:25, G:26, B:27]
+        LCDComp[LCD<br/>I2C:21/22]
+    end
+
+    subgraph App["FreeRTOS App"]
+        DetectComp[Detect]
+        TempComp[Temperature]
+        DisplayComp[Display]
+        LEDComp[LED]
+        SharedData[SharedData]
+    end
+
+    subgraph SyncComp["Sync"]
+        SyncMutex[Mutex]
+        Semaphore[Semaphore<br/>3 semaphores]
+    end
+
+    DetectComp --> SoundSensor
+    DetectComp --> SharedData
+    TempComp --> TempSensor
+    TempComp --> SharedData
+    DisplayComp --> LCDComp
+    DisplayComp --> SyncMutex
+    LEDComp --> RGBLed
+    LEDComp --> Semaphore
+
+    note1{SharedData:<br/>sound_count<br/>temp<br/>led_state<br/>timestamps}

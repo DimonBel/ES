@@ -1,0 +1,19 @@
+stateDiagram-v2
+    [*] --> Temperature
+
+    Temperature --> Sound: clap detected<br/>(last_sound_time < 2s)
+    Sound --> Temperature: 2s elapsed<br/>(last_sound_time >= 2s)
+
+    note right of Temperature
+        Display:
+        Line 1: "Temp: XX.X C"
+        Line 2: "Filt: XX.X C"
+        RGB LED: RED
+    end note
+
+    note right of Sound
+        Display:
+        Line 1: "Sound --> XXXX"
+        Line 2: "Clap!"
+        RGB LED: GREEN
+    end note

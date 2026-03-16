@@ -1,0 +1,20 @@
+flowchart TD
+    Start((Start)) --> Wait[Wait 100ms]
+    Wait --> CheckTime{Time since<br/>last clap}
+
+    CheckTime -->|< 2s| FormatSound[Format sound<br/>Sound --> XXXX]
+    FormatSound --> Lock
+
+    CheckTime -->|>= 2s| CheckTemp{temp<br/>available?}
+
+    CheckTemp -->|yes| FormatTemp[Format temp<br/>Temp: XX.X C]
+    FormatTemp --> Lock
+
+    CheckTemp -->|no| FormatWait[Format waiting<br/>Temp: ---.- C]
+    FormatWait --> Lock
+
+    Lock[Lock mutex]
+    Lock --> Update[Update LCD<br/>No clear]
+    Update --> Release[Release mutex]
+    Release --> Loop((Loop back))
+    Loop --> Wait

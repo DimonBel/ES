@@ -1,0 +1,26 @@
+graph LR
+    subgraph Hardware_Input["Hardware Input Layer"]
+        ADC[ADC0<br/>Pin: 34<br/>Function: Read analog<br/>Returns: 0-4095<br/>ESP32 ADC1_CH6]
+
+        DIG[GPIO 12<br/>Function: Read digital<br/>Returns: HIGH/LOW<br/>Sound Sensor D0]
+
+        SOUND[Sound Sensor HW<br/>Function: Detect sound<br/>Output: Digital/Analog<br/>Threshold: Adjustable]
+    end
+
+    subgraph HAL_Input["HAL Input Layer"]
+        Sensor[SoundSensor<br/>readDigital(): digitalRead 12<br/>readAnalog(): analogRead 34<br/>isSoundDetected(): edge detection<br/>_lastDigitalState: bool<br/>_currentValue: uint16<br/>_threshold: 1500<br/>_hysteresis: 50]
+    end
+
+    subgraph Task_Input["Task Input Layer"]
+        Detect[vTaskDetect<br/>Function: Read sensors<br/>Period: 20ms<br/>Priority: 3<br/>Rising edge detection]
+    end
+
+    SOUND -->|analog signal| ADC
+    SOUND -->|digital signal| DIG
+
+    ADC -->|value 0-4095| Sensor
+    DIG -->|HIGH/LOW| Sensor
+
+    Sensor -->|bool HIGH/LOW| Detect
+    Sensor -->|uint16 0-4095| Detect
+    Sensor -->|bool soundDetected| Detect

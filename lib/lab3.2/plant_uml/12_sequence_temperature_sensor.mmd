@@ -1,0 +1,67 @@
+sequenceDiagram
+    participant T as vTaskTemperature
+    participant DS as DS18B20
+    participant OW as OneWire Bus
+    participant SD as SharedData
+
+    Note over T,SD: Every 100ms cycle
+
+    alt State 0: Request conversion
+        T->>DS: requestTemperature()
+        activate DS
+        DS->>OW: reset()
+        OW-->>DS: presence (bool)
+        DS->>OW: select(address)
+        OW-->>DS: selected (bool)
+        DS->>OW: write(0x44)
+        OW-->>DS: written (bool)
+        DS-->>T: success (bool)
+        deactivate DS
+
+        T->>T: Set conversionRequested = true
+        T->>T: Reset waitCycles = 0
+    else State 1: Wait for conversion
+        T->>T: waitCycles++
+        alt waitCycles >= 8 (800ms)
+            T->>T: Move to read state
+        else Continue waiting
+        end
+    else State 2: Read temperature
+        T->>DS: getTemperature()
+        activate DS
+        DS->>OW: reset()
+        OW-->>DS: presence (bool)
+        DS->>OW: select(address)
+        OW-->>DS: selected (bool)
+        DS->>OW: write(0xBE)
+        OW-->>DS: written (bool)
+
+        loop Read 9 bytes
+            DS->>OW: read()
+            OW-->>DS: byte (uint8)
+        end
+
+        DS->>DS: Verify CRC
+        DS->>DS: Convert to Celsius
+        DS-->>T: temperature (float)
+        deactivate DS
+
+        T->>SD: temperature = temp
+        SD-->>T: stored (bool)
+
+        T->>SD: Add to filter buffer
+        SD-->>T: stored (bool)
+
+        T->>T: Calculate median filter
+        T-->>T: filtered (float)
+
+        T->>SD: temperature_filtered = filtered
+        SD-->>T: stored (bool)
+
+        T->>T: give(semTempDisplay)
+        T-->>T: success (bool)
+
+        T->>T: Set conversionRequested = false
+    end
+
+    Note over T,SD: Wait until next 100ms period

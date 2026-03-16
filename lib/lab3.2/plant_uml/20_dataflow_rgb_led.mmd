@@ -1,0 +1,45 @@
+graph LR
+    subgraph LED_Task["vTaskLED Output"]
+        Trigger[Trigger<br/>semSoundLED<br/>Binary Semaphore<br/>Signal from Detect]
+
+        Loop[Loop<br/>Period: 50ms<br/>Priority: 1<br/>Continuous]
+
+        CheckState[Check State<br/>Read led_state<br/>Read timestamp<br/>Compare current]
+
+        Control[Control GPIO<br/>Pins: 25,26,27<br/>Type: Output<br/>Mode: Push-pull]
+    end
+
+    subgraph RGB_Hardware["RGB LED Hardware"]
+        GPIO[GPIO 25,26,27<br/>ESP32 GPIO<br/>Direction: OUT<br/>Drive strength: High]
+
+        RGB_HW[RGB LED HW<br/>Anode: GPIO 25,26,27<br/>Cathode: GND<br/>Type: Common Cathode<br/>Colors: R,G,B]
+
+        State[RGB State<br/>RED: 100,0,0<br/>GREEN: 0,100,0<br/>Duration: 1000ms]
+    end
+
+    subgraph LED_Logic["LED Logic"]
+        TurnRED[Turn RED<br/>digitalWrite 25 HIGH<br/>digitalWrite 26 LOW<br/>digitalWrite 27 LOW<br/>Set: led_state=false]
+
+        TurnGREEN[Turn GREEN<br/>digitalWrite 25 LOW<br/>digitalWrite 26 HIGH<br/>digitalWrite 27 LOW<br/>Set: led_state=true]
+
+        Timeout[Timeout Check<br/>led_turn_off_time<br/>Current time<br/>Compare: >=]
+    end
+
+    Trigger --> Loop
+    Loop --> CheckState
+    CheckState --> Control
+
+    Control --> GPIO
+    GPIO --> RGB_HW
+    RGB_HW --> State
+
+    State -->|signal received| TurnGREEN
+    TurnGREEN --> GPIO
+
+    State -->|timeout reached| Timeout
+    Timeout --> TurnRED
+    TurnRED --> GPIO
+
+    Time[Timing<br/>ON duration: 1000ms<br/>Check interval: 50ms<br/>Priority: Low]
+
+    Loop --> Time

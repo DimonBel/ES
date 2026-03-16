@@ -1,0 +1,22 @@
+graph TB
+    subgraph Application["Application Layer"]
+        AppTasks[Detect, Temperature,<br/>Display, LED]
+    end
+
+    subgraph HAL["Hardware Abstraction Layer"]
+        HWSound[Sound Sensor]
+        HWTemp[DS18B20]
+        HWRGB[RGB LED]
+        HWLCD[LCD]
+    end
+
+    subgraph FreeRTOS["FreeRTOS Kernel"]
+        RTOSTasks[Task]
+        RTOSMutex[Mutex]
+        RTOSSem[Semaphore]
+    end
+
+    Application -->|uses| HAL
+    Application -->|creates| FreeRTOS
+
+    note{4 Tasks:<br/>20ms, 100ms,<br/>100ms, Continuous}

@@ -1,0 +1,11 @@
+stateDiagram-v2
+    [*] --> Request
+
+    Request --> Wait: requestTemperature()
+    Wait --> Wait: waitCycles++
+    Wait --> Read: waitCycles >= 8
+
+    Read --> Filter: getTemperature()
+    Filter --> Update: median calculation
+    Update --> Signal: update SharedData
+    Signal --> Request: semTempDisplay.give()

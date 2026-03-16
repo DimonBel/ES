@@ -1,0 +1,14 @@
+flowchart TD
+    Start((Start)) --> TimeoutCheck{timeout<br/>reached?}
+    TimeoutCheck -->|yes| TurnRED[Turn RGB RED]
+    TurnRED --> SemaphoreCheck
+
+    TimeoutCheck -->|no| SemaphoreCheck
+
+    SemaphoreCheck{semaphore<br/>signaled?}
+    SemaphoreCheck -->|yes| TurnGREEN[Turn RGB GREEN]
+    TurnGREEN --> Delay[Delay 50ms]
+
+    SemaphoreCheck -->|no| Delay
+    Delay --> Loop((Loop back))
+    Loop --> TimeoutCheck

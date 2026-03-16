@@ -1,0 +1,29 @@
+gantt
+    title Dual Sensor System Timeline (Single Clap Event)
+    dateFormat s
+    axisFormat %Ss
+
+    section vTaskDetect
+    Read Sensors        :0, 0.02
+    Check Threshold     :0.02, 0.02
+    Update SharedData   :0.04, 0.01
+    Signal Semaphores   :0.05, 0.01
+
+    section vTaskTemperature
+    Request Conversion  :0, 0.01
+    Wait 800ms         :0.01, 0.8
+    Read Temperature    :0.81, 0.01
+    Median Filter       :0.82, 0.01
+    Signal Display      :0.83, 0.01
+
+    section vTaskDisplay
+    Show Temperature    :0, 2
+    Show Sound Level    :0, 2
+    Show Temperature    :2, 5
+
+    section vTaskLED
+    Set RED (idle)      :0, 0.01
+    Set GREEN (clap)    :0, 0.01
+    Wait 1s             :0.01, 1
+    Set RED (timeout)   :1.01, 0.01
+    Set RED (idle)      :1.02, 5

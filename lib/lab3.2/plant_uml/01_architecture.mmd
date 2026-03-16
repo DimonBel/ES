@@ -1,0 +1,31 @@
+graph TB
+    subgraph Hardware["Hardware Components"]
+        Sound[Sound Sensor<br/>D0:12, A0:34]
+        Temp[DS18B20<br/>Temp Sensor<br/>Pin:4]
+        RGB[RGB LED<br/>R:25, G:26, B:27]
+        LCD[LCD<br/>I2C:21/22]
+    end
+
+    subgraph Tasks["FreeRTOS Tasks"]
+        Detect[vTaskDetect<br/>20ms, P3]
+        TempTask[vTaskTemperature<br/>100ms, P3]
+        Display[vTaskDisplay<br/>100ms, P2]
+        LEDTask[vTaskLED<br/>Continuous, P1]
+    end
+
+    subgraph Sync["Synchronization"]
+        Sem[Semaphores]
+        Mutex[Mutex]
+    end
+
+    Sound -->|reads| Detect
+    Temp -->|reads| TempTask
+    Detect -->|signals| Sem
+    TempTask -->|signals| Sem
+    Sem -->|triggers| Display
+    Sem -->|triggers| LEDTask
+    Display -->|locks| Mutex
+    Display -->|updates| LCD
+    LEDTask -->|controls| RGB
+
+    note1{Thresh: 1500<br/>Min Interval: 5s<br/>Temp: 12-bit<br/>Filter: Median}

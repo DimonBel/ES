@@ -1,0 +1,18 @@
+flowchart TD
+    Start((Start)) --> Wait[Wait 100ms]
+    Wait --> State{state?}
+
+    State -->|Not requested| Request[Request conversion]
+    Request --> SetState1[Set state=Wait<br/>Reset cycles]
+    SetState1 --> Loop((Loop back))
+
+    State -->|Wait| CheckCycles{8 cycles<br/>elapsed?}
+    CheckCycles -->|no| Increment[Increment cycles]
+    Increment --> Loop
+
+    CheckCycles -->|yes| Read[Read temperature]
+    Read --> Filter[Apply median filter]
+    Filter --> Update[Update SharedData]
+    Update --> SignalTemp[Signal Display]
+    SignalTemp --> SetState0[Set state=Request]
+    SetState0 --> Loop

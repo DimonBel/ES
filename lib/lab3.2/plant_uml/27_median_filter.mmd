@@ -1,0 +1,13 @@
+flowchart TD
+    Start((Start)) --> Add[Add new temp<br/>to buffer]
+    Add --> Index[Update index<br/>(index + 1) % 5]
+    Index --> Copy[Copy buffer to<br/>sorted array]
+    Copy --> Sort1[Pass 1: Sort<br/>Compare & swap]
+    Sort1 --> Sort2[Pass 2: Sort<br/>Compare & swap]
+    Sort2 --> Sort3[Pass 3: Sort<br/>Compare & swap]
+    Sort3 --> Sort4[Pass 4: Sort<br/>Compare & swap]
+    Sort4 --> Median[Pick middle<br/>index 2]
+    Median --> Output[Return filtered<br/>temperature]
+    Output --> End((End))
+
+    note1{Example:<br/>Raw: 26.5, 30.2, 26.3, 26.4, 26.6<br/>Sorted: 26.3, 26.4, 26.5, 26.6, 30.2<br/>Median: 26.5°C}

@@ -1,0 +1,80 @@
+sequenceDiagram
+    participant D as vTaskDisplay
+    participant SD as SharedData
+    participant M as lcdMutex
+    participant LCD as LcdI2c
+    participant I2C as I2C Bus
+
+    Note over D,I2C: Every 100ms cycle
+
+    D->>D: Wait 100ms
+    D-->>D: elapsed (bool)
+
+    D->>SD: Check last_sound_time
+    SD-->>D: timestamp (uint32)
+
+    alt < 2 seconds since clap
+        D->>D: Format sound string<br/>"Sound --> %d"
+        D-->>D: formatted (char*)
+    else >= 2 seconds
+        D->>SD: Check temperature_available
+        SD-->>D: available (bool)
+
+        alt Temperature available
+            D->>SD: Read temperature
+            SD-->>D: temp (float)
+
+            D->>SD: Read temperature_filtered
+            SD-->>D: filtered (float)
+
+            D->>D: Format temp strings<br/>"Temp: %.1f C"<br/>"Filt: %.1f C"
+            D-->>D: formatted (char*)
+        else Waiting for temp
+            D->>D: Format waiting<br/>"Temp: ---.- C"
+            D-->>D: formatted (char*)
+        end
+    end
+
+    D->>M: take(100ms)
+    activate M
+    M-->>D: true (success)
+    deactivate M
+
+    D->>LCD: setCursor(0, 0)
+    activate LCD
+    LCD->>I2C: I2C write 0x80
+    I2C-->>LCD: ACK
+    LCD-->>D: positioned (void)
+    deactivate LCD
+
+    D->>LCD: print(line1)
+    activate LCD
+    loop Each character
+        LCD->>I2C: I2C write character
+        I2C-->>LCD: ACK
+    end
+    LCD-->>D: written (int)
+    deactivate LCD
+
+    D->>LCD: setCursor(0, 1)
+    activate LCD
+    LCD->>I2C: I2C write 0xC0
+    I2C-->>LCD: ACK
+    LCD-->>D: positioned (void)
+    deactivate LCD
+
+    D->>LCD: print(line2)
+    activate LCD
+    loop Each character
+        LCD->>I2C: I2C write character
+        I2C-->>LCD: ACK
+    end
+    LCD-->>D: written (int)
+    deactivate LCD
+
+    D->>M: give()
+    activate M
+    M-->>D: released (bool)
+    deactivate M
+
+    Note over D,I2C: Wait until next 100ms period

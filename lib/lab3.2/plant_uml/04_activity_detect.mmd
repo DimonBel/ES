@@ -1,0 +1,17 @@
+flowchart TD
+    Start((Start)) --> Wait[Wait 20ms]
+    Wait --> Read[Read sensors<br/>Analog + Digital]
+    Read --> Edge{rising<br/>edge?}
+
+    Edge -->|yes| Interval{5s<br/>elapsed?}
+
+    Interval -->|yes| Increment[Increment count]
+    Increment --> UpdateTime[Update timestamps]
+    UpdateTime --> SignalLED[Signal LED]
+    SignalLED --> SignalDisplay[Signal Display]
+    SignalDisplay --> ResetFlag[Reset edge flag]
+    ResetFlag --> Loop
+
+    Interval -->|no| ResetFlag
+    Edge -->|no| Loop((Loop back))
+    Loop --> Wait

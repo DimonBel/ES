@@ -1,0 +1,62 @@
+graph TB
+    subgraph Semaphores["Binary Semaphores"]
+        Sem1[semSoundDisplay<br/>Type: Binary Semaphore<br/>Handle: SemaphoreHandle_t<br/>Creator: Detect<br/>Waiter: Display<br/>Trigger: Sound event]
+
+        Sem2[semSoundLED<br/>Type: Binary Semaphore<br/>Handle: SemaphoreHandle_t<br/>Creator: Detect<br/>Waiter: LED<br/>Trigger: Sound event]
+
+        Sem3[semTempDisplay<br/>Type: Binary Semaphore<br/>Handle: SemaphoreHandle_t<br/>Creator: Temperature<br/>Waiter: Display<br/>Trigger: Temp ready]
+    end
+
+    subgraph Mutex["Mutex Protection"]
+        Mutex1[lcdMutex<br/>Type: Mutex<br/>Handle: SemaphoreHandle_t<br/>Protects: I2C LCD<br/>Timeout: 100ms<br/>Owner: Display]
+    end
+
+    subgraph Operations["Semaphore Operations"]
+        Give[Give (signal)<br/>xSemaphoreGive<br/>Return: pdTRUE<br/>Unblocks task<br/>Non-blocking]
+
+        Take[Take (wait)<br/>xSemaphoreTake<br/>Return: pdTRUE/FALSE<br/>Timeout: specified<br/>Blocking]
+    end
+
+    subgraph Flow["Signal Flow"]
+        Detect[Detect Task<br/>Priority: 3<br/>Period: 20ms<br/>Signal giver]
+
+        Temp[Temperature Task<br/>Priority: 3<br/>Period: 800ms<br/>Signal giver]
+
+        Display[Display Task<br/>Priority: 2<br/>Period: 100ms<br/>Signal waiter<br/>Auto-switch logic]
+
+        LED[LED Task<br/>Priority: 1<br/>Continuous<br/>Signal waiter<br/>Max wait: 0ms]
+    end
+
+    Detect -->|sound detected| Sem1
+    Detect -->|sound detected| Sem2
+
+    Temp -->|temp ready| Sem3
+
+    Sem1 -->|trigger| Display
+    Sem2 -->|trigger| LED
+    Sem3 -->|trigger| Display
+
+    Display -->|take| Sem1
+    Display -->|take| Sem3
+    LED -->|take| Sem2
+
+    Sem1 -->|give| Detect
+    Sem2 -->|give| Detect
+    Sem3 -->|give| Temp
+
+    Display -->|lock| Mutex1
+    Mutex1 -->|unlock| Display
+
+    Give --> Sem1
+    Take --> Sem1
+    Give --> Sem2
+    Take --> Sem2
+    Give --> Sem3
+    Take --> Sem3
+
+    Sync[Sync Pattern<br/>Detect: Signal (2 semaphores)<br/>Temp: Signal (1 semaphore)<br/>Display: Wait/Auto-switch<br/>LED: Wait/Control<br/>LCD: Lock/Write]
+
+    Detect --> Sync
+    Temp --> Sync
+    Display --> Sync
+    LED --> Sync

@@ -1,0 +1,37 @@
+graph TB
+    subgraph Detect_Task["vTaskDetect Processing"]
+        Read[Read Sensors<br/>Function: Call SoundSensor methods<br/>Calls: readDigital, readAnalog<br/>Returns: bool, uint16]
+
+        Edge[Rising Edge Detection<br/>Function: Check below→above<br/>Logic: value > 1500 && !wasAbove<br/>Returns: bool true/false]
+
+        Interval[Minimum Interval Check<br/>Function: Check 5 seconds<br/>Logic: now - last >= 5000ms<br/>Purpose: Allow temp display]
+
+        Update[Update SharedData<br/>Function: sound_count++<br/>led_state = true<br/>led_turn_off_time = now+1000ms<br/>last_sound_time = now]
+    end
+
+    subgraph Temp_Task["vTaskTemperature Processing"]
+        Request[Request Conversion<br/>Function: Start temp conv<br/>Call: requestTemperature<br/>Sets: wait cycles = 0]
+
+        WaitConversion[Wait for Conversion<br/>Function: Wait 8 cycles<br/>Logic: waitCycles < 8<br/>Duration: 800ms]
+
+        ReadTemp[Read Temperature<br/>Function: getTemperature<br/>Reads: 9 bytes<br/>Returns: float]
+
+        Filter[Median Filter<br/>Function: Filter 5 samples<br/>Logic: Sort and pick middle<br/>Removes: Outliers]
+    end
+
+    subgraph Constants["Configuration"]
+        Config[Constants<br/>SOUND_THRESHOLD: 1500<br/>MIN_INTERVAL: 5000ms<br/>TEMP_RESOLUTION: 12<br/>FILTER_SIZE: 5<br/>LED_TIMEOUT: 1000ms]
+    end
+
+    Read --> Edge
+    Edge --> Interval
+    Interval --> Update
+
+    Request --> WaitConversion
+    WaitConversion --> ReadTemp
+    ReadTemp --> Filter
+
+    Config --> Edge
+    Config --> Interval
+    Config --> Request
+    Config --> Filter
