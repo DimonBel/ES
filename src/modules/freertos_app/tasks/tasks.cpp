@@ -13,7 +13,13 @@ void vTaskDetect(void *pvParameters) {
     (void)pvParameters;
     TickType_t xLastWakeTime = xTaskGetTickCount();
     const TickType_t xFrequency = pdMS_TO_TICKS(20);
-    static bool wasAboveThreshold = false;  // Track if sound was previously above threshold
+    static bool wasAboveThreshold = false;
+    static bool baselineInitialized = false;
+    static int32_t baseline = 0;
+    static TickType_t lastSoundActiveTime = 0;
+
+    const int32_t deviationThreshold = SOUND_THRESHOLD;
+    const TickType_t soundHoldTime = pdMS_TO_TICKS(250);
 
     for (;;) {
         vTaskDelayUntil(&xLastWakeTime, xFrequency);
@@ -27,57 +33,67 @@ void vTaskDetect(void *pvParameters) {
         uint16_t currentValue = soundSensor->readAnalog();
         sharedData.analog_value = currentValue;
 
-        uint32_t currentTime = xTaskGetTickCount();
-
-        // Trigger only when sound goes from below to above threshold (rising edge)
-        if (currentValue > SOUND_THRESHOLD && !wasAboveThreshold) {
-            wasAboveThreshold = true;
-
-            // Prevent too frequent triggers (minimum 5000ms between triggers)
-            if (currentTime - sharedData.last_sound_time >= pdMS_TO_TICKS(5000)) {
-                sharedData.sound_count++;
-                sharedData.last_sound_time = currentTime;
-                sharedData.led_state = true;
-                sharedData.led_turn_off_time = currentTime + pdMS_TO_TICKS(1000);
-
-                semSoundDisplay.give();
-                semSoundLED.give();
-
-                printf("[DETECT] Sound detected! Analog: %d, Threshold: %d\n",
-                       currentValue, SOUND_THRESHOLD);
-            }
+        if (!baselineInitialized) {
+            baseline = static_cast<int32_t>(currentValue);
+            baselineInitialized = true;
         }
 
-        // Reset flag when sound goes below threshold
-        if (currentValue <= SOUND_THRESHOLD) {
-            wasAboveThreshold = false;
+        const int32_t sample = static_cast<int32_t>(currentValue);
+        const int32_t deviation = sample - baseline;
+        const int32_t absDeviation = deviation < 0 ? -deviation : deviation;
+
+        const TickType_t currentTime = xTaskGetTickCount();
+
+        const bool instantSound = absDeviation >= deviationThreshold;
+        if (instantSound) {
+            lastSoundActiveTime = currentTime;
         }
+
+        const bool soundActive = (currentTime - lastSoundActiveTime) < soundHoldTime;
+
+        // Real-time sound state used by display and LED tasks.
+        sharedData.sound_detected = soundActive;
+        sharedData.threshold_exceeded = soundActive;
+        sharedData.led_state = soundActive;
+
+        // Adapt baseline slowly to ambient noise when no sound is active.
+        if (!soundActive) {
+            baseline = (baseline * 31 + sample) / 32;
+        }
+
+        // Count events on rising edge with short debounce.
+        if (soundActive && !wasAboveThreshold &&
+            (currentTime - sharedData.last_sound_time) >= pdMS_TO_TICKS(SOUND_DEBOUNCE_TIME)) {
+            sharedData.sound_count++;
+            sharedData.last_sound_time = currentTime;
+            printf("[DETECT] Sound active. Analog: %d, Baseline: %ld, Delta: %ld, Threshold: %ld\n",
+                   currentValue,
+                   static_cast<long>(baseline),
+                   static_cast<long>(absDeviation),
+                   static_cast<long>(deviationThreshold));
+        }
+
+        wasAboveThreshold = soundActive;
     }
 }
 
 void vTaskDisplay(void *pvParameters) {
     (void)pvParameters;
     TickType_t xLastWakeTime = xTaskGetTickCount();
-    const TickType_t xFrequency = pdMS_TO_TICKS(100);  // Update every 100ms for faster response
-    const TickType_t soundDisplayDuration = pdMS_TO_TICKS(2000);  // Show sound for 2 seconds
+    const TickType_t xFrequency = pdMS_TO_TICKS(100);
 
     for (;;) {
         vTaskDelayUntil(&xLastWakeTime, xFrequency);
 
         char line1[16];
         char line2[16];
-        TickType_t currentTime = xTaskGetTickCount();
-        bool showSound = false;
 
-        // Check if we should display sound (if clap was detected recently)
-        if ((currentTime - sharedData.last_sound_time) < soundDisplayDuration) {
-            showSound = true;
-            // Display sound level without percentages
+        // Show sound data immediately while sound is active.
+        if (sharedData.sound_detected) {
             snprintf(line1, sizeof(line1), "Sound --> %d", sharedData.analog_value);
-            snprintf(line2, sizeof(line2), "Clap!");
+            snprintf(line2, sizeof(line2), "Active");
             printf("[DISPLAY] Showing sound: %s / %s\n", line1, line2);
         } else {
-            // Display temperature
             if (sharedData.temperature_available) {
                 snprintf(line1, sizeof(line1), "Temp: %.1f C", sharedData.temperature);
                 snprintf(line2, sizeof(line2), "Filt: %.1f C", sharedData.temperature_filtered);
@@ -95,24 +111,20 @@ void vTaskDisplay(void *pvParameters) {
 
 void vTaskLED(void *pvParameters) {
     (void)pvParameters;
-    for (;;) {
-        uint32_t currentTime = xTaskGetTickCount();
+    bool wasSoundActive = false;
 
-        // Check if RGB LED should be turned back to red (1-second timeout after clap)
-        if (sharedData.led_state && currentTime >= sharedData.led_turn_off_time) {
-            sharedData.led_state = false;
-            if (rgbLed) {
+    for (;;) {
+        const bool soundActive = sharedData.led_state;
+
+        if (rgbLed && (soundActive != wasSoundActive)) {
+            if (soundActive) {
+                rgbLed->green();
+                printf("[LED] RGB LED GREEN (sound active)\n");
+            } else {
                 rgbLed->red();
                 printf("[LED] RGB LED RED (idle)\n");
             }
-        }
-
-        // Turn RGB LED green when clap signal received
-        if (semSoundLED.take(0)) {
-            if (rgbLed && sharedData.led_state) {
-                rgbLed->green();
-                printf("[LED] RGB LED GREEN (clap detected)\n");
-            }
+            wasSoundActive = soundActive;
         }
 
         kernel_primitives::delayMs(50);

@@ -22,7 +22,7 @@ const UBaseType_t TASK_PRIORITY_DISPLAY = tskIDLE_PRIORITY + 2;
 const UBaseType_t TASK_PRIORITY_LED = tskIDLE_PRIORITY + 1;
 const UBaseType_t TASK_PRIORITY_TEMP = tskIDLE_PRIORITY + 3;
 
-const uint16_t SOUND_THRESHOLD = 1500;
+const uint16_t SOUND_THRESHOLD = 120;
 const uint16_t SOUND_HYSTERESIS = 50;
 const uint32_t SOUND_DEBOUNCE_TIME = 50;
 
