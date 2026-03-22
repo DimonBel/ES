@@ -24,8 +24,18 @@ void vTaskActuatorControl(void *pvParameters) {
             continue;
         }
 
-        // Read button state
+        // Read button state and joystick
         bool buttonPressed = (digitalRead(BUTTON_PIN) == LOW);
+        
+        if (joystick != nullptr) {
+            joystick->scan();
+            if (joystick->wasPressed()) {
+                sharedData.actuator_command = !sharedData.actuator_state; // Toggle on joystick press
+                sharedData.actuator_command_time = millis();
+                printf("[ACTUATOR_CTRL] Joystick press: %s\n", sharedData.actuator_command ? "ON" : "OFF");
+            }
+        }
+        
         uint32_t currentTime = millis();
 
         // Check for serial commands
@@ -105,7 +115,7 @@ void vTaskSignalConditioning(void *pvParameters) {
         // Update shared data
         sharedData.actuator_conditioned = conditionedSignal;
 
-        // Control actuator based on conditioned signal
+        // Control actuator and LED based on conditioned signal
         if (conditionedSignal != sharedData.actuator_state) {
             // State changed
             sharedData.actuator_state = conditionedSignal;
@@ -113,8 +123,10 @@ void vTaskSignalConditioning(void *pvParameters) {
 
             if (conditionedSignal) {
                 actuator->turnOn();
+                if (led != nullptr) led->on();
             } else {
                 actuator->turnOff();
+                if (led != nullptr) led->off();
             }
         }
     }

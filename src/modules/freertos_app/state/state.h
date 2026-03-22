@@ -5,6 +5,8 @@
 #include "lcd/lcd.h"
 #include "actuator/actuator.h"
 #include "signal_conditioner/signal_conditioner.h"
+#include "joystick/joystick.h"
+#include "led/led.h"
 #include "kernel_primitives/mutex/mutex.h"
 #include "kernel_primitives/semaphore/binary_semaphore.h"
 
@@ -30,6 +32,12 @@ extern const uint8_t LCD_SCL_PIN;
 extern const uint8_t ACTUATOR_PIN;
 extern const uint8_t BUTTON_PIN;
 
+// Additional UI pins
+extern const uint8_t JOYSTICK_X_PIN;
+extern const uint8_t JOYSTICK_Y_PIN;
+extern const uint8_t JOYSTICK_SW_PIN;
+extern const uint8_t LED_PIN;
+
 // Task configuration
 extern const uint32_t TASK_STACK_SIZE;
 extern const UBaseType_t TASK_PRIORITY_DISPLAY;
@@ -46,6 +54,8 @@ extern const uint32_t DISPLAY_PERIOD_MS;
 extern LcdI2c *lcd;
 extern Actuator *actuator;          // Lab 4.1
 extern SignalConditioner *signalConditioner; // Lab 4.1
+extern Joystick *joystick;
+extern Led *led;
 
 // Synchronization primitives
 extern kernel_primitives::Mutex lcdMutex;

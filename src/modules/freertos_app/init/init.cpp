@@ -32,6 +32,15 @@ void setupApplication() {
     actuator->begin();
     printf("Actuator initialized (OFF)\n");
 
+    // Initialize UI components
+    joystick = new Joystick(JOYSTICK_X_PIN, JOYSTICK_Y_PIN, JOYSTICK_SW_PIN);
+    joystick->begin();
+    printf("Joystick initialized\n");
+
+    led = new Led(LED_PIN);
+    led->begin();
+    printf("LED initialized (OFF)\n");
+
     // Initialize Signal Conditioner
     signalConditioner = new SignalConditioner();
     printf("Signal conditioner initialized\n");
