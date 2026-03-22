@@ -29,8 +29,9 @@ void vTaskDetect(void *pvParameters) {
             continue;
         }
 
-        // Read analog value
-        uint16_t currentValue = soundSensor->readAnalog();
+        // Read conditioned analog value (saturation + median + weighted average)
+        uint16_t currentValue = soundSensor->readConditionedAnalog();
+        uint16_t rawValue = soundSensor->getRawAnalogValue();
         sharedData.analog_value = currentValue;
 
         if (!baselineInitialized) {
@@ -66,7 +67,8 @@ void vTaskDetect(void *pvParameters) {
             (currentTime - sharedData.last_sound_time) >= pdMS_TO_TICKS(SOUND_DEBOUNCE_TIME)) {
             sharedData.sound_count++;
             sharedData.last_sound_time = currentTime;
-            printf("[DETECT] Sound active. Analog: %d, Baseline: %ld, Delta: %ld, Threshold: %ld\n",
+                 printf("[DETECT] Sound active. Raw: %d, Filtered: %d, Baseline: %ld, Delta: %ld, Threshold: %ld\n",
+                     rawValue,
                    currentValue,
                    static_cast<long>(baseline),
                    static_cast<long>(absDeviation),
