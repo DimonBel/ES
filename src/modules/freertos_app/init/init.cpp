@@ -13,44 +13,30 @@ void setupApplication() {
     Serial.begin(115200);
     kernel_primitives::delayMs(2000);
 
-    printf("\n=== LAB 3.2 - Dual Sensor Monitoring ===\n");
-    printf("Sound Sensor: D0=%d, A0=%d\n", SOUND_SENSOR_D0_PIN, SOUND_SENSOR_A0_PIN);
-    printf("Temp Sensor: DS18B20 on pin %d\n", DS18B20_PIN);
-    printf("LED: %d\n", LED_PIN);
-    printf("RGB LED: R=%d, G=%d, B=%d\n", RGB_LED_R_PIN, RGB_LED_G_PIN, RGB_LED_B_PIN);
+    printf("\n=====================================\n");
+    printf("=== LAB 4.1 - Binary Actuator Control ===\n");
+    printf("=====================================\n");
+    printf("Actuator: Relay on pin %d\n", ACTUATOR_PIN);
+    printf("Button: GPIO %d\n", BUTTON_PIN);
     printf("LCD: I2C SDA=%d, SCL=%d (0x27)\n", LCD_SDA_PIN, LCD_SCL_PIN);
-    printf("==========================================\n");
+    printf("=====================================\n");
+    printf("\nControl Commands (Serial):\n");
+    printf("  'on'  - Turn actuator ON\n");
+    printf("  'off' - Turn actuator OFF\n");
+    printf("  'toggle' - Toggle actuator state\n");
+    printf("  'status' - Display current state\n");
+    printf("=====================================\n\n");
 
-    led = new Led(LED_PIN);
-    led->begin();
-    led->off();
-    printf("LED initialized\n");
+    // Initialize Actuator (Relay)
+    actuator = new Actuator(ACTUATOR_PIN);
+    actuator->begin();
+    printf("Actuator initialized (OFF)\n");
 
-    // Initialize RGB LED and set it to red
-    rgbLed = new RgbLed(RGB_LED_R_PIN, RGB_LED_G_PIN, RGB_LED_B_PIN);
-    rgbLed->begin();
-    rgbLed->red();
-    printf("RGB LED initialized (RED)\n");
+    // Initialize Signal Conditioner
+    signalConditioner = new SignalConditioner();
+    printf("Signal conditioner initialized\n");
 
-    soundSensor = new SoundSensor(SOUND_SENSOR_D0_PIN, SOUND_SENSOR_A0_PIN);
-    soundSensor->begin();
-    soundSensor->setThreshold(SOUND_THRESHOLD);
-    soundSensor->setHysteresis(SOUND_HYSTERESIS);
-    printf("Sound sensor initialized\n");
-    printf("  Threshold: %d\n", SOUND_THRESHOLD);
-    printf("  Hysteresis: %d\n", SOUND_HYSTERESIS);
-
-    // Initialize DS18B20 temperature sensor
-    tempSensor = new DS18B20(DS18B20_PIN);
-    tempSensor->begin();
-    tempSensor->setResolution(12);  // 12-bit resolution (0.0625°C precision)
-    printf("DS18B20 temperature sensor initialized\n");
-    printf("  Resolution: 12 bits\n");
-
-    printf("Testing LED...\n");
-    if (led) { led->on(); kernel_primitives::delayMs(200); led->off(); }
-    printf("LED test complete\n");
-
+    // Initialize LCD
     printf("Initializing LCD...\n");
     kernel_primitives::delayMs(200);
     lcd = new LcdI2c(0x27, 16, 2);
@@ -58,7 +44,7 @@ void setupApplication() {
         lcd->begin();
         kernel_primitives::delayMs(500);
         lcd->setCursor(0, 0);
-        lcd->print("Dual Sensor");
+        lcd->print("Actuator Ctrl");
         kernel_primitives::delayMs(100);
         lcd->setCursor(0, 1);
         lcd->print("System Ready");
@@ -67,6 +53,16 @@ void setupApplication() {
     } else {
         printf("ERROR: Failed to create LCD object!\n");
     }
+
+    // Initialize shared data
+    sharedData.actuator_command = false;
+    sharedData.actuator_state = false;
+    sharedData.actuator_conditioned = false;
+    sharedData.actuator_command_time = 0;
+    sharedData.actuator_toggle_count = 0;
+    sharedData.serial_command_received = false;
+    sharedData.serial_command_index = 0;
+    memset(sharedData.serial_command_buffer, 0, sizeof(sharedData.serial_command_buffer));
 
     if (!initSyncPrimitives()) {
         printf("ERROR: Failed to create semaphores/mutex!\n");
@@ -78,12 +74,12 @@ void setupApplication() {
     if (createApplicationTasks()) {
         printf("=== FREE-RTOS SCHEDULER STARTED ===\n");
         printf("Tasks running:\n");
-        printf("  - Detect (priority %d)\n", TASK_PRIORITY_DETECT);
-        printf("  - Display (priority %d)\n", TASK_PRIORITY_DISPLAY);
-        printf("  - LED (priority %d)\n", TASK_PRIORITY_LED);
-        printf("  - Temperature (priority %d)\n", TASK_PRIORITY_TEMP);
+        printf("  - Actuator Control (priority %d, period: %dms)\n", TASK_PRIORITY_ACTUATOR, ACTUATOR_CONTROL_PERIOD_MS);
+        printf("  - Signal Conditioning (priority %d)\n", TASK_PRIORITY_CONDITIONING);
+        printf("  - Display (priority %d, period: %dms)\n", TASK_PRIORITY_DISPLAY, DISPLAY_PERIOD_MS);
         printf("=====================================\n");
-        printf("Dual sensor monitoring active...\n\n");
+        printf("Binary actuator control active...\n\n");
+        printf("Waiting for commands...\n\n");
     } else {
         printf("ERROR: Failed to create tasks!\n");
         while (1);

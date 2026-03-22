@@ -9,79 +9,113 @@
 
 namespace freertos_app::internal {
 
-void vTaskDetect(void *pvParameters) {
+void vTaskActuatorControl(void *pvParameters) {
     (void)pvParameters;
     TickType_t xLastWakeTime = xTaskGetTickCount();
-    const TickType_t xFrequency = pdMS_TO_TICKS(20);
+    const TickType_t xFrequency = pdMS_TO_TICKS(ACTUATOR_CONTROL_PERIOD_MS);
+
+    printf("[ACTUATOR_CTRL] Task started (period: %dms)\n", ACTUATOR_CONTROL_PERIOD_MS);
 
     for (;;) {
         vTaskDelayUntil(&xLastWakeTime, xFrequency);
 
-        if (soundSensor == nullptr) {
+        if (actuator == nullptr || signalConditioner == nullptr) {
             kernel_primitives::delayMs(100);
             continue;
         }
 
-        // Read analog value
-        uint16_t currentValue = soundSensor->readAnalog();
-        sharedData.analog_value = currentValue;
+        // Read button state
+        bool buttonPressed = (digitalRead(BUTTON_PIN) == LOW);
+        uint32_t currentTime = millis();
 
-        // Read digital value for sound detection
-        bool soundDetected = soundSensor->isSoundDetected();
-        uint32_t currentTime = xTaskGetTickCount();
+        // Check for serial commands
+        if (sharedData.serial_command_received) {
+            sharedData.serial_command_received = false;
+            sharedData.actuator_command_time = currentTime;
 
-        // Threshold detection with hysteresis
-        bool currentThresholdState = false;
-        if (sharedData.led_state) {
-            // LED is ON, require value below (threshold - hysteresis) to turn off
-            currentThresholdState = (currentValue > (SOUND_THRESHOLD - SOUND_HYSTERESIS));
-        } else {
-            // LED is OFF, require value above threshold to turn on
-            currentThresholdState = (currentValue > SOUND_THRESHOLD);
+            const char* cmd = sharedData.serial_command_buffer;
+            printf("[ACTUATOR_CTRL] Serial command: %s\n", cmd);
+
+            if (strcmp(cmd, "on") == 0) {
+                sharedData.actuator_command = true;
+                printf("[ACTUATOR_CTRL] Command: ON\n");
+            } else if (strcmp(cmd, "off") == 0) {
+                sharedData.actuator_command = false;
+                printf("[ACTUATOR_CTRL] Command: OFF\n");
+            } else if (strcmp(cmd, "toggle") == 0) {
+                sharedData.actuator_command = !sharedData.actuator_state;
+                printf("[ACTUATOR_CTRL] Command: TOGGLE\n");
+            } else if (strcmp(cmd, "status") == 0) {
+                printf("[ACTUATOR_CTRL] Status: %s\n", actuator->getStateString());
+                printf("[ACTUATOR_CTRL] Conditioned: %s\n", sharedData.actuator_conditioned ? "ON" : "OFF");
+                printf("[ACTUATOR_CTRL] Toggle count: %lu\n", sharedData.actuator_toggle_count);
+            }
+
+            // Clear command buffer
+            memset(sharedData.serial_command_buffer, 0, sizeof(sharedData.serial_command_buffer));
+            sharedData.serial_command_index = 0;
         }
 
-        // Debounce: only change state if stable for minimum time
-        if (currentThresholdState != sharedData.threshold_exceeded) {
-            if (soundDetected || (currentTime - sharedData.last_sound_time >= pdMS_TO_TICKS(SOUND_DEBOUNCE_TIME))) {
-                sharedData.threshold_exceeded = currentThresholdState;
-                
-                if (sharedData.threshold_exceeded) {
-                    sharedData.sound_count++;
-                    sharedData.last_sound_time = currentTime;
-                    sharedData.led_state = true;
-                    sharedData.led_turn_off_time = currentTime + pdMS_TO_TICKS(1000);
-                    sharedData.task_state = 1;
-
-                    semSoundDisplay.give();
-                    semSoundLED.give();
-
-                    printf("[DETECT] Sound detected! Analog: %d, Threshold: %d\n", 
-                           currentValue, SOUND_THRESHOLD);
-                } else {
-                    sharedData.led_state = false;
-                    sharedData.task_state = 0;
-
-                    semSoundDisplay.give();
-
-                    printf("[DETECT] Sound level below threshold. Analog: %d\n", currentValue);
-                }
+        // Check button press for toggle
+        if (buttonPressed && !sharedData.actuator_state) {
+            // Button pressed while actuator is OFF - toggle to ON
+            kernel_primitives::delayMs(50);  // Simple debounce
+            if (digitalRead(BUTTON_PIN) == LOW) {
+                sharedData.actuator_command = true;
+                sharedData.actuator_command_time = currentTime;
+                printf("[ACTUATOR_CTRL] Button press: ON\n");
+            }
+        } else if (!buttonPressed && sharedData.actuator_state) {
+            // Button released while actuator is ON - toggle to OFF
+            kernel_primitives::delayMs(50);  // Simple debounce
+            if (digitalRead(BUTTON_PIN) == HIGH) {
+                sharedData.actuator_command = false;
+                sharedData.actuator_command_time = currentTime;
+                printf("[ACTUATOR_CTRL] Button release: OFF\n");
             }
         }
 
-        // Also check digital detection for immediate response
-        if (soundDetected && !sharedData.sound_detected) {
-            sharedData.sound_detected = true;
-            sharedData.sound_count++;
-            sharedData.last_sound_time = currentTime;
-            
-            // Trigger LED pulse for 1 second
-            sharedData.led_state = true;
-            sharedData.led_turn_off_time = currentTime + pdMS_TO_TICKS(1000);
-            semSoundLED.give();
-            
-            printf("[DETECT] Digital sound detected! Count: %lu\n", sharedData.sound_count);
-        } else if (!soundDetected) {
-            sharedData.sound_detected = false;
+        // Signal display task to update
+        semActuatorDisplay.give();
+    }
+}
+
+void vTaskSignalConditioning(void *pvParameters) {
+    (void)pvParameters;
+    TickType_t xLastWakeTime = xTaskGetTickCount();
+    const TickType_t xFrequency = pdMS_TO_TICKS(ACTUATOR_CONTROL_PERIOD_MS);
+
+    printf("[SIGNAL_COND] Task started (period: %dms)\n", ACTUATOR_CONTROL_PERIOD_MS);
+
+    for (;;) {
+        vTaskDelayUntil(&xLastWakeTime, xFrequency);
+
+        if (signalConditioner == nullptr || actuator == nullptr) {
+            kernel_primitives::delayMs(100);
+            continue;
+        }
+
+        // Apply signal conditioning
+        bool conditionedSignal = signalConditioner->conditionSignal(
+            sharedData.actuator_command,
+            ACTUATOR_DEBOUNCE_TIME_MS,
+            ACTUATOR_VALIDATION_TIME_MS
+        );
+
+        // Update shared data
+        sharedData.actuator_conditioned = conditionedSignal;
+
+        // Control actuator based on conditioned signal
+        if (conditionedSignal != sharedData.actuator_state) {
+            // State changed
+            sharedData.actuator_state = conditionedSignal;
+            sharedData.actuator_toggle_count++;
+
+            if (conditionedSignal) {
+                actuator->turnOn();
+            } else {
+                actuator->turnOff();
+            }
         }
     }
 }
@@ -89,7 +123,9 @@ void vTaskDetect(void *pvParameters) {
 void vTaskDisplay(void *pvParameters) {
     (void)pvParameters;
     TickType_t xLastWakeTime = xTaskGetTickCount();
-    const TickType_t xFrequency = pdMS_TO_TICKS(500);
+    const TickType_t xFrequency = pdMS_TO_TICKS(DISPLAY_PERIOD_MS);
+
+    printf("[DISPLAY] Task started (period: %dms)\n", DISPLAY_PERIOD_MS);
 
     for (;;) {
         vTaskDelayUntil(&xLastWakeTime, xFrequency);
@@ -97,112 +133,36 @@ void vTaskDisplay(void *pvParameters) {
         char line1[16];
         char line2[16];
 
-        // Display temperature
-        if (sharedData.temperature_available) {
-            snprintf(line1, sizeof(line1), "Temp: %.1f C", sharedData.temperature);
-            snprintf(line2, sizeof(line2), "Filt: %.1f C", sharedData.temperature_filtered);
-        } else {
-            snprintf(line1, sizeof(line1), "Temp: ---.- C");
-            snprintf(line2, sizeof(line2), "Waiting...");
-        }
+        // Wait for actuator display signal
+        if (semActuatorDisplay.take(pdMS_TO_TICKS(100))) {
+            // Display actuator state
+            const char* stateStr = sharedData.actuator_state ? "ON" : "OFF";
+            const char* cmdStr = sharedData.actuator_command ? "ON" : "OFF";
 
-        updateLCD(line1, line2);
-    }
-}
+            snprintf(line1, sizeof(line1), "Actuator: %s", stateStr);
+            snprintf(line2, sizeof(line2), "Cmd: %s Tog:%lu", cmdStr, sharedData.actuator_toggle_count);
 
-void vTaskLED(void *pvParameters) {
-    (void)pvParameters;
-    for (;;) {
-        uint32_t currentTime = xTaskGetTickCount();
-        
-        // Check if LED should be turned off (1-second timeout)
-        if (sharedData.led_state && currentTime >= sharedData.led_turn_off_time) {
-            sharedData.led_state = false;
-            if (led) {
-                led->off();
-                printf("[LED] LED OFF (timeout)\n");
-            }
-        }
-
-        // Turn on LED when signal received
-        if (semSoundLED.take(0)) {
-            if (led && sharedData.led_state) {
-                led->on();
-                printf("[LED] LED ON (sound detected)\n");
-            }
-        }
-
-        kernel_primitives::delayMs(50);
-    }
-}
-
-void vTaskTemperature(void *pvParameters) {
-    (void)pvParameters;
-    TickType_t xLastWakeTime = xTaskGetTickCount();
-    const TickType_t xFrequency = pdMS_TO_TICKS(100);  // 100ms period
-
-    for (;;) {
-        vTaskDelayUntil(&xLastWakeTime, xFrequency);
-
-        if (tempSensor == nullptr) {
-            kernel_primitives::delayMs(100);
-            continue;
-        }
-
-        // Request temperature conversion
-        tempSensor->requestTemperature();
-        
-        // Wait for conversion (DS18B20 takes ~750ms for 12-bit resolution)
-        // We'll read it in the next cycle
-        
-        // Read temperature (may return -127 if conversion not ready)
-        float temp = tempSensor->readTemperature();
-        
-        if (temp > -100.0f) {  // Valid temperature
-            sharedData.temperature = temp;
-            sharedData.temperature_available = true;
-            sharedData.last_temperature_time = xTaskGetTickCount();
-            
-            // Add to filter buffer (circular buffer)
-            sharedData.temperature_buffer[sharedData.temperature_buffer_index] = temp;
-            sharedData.temperature_buffer_index = (sharedData.temperature_buffer_index + 1) % 5;
-            
-            // Calculate median filter
-            float sorted[5];
-            for (int i = 0; i < 5; i++) {
-                sorted[i] = sharedData.temperature_buffer[i];
-            }
-            
-            // Simple bubble sort
-            for (int i = 0; i < 4; i++) {
-                for (int j = 0; j < 4 - i; j++) {
-                    if (sorted[j] > sorted[j + 1]) {
-                        float temp = sorted[j];
-                        sorted[j] = sorted[j + 1];
-                        sorted[j + 1] = temp;
-                    }
-                }
-            }
-            
-            // Median is the middle value
-            sharedData.temperature_filtered = sorted[2];
-            
-            // Signal display task to update
-            semTempDisplay.give();
-            
-            printf("[TEMP] Temperature: %.2f°C, Filtered: %.2f°C\n", 
-                   sharedData.temperature, sharedData.temperature_filtered);
+            updateLCD(line1, line2);
         }
     }
 }
 
 bool createApplicationTasks() {
-    bool detectCreated = kernel_primitives::createTask(
-        vTaskDetect,
-        "Detect",
+    bool actuatorCtrlCreated = kernel_primitives::createTask(
+        vTaskActuatorControl,
+        "ActuatorCtrl",
         TASK_STACK_SIZE,
         nullptr,
-        TASK_PRIORITY_DETECT,
+        TASK_PRIORITY_ACTUATOR,
+        nullptr
+    );
+
+    bool signalCondCreated = kernel_primitives::createTask(
+        vTaskSignalConditioning,
+        "SignalCond",
+        TASK_STACK_SIZE,
+        nullptr,
+        TASK_PRIORITY_CONDITIONING,
         nullptr
     );
 
@@ -215,25 +175,7 @@ bool createApplicationTasks() {
         nullptr
     );
 
-    bool ledCreated = kernel_primitives::createTask(
-        vTaskLED,
-        "LED",
-        TASK_STACK_SIZE,
-        nullptr,
-        TASK_PRIORITY_LED,
-        nullptr
-    );
-
-    bool tempCreated = kernel_primitives::createTask(
-        vTaskTemperature,
-        "Temperature",
-        TASK_STACK_SIZE,
-        nullptr,
-        TASK_PRIORITY_TEMP,
-        nullptr
-    );
-
-    return detectCreated && displayCreated && ledCreated && tempCreated;
+    return actuatorCtrlCreated && signalCondCreated && displayCreated;
 }
 
 }
