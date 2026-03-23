@@ -16,6 +16,8 @@ void vTaskActuatorControl(void *pvParameters) {
 
     printf("[ACTUATOR_CTRL] Task started (period: %dms)\n", ACTUATOR_CONTROL_PERIOD_MS);
 
+    bool lastButtonPressed = false; // Pentru detectarea muchiei (edge detection)
+
     for (;;) {
         vTaskDelayUntil(&xLastWakeTime, xFrequency);
 
@@ -44,7 +46,7 @@ void vTaskActuatorControl(void *pvParameters) {
             sharedData.actuator_command_time = currentTime;
 
             const char* cmd = sharedData.serial_command_buffer;
-            printf("[ACTUATOR_CTRL] Serial command: %s\n", cmd);
+            // printf("[ACTUATOR_CTRL] Serial command: %s\n", cmd);
 
             if (strcmp(cmd, "on") == 0) {
                 sharedData.actuator_command = true;
@@ -66,24 +68,17 @@ void vTaskActuatorControl(void *pvParameters) {
             sharedData.serial_command_index = 0;
         }
 
-        // Check button press for toggle
-        if (buttonPressed && !sharedData.actuator_state) {
-            // Button pressed while actuator is OFF - toggle to ON
+        // Check button press for toggle (Edge detection)
+        if (buttonPressed && !lastButtonPressed) {
+            // Butonul a fost abia apăsat
             kernel_primitives::delayMs(50);  // Simple debounce
             if (digitalRead(BUTTON_PIN) == LOW) {
-                sharedData.actuator_command = true;
+                sharedData.actuator_command = !sharedData.actuator_command; // Togglem starea
                 sharedData.actuator_command_time = currentTime;
-                printf("[ACTUATOR_CTRL] Button press: ON\n");
-            }
-        } else if (!buttonPressed && sharedData.actuator_state) {
-            // Button released while actuator is ON - toggle to OFF
-            kernel_primitives::delayMs(50);  // Simple debounce
-            if (digitalRead(BUTTON_PIN) == HIGH) {
-                sharedData.actuator_command = false;
-                sharedData.actuator_command_time = currentTime;
-                printf("[ACTUATOR_CTRL] Button release: OFF\n");
+                printf("[ACTUATOR_CTRL] Button toggled to: %s\n", sharedData.actuator_command ? "ON" : "OFF");
             }
         }
+        lastButtonPressed = buttonPressed; // Salvăm starea butonului pentru următoarea iterație
 
         // Signal display task to update
         semActuatorDisplay.give();
@@ -138,6 +133,10 @@ void vTaskDisplay(void *pvParameters) {
     const TickType_t xFrequency = pdMS_TO_TICKS(DISPLAY_PERIOD_MS);
 
     printf("[DISPLAY] Task started (period: %dms)\n", DISPLAY_PERIOD_MS);
+    
+    // Contor pentru a raporta o dată la 10 secunde / Report counter
+    uint32_t reportCounter = 0;
+    const uint32_t reportsPer10Seconds = 10000 / DISPLAY_PERIOD_MS;
 
     for (;;) {
         vTaskDelayUntil(&xLastWakeTime, xFrequency);
@@ -155,6 +154,18 @@ void vTaskDisplay(void *pvParameters) {
             snprintf(line2, sizeof(line2), "Cmd: %s Tog:%lu", cmdStr, sharedData.actuator_toggle_count);
 
             updateLCD(line1, line2);
+            
+            // Afisare raport la fiecare 10 secunde
+            reportCounter++;
+            if (reportCounter >= reportsPer10Seconds) {
+                printf("\n==================================\n");
+                printf("   [10s STATUS REPORT]\n");
+                printf(" - Actuator Cmd (STDIO) : %s\n", cmdStr);
+                printf(" - Actuator Real State  : %s\n", stateStr);
+                printf(" - Total Toggles        : %lu\n", sharedData.actuator_toggle_count);
+                printf("==================================\n\n");
+                reportCounter = 0; // reset counter
+            }
         }
     }
 }

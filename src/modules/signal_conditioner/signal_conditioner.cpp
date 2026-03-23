@@ -22,13 +22,13 @@ bool SignalConditioner::saturateSignal(int rawValue, int minValue, int maxValue,
     if (rawValue < minValue)
     {
         *saturatedValue = minValue;
-        printf("[SIGNAL_COND] Signal saturated: %d -> %d (below min)\n", rawValue, minValue);
+        // printf("[SIGNAL_COND] Signal saturated: %d -> %d (below min)\n", rawValue, minValue);
         return true;
     }
     else if (rawValue > maxValue)
     {
         *saturatedValue = maxValue;
-        printf("[SIGNAL_COND] Signal saturated: %d -> %d (above max)\n", rawValue, maxValue);
+        // printf("[SIGNAL_COND] Signal saturated: %d -> %d (above max)\n", rawValue, maxValue);
         return true;
     }
     else
@@ -48,7 +48,7 @@ bool SignalConditioner::debounceSignal(bool rawSignal, uint32_t debounceTimeMs)
     {
         _stateChangeTime = currentTime;
         _lastRawState = rawSignal;
-        printf("[DEBOUNCE] Signal changed to %d, starting debounce...\n", rawSignal);
+        // printf("[DEBOUNCE] Signal changed to %d, starting debounce...\n", rawSignal);
         return _conditionedState;  // Return previous state during debounce
     }
 
@@ -60,7 +60,7 @@ bool SignalConditioner::debounceSignal(bool rawSignal, uint32_t debounceTimeMs)
         {
             _conditionedState = rawSignal;
             _lastTransitionTime = currentTime;
-            printf("[DEBOUNCE] Debounce complete, new state: %d\n", _conditionedState);
+            // printf("[DEBOUNCE] Debounce complete, new state: %d\n", _conditionedState);
         }
         return _conditionedState;
     }
@@ -82,7 +82,7 @@ bool SignalConditioner::validatePersistentState(bool targetState, uint32_t valid
             _isValidating = true;
             _validationStartTime = currentTime;
             _pendingState = targetState;
-            printf("[VALIDATE] Starting validation for state %d...\n", targetState);
+            // printf("[VALIDATE] Starting validation for state %d...\n", targetState);
         }
         return _conditionedState;
     }
@@ -91,7 +91,7 @@ bool SignalConditioner::validatePersistentState(bool targetState, uint32_t valid
     if (_conditionedState != _pendingState)
     {
         _isValidating = false;
-        printf("[VALIDATE] State changed during validation, restarting...\n");
+        // printf("[VALIDATE] State changed during validation, restarting...\n");
         return _conditionedState;
     }
 
@@ -101,7 +101,7 @@ bool SignalConditioner::validatePersistentState(bool targetState, uint32_t valid
         // Validation complete, state is stable
         bool finalState = _pendingState;
         _isValidating = false;
-        printf("[VALIDATE] Validation complete, state confirmed: %d\n", finalState);
+        // printf("[VALIDATE] Validation complete, state confirmed: %d\n", finalState);
         return finalState;
     }
 
