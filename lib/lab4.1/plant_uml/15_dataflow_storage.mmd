@@ -1,0 +1,43 @@
+graph TB
+    subgraph Shared_Data["SharedData Structure"]
+        ActCmd[actuator_command<br/>Type: bool<br/>Purpose: Raw command from input<br/>Writer: vTaskActuatorControl<br/>Reader: vTaskSignalConditioning<br/>Values: true/false]
+        
+        ActState[actuator_state<br/>Type: bool<br/>Purpose: Current actuator state<br/>Writer: vTaskSignalConditioning<br/>Reader: vTaskDisplay<br/>Values: true/false]
+        
+        ActCond[actuator_conditioned<br/>Type: bool<br/>Purpose: Conditioned signal state<br/>Writer: vTaskSignalConditioning<br/>Reader: vTaskDisplay<br/>Values: true/false]
+        
+        CmdTime[actuator_command_time<br/>Type: uint32<br/>Purpose: Last command timestamp<br/>Writer: vTaskActuatorControl<br/>Reader: Debug<br/>Unit: ticks]
+        
+        ToggleCount[actuator_toggle_count<br/>Type: uint32<br/>Purpose: Total toggle count<br/>Writer: vTaskSignalConditioning<br/>Reader: vTaskDisplay]
+        
+        SerialRcv[serial_command_received<br/>Type: bool<br/>Purpose: Serial command flag<br/>Writer: main.cpp loop<br/>Reader: vTaskActuatorControl<br/>Values: true/false]
+        
+        SerialBuf[serial_command_buffer<br/>Type: char[16]<br/>Purpose: Command storage<br/>Writer: main.cpp loop<br/>Reader: vTaskActuatorControl<br/>Max: 15 chars + null]
+        
+        SerialIdx[serial_command_index<br/>Type: uint8<br/>Purpose: Buffer index<br/>Writer: main.cpp loop<br/>Reader: main.cpp loop<br/>Range: 0-15]
+    end
+
+    subgraph Memory["Memory Access"]
+        WriteActCtrl[Write: vTaskActuatorControl<br/>Period: 50ms<br/>Priority: 3<br/>Writes: actuator_command, cmd_time]
+        
+        WriteSigCond[Write: vTaskSignalConditioning<br/>Period: 50ms<br/>Priority: 3<br/>Writes: actuator_state, actuator_cond, toggle_count]
+        
+        WriteSerial[Write: main.cpp loop<br/>Period: Asynchronous<br/>Priority: N/A<br/>Writes: serial_buffer, serial_index, serial_received]
+        
+        ReadDisplay[Read: vTaskDisplay<br/>Period: 500ms<br/>Priority: 2<br/>Reads: actuator_state, actuator_cond, toggle_count]
+    end
+
+    WriteActCtrl -->|set| ActCmd
+    WriteActCtrl -->|set| CmdTime
+    
+    WriteSigCond -->|set| ActState
+    WriteSigCond -->|set| ActCond
+    WriteSigCond -->|increment| ToggleCount
+    
+    WriteSerial -->|write| SerialBuf
+    WriteSerial -->|set| SerialIdx
+    WriteSerial -->|set| SerialRcv
+    
+    ReadDisplay -->|read| ActState
+    ReadDisplay -->|read| ActCond
+    ReadDisplay -->|read| ToggleCount

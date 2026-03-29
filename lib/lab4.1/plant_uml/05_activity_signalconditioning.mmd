@@ -1,0 +1,25 @@
+flowchart TD
+    Start((Start)) --> Wait[Wait 50ms]
+    Wait --> ReadCmd[Read actuator_command]
+    ReadCmd --> ApplyCond[Apply signal conditioning]
+    ApplyCond --> CondSignal{conditioned<br/>signal?}
+
+    CondSignal --> CheckChanged{state<br/>changed?}
+    CheckChanged -->|no| Loop((Loop back))
+    Loop --> Wait
+
+    CheckChanged -->|yes| UpdateState[Update actuator_state]
+    UpdateState --> CheckSignal{signal<br/>true?}
+
+    CheckSignal -->|true| TurnON[Turn actuator ON]
+    TurnON --> LEDON[Turn LED ON]
+
+    CheckSignal -->|false| TurnOFF[Turn actuator OFF]
+    TurnOFF --> LEDOFF[Turn LED OFF]
+
+    LEDON --> IncCount[Increment toggle count]
+    LEDOFF --> IncCount
+
+    IncCount --> PrintState[Print: State changed]
+    PrintState --> UpdateShared[Update actuator_conditioned]
+    UpdateShared --> Loop

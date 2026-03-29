@@ -1,0 +1,37 @@
+graph TB
+    subgraph Stage1["Stage 1: Raw Input"]
+        Raw[Raw Command<br/>Type: bool<br/>Source: SharedData<br/>Value: true/false<br/>Timing: 50ms period]
+    end
+
+    subgraph Stage2["Stage 2: Debouncing"]
+        DebounceStart[Debounce Start<br/>Trigger: Signal change<br/>Action: Start 50ms timer]
+        
+        DebounceCheck[Debounce Check<br/>Condition: timer >= 50ms<br/>If true: Update debounce state<br/>If false: Return previous state]
+        
+        Debounced[Debounced Signal<br/>Type: bool<br/>Purpose: Filter noise<br/>Response: 50ms max delay]
+    end
+
+    subgraph Stage3["Stage 3: Validation"]
+        ValidateStart[Validation Start<br/>Trigger: Signal change<br/>Action: Start 100ms timer]
+        
+        ValidateCheck[Validation Check<br/>Condition: timer >= 100ms<br/>If true: Update validated state<br/>If false: Return previous state]
+        
+        Validated[Validated Signal<br/>Type: bool<br/>Purpose: Confirm stability<br/>Response: 100ms max delay]
+    end
+
+    subgraph Output["Final Output"]
+        Conditioned[Conditioned Signal<br/>Type: bool<br/>Total delay: 150ms max<br/>Usage: Hardware control]
+        
+        StateChanged[State Changed<br/>Condition: Validated != State<br/>Trigger: Hardware update]
+    end
+
+    Raw --> DebounceStart
+    DebounceStart --> DebounceCheck
+    DebounceCheck --> Debounced
+    Debounced --> ValidateStart
+    ValidateStart --> ValidateCheck
+    ValidateCheck --> Validated
+    Validated --> Conditioned
+    Conditioned --> StateChanged
+
+    note1{Timing:<br/>Debounce: 50ms<br/>Validation: 100ms<br/>Total: 150ms max}

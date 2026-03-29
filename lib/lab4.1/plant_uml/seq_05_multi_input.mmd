@@ -1,0 +1,19 @@
+sequenceDiagram
+    participant Btn as Button
+    participant JS as Joystick Button
+    participant Serial as Serial Command
+    participant Task as ActuatorControl Task
+    participant Data as SharedData
+
+    par Three input methods
+        Btn->>Task: Button press
+        and
+        JS->>Task: Joystick press
+        and
+        Serial->>Task: "toggle" command
+    end
+
+    Task->>Task: Unified processing
+    Task->>Data: Update actuator_command
+    Data-->>Task: Confirmed
+    Task->>Task: Trigger signal conditioning

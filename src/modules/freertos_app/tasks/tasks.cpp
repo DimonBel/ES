@@ -16,7 +16,8 @@ void vTaskActuatorControl(void *pvParameters) {
 
     printf("[ACTUATOR_CTRL] Task started (period: %dms)\n", ACTUATOR_CONTROL_PERIOD_MS);
 
-    bool lastButtonPressed = false; // Pentru detectarea muchiei (edge detection)
+    uint32_t lastButtonToggleTime = 0; // Pentru protecție împotriva "double-click"
+    bool lastJoystickState = false;
 
     for (;;) {
         vTaskDelayUntil(&xLastWakeTime, xFrequency);
@@ -26,19 +27,23 @@ void vTaskActuatorControl(void *pvParameters) {
             continue;
         }
 
-        // Read button state and joystick
-        bool buttonPressed = (digitalRead(BUTTON_PIN) == LOW);
-        
-        if (joystick != nullptr) {
-            joystick->scan();
-            if (joystick->wasPressed()) {
-                sharedData.actuator_command = !sharedData.actuator_state; // Toggle on joystick press
-                sharedData.actuator_command_time = millis();
-                printf("[ACTUATOR_CTRL] Joystick press: %s\n", sharedData.actuator_command ? "ON" : "OFF");
-            }
-        }
-        
         uint32_t currentTime = millis();
+        if (joystick != nullptr) {
+            joystick->scan(); 
+            bool joyPressNow = joystick->isPressed();
+            
+            // Folosim isPressed() în loc de wasPressed() pentru a avea control complet aici
+            if (joyPressNow && !lastJoystickState) {
+                // Aplicăm cooldown de 250ms (debouncing agresiv)
+                if ((currentTime - lastButtonToggleTime) > 250) {
+                    sharedData.actuator_command = !sharedData.actuator_command; // Togglem starea
+                    sharedData.actuator_command_time = currentTime;
+                    lastButtonToggleTime = currentTime;
+                    printf("[ACTUATOR_CTRL] Joystick explicitly toggled to: %s\n", sharedData.actuator_command ? "ON" : "OFF");
+                }
+            }
+            lastJoystickState = joyPressNow;
+        }
 
         // Check for serial commands
         if (sharedData.serial_command_received) {
@@ -67,18 +72,6 @@ void vTaskActuatorControl(void *pvParameters) {
             memset(sharedData.serial_command_buffer, 0, sizeof(sharedData.serial_command_buffer));
             sharedData.serial_command_index = 0;
         }
-
-        // Check button press for toggle (Edge detection)
-        if (buttonPressed && !lastButtonPressed) {
-            // Butonul a fost abia apăsat
-            kernel_primitives::delayMs(50);  // Simple debounce
-            if (digitalRead(BUTTON_PIN) == LOW) {
-                sharedData.actuator_command = !sharedData.actuator_command; // Togglem starea
-                sharedData.actuator_command_time = currentTime;
-                printf("[ACTUATOR_CTRL] Button toggled to: %s\n", sharedData.actuator_command ? "ON" : "OFF");
-            }
-        }
-        lastButtonPressed = buttonPressed; // Salvăm starea butonului pentru următoarea iterație
 
         // Signal display task to update
         semActuatorDisplay.give();
@@ -146,27 +139,101 @@ void vTaskDisplay(void *pvParameters) {
 
         // Wait for actuator display signal
         if (semActuatorDisplay.take(pdMS_TO_TICKS(100))) {
-            // Display actuator state
-            const char* stateStr = sharedData.actuator_state ? "ON" : "OFF";
-            const char* cmdStr = sharedData.actuator_command ? "ON" : "OFF";
+            // Display both actuator (binary) and servo (analog) states
+            const char* actuatorStateStr = sharedData.actuator_state ? "ON" : "OFF";
+            const char* actuatorCmdStr = sharedData.actuator_command ? "ON" : "OFF";
 
-            snprintf(line1, sizeof(line1), "Actuator: %s", stateStr);
-            snprintf(line2, sizeof(line2), "Cmd: %s Tog:%lu", cmdStr, sharedData.actuator_toggle_count);
+            // Display format: "Act:ON Serv:50%" and "Cmd:ON Tog:123"
+            snprintf(line1, sizeof(line1), "Act:%s Srv:%d%%", 
+                     actuatorStateStr, sharedData.servo_speed);
+            snprintf(line2, sizeof(line2), "Cmd:%s Tog:%lu", 
+                     actuatorCmdStr, sharedData.actuator_toggle_count);
 
             updateLCD(line1, line2);
             
             // Afisare raport la fiecare 10 secunde
             reportCounter++;
             if (reportCounter >= reportsPer10Seconds) {
-                printf("\n==================================\n");
-                printf("   [10s STATUS REPORT]\n");
-                printf(" - Actuator Cmd (STDIO) : %s\n", cmdStr);
-                printf(" - Actuator Real State  : %s\n", stateStr);
-                printf(" - Total Toggles        : %lu\n", sharedData.actuator_toggle_count);
-                printf("==================================\n\n");
+                printf("\n==========================================\n");
+                printf("       [10s DUAL ACTUATOR STATUS REPORT]\n");
+                printf(" Binary Actuator (Relay):\n");
+                printf("  - Command: %s\n", actuatorCmdStr);
+                printf("  - State:   %s\n", actuatorStateStr);
+                printf("  - Toggles: %lu\n", sharedData.actuator_toggle_count);
+                printf("\n Analog Actuator (Servo):\n");
+                printf("  - Speed:     %d%%\n", sharedData.servo_speed);
+                printf("  - Angle:     %d degrees\n", sharedData.servo_angle);
+                printf("  - Potentiometer: %d%%\n", sharedData.potentiometer_percent);
+                printf("==========================================\n\n");
                 reportCounter = 0; // reset counter
             }
         }
+    }
+}
+
+void vTaskServoControl(void *pvParameters) {
+    (void)pvParameters;
+    TickType_t xLastWakeTime = xTaskGetTickCount();
+    const TickType_t xFrequency = pdMS_TO_TICKS(SERVO_CONTROL_PERIOD_MS);
+
+    printf("[SERVO_CTRL] Task started (period: %dms)\n", SERVO_CONTROL_PERIOD_MS);
+
+    uint32_t lastServoUpdate = 0; // For cooldown
+
+    for (;;) {
+        vTaskDelayUntil(&xLastWakeTime, xFrequency);
+
+        if (servo == nullptr || potentiometer == nullptr) {
+            kernel_primitives::delayMs(100);
+            continue;
+        }
+
+        uint32_t currentTime = millis();
+
+        // Read potentiometer value
+        potentiometer->scan();
+        int potPercent = potentiometer->getPercentage();
+        int potRaw = potentiometer->getRaw();
+
+        // Update shared data
+        sharedData.potentiometer_raw = potRaw;
+        sharedData.potentiometer_percent = potPercent;
+
+        // Synchronize servo with relay state
+        sharedData.servo_enabled = sharedData.actuator_state;
+
+        if (!sharedData.servo_enabled) {
+            servo->stop();
+            actuator->setSpeed(0);
+        } else {
+            // Update DC motor speed (Actuator)
+            actuator->setSpeed(potPercent);
+
+            // Apply cooldown to prevent rapid changes for Servo
+            if ((currentTime - lastServoUpdate) >= SERVO_COOLDOWN_MS) {
+                // Only update servo if potentiometer value changed significantly
+                if (abs(potPercent - sharedData.servo_speed) > 2) { // Threshold: 2%
+                    sharedData.servo_speed = potPercent;
+                    sharedData.servo_command_time = currentTime;
+                    
+                    // Map speed to angle (0-100% -> 0-180 degrees)
+                    uint8_t angle = (potPercent * 180) / 100;
+                    sharedData.servo_angle = angle;
+
+                    // Control servo with ramping (smooth movement)
+                    servo->moveTo(angle, 2); // Ramp speed: 2 degrees per step
+
+                    lastServoUpdate = currentTime;
+                    printf("[CONTROL] Potentiometer: %d%% -> Angle: %d deg, Motor Speed: %d%%\n", 
+                        potPercent, angle, potPercent);
+                }
+            }
+            // Update servo for smooth movement
+            servo->update();
+        }
+
+        // Signal display task to update
+        semActuatorDisplay.give();
     }
 }
 
@@ -189,6 +256,15 @@ bool createApplicationTasks() {
         nullptr
     );
 
+    bool servoCtrlCreated = kernel_primitives::createTask(
+        vTaskServoControl,
+        "ServoCtrl",
+        TASK_STACK_SIZE,
+        nullptr,
+        TASK_PRIORITY_SERVO,
+        nullptr
+    );
+
     bool displayCreated = kernel_primitives::createTask(
         vTaskDisplay,
         "Display",
@@ -198,7 +274,7 @@ bool createApplicationTasks() {
         nullptr
     );
 
-    return actuatorCtrlCreated && signalCondCreated && displayCreated;
+    return actuatorCtrlCreated && signalCondCreated && servoCtrlCreated && displayCreated;
 }
 
 }

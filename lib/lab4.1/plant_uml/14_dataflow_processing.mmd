@@ -1,0 +1,57 @@
+graph TB
+    subgraph Actuator_Control_Task["vTaskActuatorControl Processing"]
+        Read[Read Inputs<br/>Function: digitalRead GPIO 18, 25<br/>Read serial buffer<br/>Returns: bool, char*]
+        
+        Edge[Edge Detection<br/>Function: Check rising edge<br/>Logic: current && !last<br/>Returns: bool true/false]
+        
+        Cooldown[Cooldown Check<br/>Function: Check time elapsed<br/>Logic: now - lastToggle > 250ms<br/>Purpose: Prevent double-click]
+        
+        Debounce[Simple Debounce<br/>Function: delayMs(50)<br/>Purpose: Verify button state]
+        
+        Parse[Parse Serial<br/>Function: Parse command string<br/>Commands: on, off, toggle, status<br/>Returns: action enum]
+        
+        UpdateCmd[Update Command<br/>Function: actuator_command = new_value<br/>Update command timestamp<br/>Signal display task]
+    end
+
+    subgraph Signal_Conditioning_Task["vTaskSignalConditioning Processing"]
+        ReadCmd[Read Command<br/>Function: Read actuator_command<br/>From: SharedData<br/>Type: bool]
+        
+        ApplyDebounce[Apply Debounce<br/>Function: SignalConditioner.debounce<br/>Time: 50ms<br/>Purpose: Filter noise]
+        
+        ApplyValidation[Apply Validation<br/>Function: SignalConditioner.validate<br/>Time: 100ms<br/>Purpose: Confirm stability]
+        
+        CheckChange[Check State Change<br/>Function: Compare conditioned vs state<br/>Logic: if changed -> update hardware]
+        
+        UpdateHW[Update Hardware<br/>Function: Turn actuator ON/OFF<br/>Turn LED ON/OFF<br/>Increment toggle count]
+    end
+
+    subgraph Timing["Timing Control"]
+        Timer1[50ms Timer<br/>Function: vTaskDelayUntil<br/>Returns: after 50ms<br/>Task: ActuatorControl]
+        
+        Timer2[50ms Timer<br/>Function: vTaskDelayUntil<br/>Returns: after 50ms<br/>Task: SignalConditioning]
+        
+        Timer3[500ms Timer<br/>Function: vTaskDelayUntil<br/>Returns: after 500ms<br/>Task: Display]
+    end
+
+    subgraph Constants["Configuration"]
+        Config[Constants<br/>BUTTON_COOLDOWN: 250ms<br/>ACTUATOR_DEBOUNCE: 50ms<br/>ACTUATOR_VALIDATION: 100ms<br/>ACTUATOR_CONTROL_PERIOD: 50ms<br/>SIGNAL_CONDITIONING_PERIOD: 50ms<br/>DISPLAY_PERIOD: 500ms]
+    end
+
+    Read --> Edge
+    Edge --> Cooldown
+    Cooldown --> Debounce
+    Debounce --> Parse
+    Parse --> UpdateCmd
+    
+    ReadCmd --> ApplyDebounce
+    ApplyDebounce --> ApplyValidation
+    ApplyValidation --> CheckChange
+    CheckChange --> UpdateHW
+    
+    Timer1 --> Read
+    Timer2 --> ReadCmd
+    Timer3 --> Read
+    
+    Config --> Cooldown
+    Config --> ApplyDebounce
+    Config --> ApplyValidation

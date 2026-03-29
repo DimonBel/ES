@@ -1,0 +1,27 @@
+graph LR
+    subgraph Hardware_Input["Hardware Input Layer"]
+        BTN[Button<br/>GPIO 18<br/>Function: Read digital<br/>Returns: HIGH/LOW<br/>ESP32 GPIO<br/>Internal pull-up]
+        
+        JS[Joystick Button<br/>GPIO 25<br/>Function: Read digital<br/>Returns: HIGH/LOW<br/>ESP32 GPIO<br/>Internal pull-up]
+        
+        JSX[Joystick X<br/>GPIO 34<br/>Function: Read analog<br/>Returns: 0-4095<br/>ESP32 ADC1_CH6]
+        
+        JSY[Joystick Y<br/>GPIO 35<br/>Function: Read analog<br/>Returns: 0-4095<br/>ESP32 ADC1_CH7]
+        
+        UART[Serial UART<br/>Function: Read characters<br/>Baud: 115200<br/>ESP32 UART0<br/>Commands: on/off/toggle/status]
+    end
+
+    subgraph HAL_Input["HAL Input Layer"]
+        Joystick[Joystick<br/>readX(): analogRead 34<br/>readY(): analogRead 35<br/>isPressed(): digitalRead 25<br/>_lastButtonState: bool<br/>_pressStartTime: uint32]
+    end
+
+    subgraph Task_Input["Task Input Layer"]
+        ActCtrl[vTaskActuatorControl<br/>Function: Read inputs<br/>Period: 50ms<br/>Priority: 3<br/>Methods: digitalRead, serial read]
+    end
+
+    BTN -->|HIGH/LOW| ActCtrl
+    JS -->|HIGH/LOW| ActCtrl
+    JSX -->|0-4095| Joystick
+    JSY -->|0-4095| Joystick
+    UART -->|characters| ActCtrl
+    Joystick -->|button state| ActCtrl

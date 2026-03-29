@@ -1,0 +1,17 @@
+sequenceDiagram
+    participant Task as Display Task
+    participant Sem as Semaphore
+    participant Data as SharedData
+    participant Mutex as Mutex
+    participant LCD as LCD Display
+
+    loop Every 500ms
+        Task->>Sem: Wait for signal (100ms timeout)
+        Task->>Data: Read state and count
+        Data-->>Task: Return data
+        Task->>Mutex: Acquire lock (100ms timeout)
+        Mutex-->>Task: Success
+        Task->>LCD: Update display
+        LCD-->>Task: Complete
+        Task->>Mutex: Release lock
+    end

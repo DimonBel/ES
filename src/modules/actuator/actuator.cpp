@@ -1,4 +1,6 @@
 #include "actuator.h"
+#include <Arduino.h>
+#include <stdio.h>
 
 Actuator::Actuator(uint8_t pin)
     : _pin(pin), _state(STATE_OFF), _lastToggleTime(0)
@@ -11,16 +13,17 @@ void Actuator::begin()
     digitalWrite(_pin, LOW);  // Initialize relay OFF
     _state = STATE_OFF;
     _lastToggleTime = millis();
-    printf("[ACTUATOR] Initialized on pin %d (OFF)\n", _pin);
+    printf("[ACTUATOR] Initialized on pin %d (Binary Relay Mode)\n", _pin);
 }
 
 void Actuator::turnOn()
 {
     if (_state != STATE_ON)
     {
-        digitalWrite(_pin, HIGH);  // Relay ON
-        setState(STATE_ON);
-        printf("[ACTUATOR] Turned ON (pin %d)\n", _pin);
+        _state = STATE_ON;
+        _lastToggleTime = millis();
+        digitalWrite(_pin, HIGH);  // Relay ON (Full power)
+        printf("[ACTUATOR] Relay ON (pin %d)\n", _pin);
     }
 }
 
@@ -28,9 +31,21 @@ void Actuator::turnOff()
 {
     if (_state != STATE_OFF)
     {
+        _state = STATE_OFF;
+        _lastToggleTime = millis();
         digitalWrite(_pin, LOW);  // Relay OFF
-        setState(STATE_OFF);
-        printf("[ACTUATOR] Turned OFF (pin %d)\n", _pin);
+        printf("[ACTUATOR] Relay OFF (pin %d)\n", _pin);
+    }
+}
+
+void Actuator::setSpeed(uint8_t percentage)
+{
+    // A mechanical relay cannot handle PWM speed control.
+    // We treat > 0% as ON and 0% as OFF.
+    if (percentage > 0) {
+        turnOn();
+    } else {
+        turnOff();
     }
 }
 
@@ -78,6 +93,9 @@ const char* Actuator::getStateString() const
 
 void Actuator::setState(State newState)
 {
-    _state = newState;
-    _lastToggleTime = millis();
+    if (newState == STATE_ON) {
+        turnOn();
+    } else {
+        turnOff();
+    }
 }

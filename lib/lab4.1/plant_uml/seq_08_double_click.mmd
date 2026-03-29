@@ -1,0 +1,17 @@
+sequenceDiagram
+    participant User as User
+    participant Task as ActuatorControl Task
+    participant Timer as Cooldown Timer
+
+    User->>Task: First press
+    Task->>Timer: Start timer (250ms)
+    Task->>Task: Execute toggle
+    Task-->>User: Response
+
+    User->>Task: Second press (100ms later)
+    Task->>Timer: Check time
+    Timer-->>Task: Not expired (100ms < 250ms)
+    Task->>Task: Ignore this press
+    Task-->>User: "Double-click prevented"
+
+    Note over User,Timer: Must wait 250ms before next trigger

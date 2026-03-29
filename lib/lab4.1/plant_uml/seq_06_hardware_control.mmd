@@ -1,0 +1,18 @@
+sequenceDiagram
+    participant Task as SignalConditioning Task
+    participant Act as Actuator
+    participant LED as LED Indicator
+    participant GPIO23 as GPIO 23
+    participant GPIO26 as GPIO 26
+
+    Task->>Act: turnOn()
+    Act->>GPIO23: digitalWrite(HIGH)
+    GPIO23-->>Act: Complete
+    Act-->>Task: Return
+
+    Task->>LED: on()
+    LED->>GPIO26: digitalWrite(HIGH)
+    GPIO26-->>LED: Complete
+    LED-->>Task: Return
+
+    Note over Task: Increment counter

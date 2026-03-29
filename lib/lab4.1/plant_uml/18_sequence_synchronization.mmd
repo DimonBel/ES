@@ -1,0 +1,112 @@
+sequenceDiagram
+    participant AC as vTaskActuatorControl
+    participant SD as SharedData
+    participant Sem as semActuatorDisplay
+    participant SC as vTaskSignalConditioning
+    participant SigCond as SignalConditioner
+    participant Act as Actuator<br/>GPIO 23
+    participant LED as Led<br/>GPIO 26
+    participant D as vTaskDisplay
+    participant M as lcdMutex
+
+    Note over AC,M: Command Input Event (50ms cycle)
+
+    AC->>AC: Read button GPIO 18
+    AC-->>AC: state (bool)
+    
+    AC->>AC: Check edge detection
+    AC-->>AC: edge (bool)
+    
+    AC->>AC: Check cooldown > 250ms
+    AC-->>AC: allowed (bool)
+
+    alt Button toggled
+        AC->>SD: actuator_command = !actuator_command
+        SD-->>AC: confirmed (bool)
+        
+        AC->>SD: actuator_command_time = now
+        SD-->>AC: timestamp (uint32)
+        
+        AC->>Sem: give()
+        Sem-->>AC: success (bool)
+
+        Note over Sem,D: Display task blocked on semaphore
+
+        opt Display task wakes (up to 100ms delay)
+            D->>Sem: take(100ms)
+            Sem-->>D: true (unblocked)
+            
+            D->>SD: Read actuator_state
+            SD-->>D: state (bool)
+            
+            D->>SD: Read actuator_command
+            SD-->>D: command (bool)
+            
+            D->>SD: Read actuator_toggle_count
+            SD-->>D: count (uint32)
+            
+            D->>M: take(100ms)
+            M-->>D: true (locked)
+            
+            D->>D: Format display strings
+            D-->>D: formatted (char*)
+            
+            D->>D: Update LCD
+            D-->>D: success (void)
+            
+            D->>M: give()
+            M-->>D: released (bool)
+        end
+
+        Note over SC,LED: Signal conditioning task reads command
+
+        SC->>SD: Read actuator_command
+        SD-->>SC: command (bool)
+        
+        SC->>SigCond: conditionSignal(command, 50, 100)
+        activate SigCond
+        
+        SigCond->>SigCond: Apply debounce (50ms)
+        SigCond->>SigCond: Apply validation (100ms)
+        SigCond-->>SC: conditioned (bool)
+        deactivate SigCond
+
+        alt Conditioned signal changed
+            SC->>SD: actuator_state = conditioned
+            SD-->>SC: confirmed (bool)
+            
+            alt conditioned == true
+                SC->>Act: turnOn()
+                activate Act
+                Act->>Act: digitalWrite(23, HIGH)
+                Act-->>SC: void
+                deactivate Act
+                
+                SC->>LED: on()
+                activate LED
+                LED->>LED: digitalWrite(26, HIGH)
+                LED-->>SC: void
+                deactivate LED
+            else conditioned == false
+                SC->>Act: turnOff()
+                activate Act
+                Act->>Act: digitalWrite(23, LOW)
+                Act-->>SC: void
+                deactivate Act
+                
+                SC->>LED: off()
+                activate LED
+                LED->>LED: digitalWrite(26, LOW)
+                LED-->>SC: void
+                deactivate LED
+            end
+            
+            SC->>SD: actuator_toggle_count++
+            SD-->>SC: new count (uint32)
+        end
+
+        SC->>SD: actuator_conditioned = conditioned
+        SD-->>SC: confirmed (bool)
+    end
+
+    Note over AC,M: Next 50ms cycle

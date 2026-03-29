@@ -1,0 +1,25 @@
+stateDiagram-v2
+    [*] --> OFF: Initial state
+    
+    OFF --> TurningON: actuator_command == true
+    
+    TurningON --> DebouncingON: Start debounce<br/>(50ms timer)
+    DebouncingON --> ValidatingON: Debounce elapsed<br/>Start validation<br/>(100ms timer)
+    ValidatingON --> ON: Validation elapsed
+    
+    ON --> TurningOFF: actuator_command == false
+    
+    TurningOFF --> DebouncingOFF: Start debounce<br/>(50ms timer)
+    DebouncingOFF --> ValidatingOFF: Debounce elapsed<br/>Start validation<br/>(100ms timer)
+    ValidatingOFF --> OFF: Validation elapsed
+    
+    ON --> ON: Command unchanged<br/>Maintain state
+    OFF --> OFF: Command unchanged<br/>Maintain state
+    
+    note right of TurningON: Hardware:<br/>Actuator: HIGH<br/>LED: HIGH
+    
+    note right of ON: Hardware:<br/>Actuator: HIGH<br/>LED: HIGH
+    
+    note right of TurningOFF: Hardware:<br/>Actuator: LOW<br/>LED: LOW
+    
+    note right of OFF: Hardware:<br/>Actuator: LOW<br/>LED: LOW

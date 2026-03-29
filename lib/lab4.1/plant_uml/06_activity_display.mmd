@@ -1,0 +1,20 @@
+flowchart TD
+    Start((Start)) --> Wait[Wait 500ms]
+    Wait --> ReadState[Read actuator_state]
+    ReadState --> ReadCmd[Read actuator_command]
+    ReadCmd --> ReadCount[Read toggle_count]
+    ReadCount --> FormatLine1[Format line 1]
+    FormatLine1 --> FormatLine2[Format line 2]
+    FormatLine2 --> Lock[Lock mutex]
+    Lock --> Clear[Clear LCD]
+    Clear --> Print1[Print line 1]
+    Print1 --> Print2[Print line 2]
+    Print2 --> Release[Release mutex]
+    Release --> CheckReport{10s<br/>elapsed?}
+
+    CheckReport -->|yes| GenReport[Generate status report]
+    GenReport --> PrintReport[Print status to serial]
+    PrintReport --> Loop
+
+    CheckReport -->|no| Loop((Loop back))
+    Loop --> Wait

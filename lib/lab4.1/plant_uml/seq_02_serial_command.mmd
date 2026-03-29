@@ -1,0 +1,12 @@
+sequenceDiagram
+    participant User as User
+    participant Serial as Serial Port (115200)
+    participant Task as ActuatorControl Task
+    participant Data as SharedData
+
+    User->>Serial: Send "on"
+    Serial->>Task: Receive characters
+    Task->>Task: Parse command
+    Task->>Data: actuator_command = true
+    Data-->>Task: Confirmed
+    Task-->>User: Command accepted

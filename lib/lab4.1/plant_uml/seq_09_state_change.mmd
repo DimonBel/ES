@@ -1,0 +1,23 @@
+sequenceDiagram
+    participant Task as SignalConditioning Task
+    participant Data as SharedData
+    participant Filter as Signal Conditioner
+    participant HW as Hardware
+
+    loop Every 50ms
+        Task->>Data: Read actuator_command
+        Data-->>Task: Command value
+
+        Task->>Filter: Execute signal conditioning
+        Filter-->>Task: Conditioned value
+
+        alt Signal changed
+            Task->>HW: Update actuator
+            HW-->>Task: Complete
+            Task->>HW: Update LED
+            HW-->>Task: Complete
+            Task->>Data: actuator_toggle_count++
+        else Signal unchanged
+            Task->>Task: Maintain current state
+        end
+    end

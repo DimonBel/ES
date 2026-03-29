@@ -24,15 +24,14 @@ public:
     bool isActive() const;
     uint32_t getLastToggleTime() const;
 
-    // Get state as string
+    void setSpeed(uint8_t percentage);
+    void setState(State newState);
     const char* getStateString() const;
 
 private:
     uint8_t _pin;
     State _state;
     uint32_t _lastToggleTime;
-
-    void setState(State newState);
 };
 
 #endif // ACTUATOR_H

@@ -1,0 +1,41 @@
+graph TB
+    subgraph Semaphores["Binary Semaphores"]
+        Sem1[semActuatorDisplay<br/>Type: Binary Semaphore<br/>Handle: SemaphoreHandle_t<br/>Creator: vTaskActuatorControl<br/>Waiter: vTaskDisplay<br/>Trigger: Command change]
+    end
+
+    subgraph Mutex["Mutex Protection"]
+        Mutex1[lcdMutex<br/>Type: Mutex<br/>Handle: SemaphoreHandle_t<br/>Protects: I2C LCD<br/>Timeout: 100ms<br/>Owner: vTaskDisplay]
+    end
+
+    subgraph Operations["Semaphore Operations"]
+        Give[Give (signal)<br/>xSemaphoreGive<br/>Return: pdTRUE<br/>Unblocks task<br/>Non-blocking]
+        
+        Take[Take (wait)<br/>xSemaphoreTake<br/>Return: pdTRUE/FALSE<br/>Timeout: 100ms<br/>Blocking]
+    end
+
+    subgraph Flow["Signal Flow"]
+        ActCtrl[ActuatorControl Task<br/>Priority: 3<br/>Period: 50ms<br/>Signal giver]
+        
+        SigCond[SignalConditioning Task<br/>Priority: 3<br/>Period: 50ms<br/>No sync needed]
+        
+        Display[Display Task<br/>Priority: 2<br/>Period: 500ms<br/>Signal waiter<br/>Max wait: 100ms]
+    end
+
+    ActCtrl -->|command change| Sem1
+    Sem1 -->|trigger| Display
+    
+    Display -->|take| Sem1
+    
+    Sem1 -->|give| ActCtrl
+    
+    Display -->|lock| Mutex1
+    Mutex1 -->|unlock| Display
+    
+    Give --> Sem1
+    Take --> Sem1
+    
+    Sync[Sync Pattern<br/>ActCtrl: Signal<br/>Display: Wait/Update<br/>LCD: Lock/Write<br/>SigCond: Independent]
+    
+    ActCtrl --> Sync
+    Display --> Sync
+    SigCond --> Sync

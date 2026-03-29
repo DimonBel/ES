@@ -1,0 +1,32 @@
+graph TB
+    subgraph Errors["Potential Errors"]
+        Err1[Button Bounce<br/>Type: Electrical noise<br/>Symptom: Multiple toggles<br/>Solution: 50ms debounce]
+        
+        Err2[Double Click<br/>Type: User error<br/>Symptom: Rapid toggles<br/>Solution: 250ms cooldown]
+        
+        Err3[Signal Noise<br/>Type: Interference<br/>Symptom: False triggers<br/>Solution: 100ms validation]
+        
+        Err4[Serial Overflow<br/>Type: Buffer overflow<br/>Symptom: Command lost<br/>Solution: 16 char buffer]
+        
+        Err5[LCD I2C Conflict<br/>Type: Concurrent access<br/>Symptom: Display corruption<br/>Solution: Mutex protection]
+    end
+
+    subgraph Handling["Error Handling"]
+        Debounce[Debounce Stage<br/>Function: Filter rapid changes<br/>Time: 50ms<br/>Result: Stable signal]
+        
+        Cooldown[Cooldown Mechanism<br/>Function: Prevent rapid toggles<br/>Time: 250ms<br/>Result: Single toggle]
+        
+        Validation[Validation Stage<br/>Function: Confirm stability<br/>Time: 100ms<br/>Result: Verified state]
+        
+        Buffer[Serial Buffer<br/>Size: 16 characters<br/>Null-terminated<br/>Result: Safe parsing]
+        
+        Mutex[I2C Mutex<br/>Timeout: 100ms<br/>Priority: Display task<br/>Result: Exclusive access]
+    end
+
+    Err1 --> Debounce
+    Err2 --> Cooldown
+    Err3 --> Validation
+    Err4 --> Buffer
+    Err5 --> Mutex
+
+    note1{Robust system<br/>with multiple<br/>protection layers}

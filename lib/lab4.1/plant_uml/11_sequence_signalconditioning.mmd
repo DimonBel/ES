@@ -1,0 +1,78 @@
+sequenceDiagram
+    participant SC as vTaskSignalConditioning
+    participant SD as SharedData
+    participant SigCond as SignalConditioner
+    participant Act as Actuator<br/>GPIO 23
+    participant LED as Led<br/>GPIO 26
+
+    Note over SC,LED: Every 50ms cycle
+
+    SC->>SC: Wait 50ms
+
+    SC->>SD: Read actuator_command
+    SD-->>SC: command (bool)
+
+    SC->>SigCond: conditionSignal(command, 50, 100)
+    activate SigCond
+
+    SigCond->>SigCond: debounceSignal(command, 50ms)
+    Note over SigCond: Check if signal changed<br/>Start debounce timer if changed<br/>Return previous state during debounce
+
+    SigCond->>SigCond: validatePersistentState(debounced, 100ms)
+    Note over SigCond: Check if state changed<br/>Start validation timer if changed<br/>Return previous state during validation
+
+    SigCond-->>SC: conditioned (bool)
+    deactivate SigCond
+
+    alt Conditioned signal changed
+        SC->>SC: Check if conditioned != actuator_state
+
+        SC->>SD: actuator_state = conditioned
+        SD-->>SC: confirmed (bool)
+
+        alt conditioned == true
+            SC->>Act: turnOn()
+            activate Act
+            Act->>Act: digitalWrite(23, HIGH)
+            Act->>Act: _state = STATE_ON
+            Act-->>SC: void
+            deactivate Act
+
+            SC->>LED: on()
+            activate LED
+            LED->>LED: digitalWrite(26, HIGH)
+            LED->>LED: _state = true
+            LED-->>SC: void
+            deactivate LED
+
+            SC->>SC: Print "State changed: OFF -> ON"
+            SC->>SC: Print "Actuator turned ON"
+            SC->>SC: Print "LED turned ON"
+        else conditioned == false
+            SC->>Act: turnOff()
+            activate Act
+            Act->>Act: digitalWrite(23, LOW)
+            Act->>Act: _state = STATE_OFF
+            Act-->>SC: void
+            deactivate Act
+
+            SC->>LED: off()
+            activate LED
+            LED->>LED: digitalWrite(26, LOW)
+            LED->>LED: _state = false
+            LED-->>SC: void
+            deactivate LED
+
+            SC->>SC: Print "State changed: ON -> OFF"
+            SC->>SC: Print "Actuator turned OFF"
+            SC->>SC: Print "LED turned OFF"
+        end
+
+        SC->>SD: actuator_toggle_count++
+        SD-->>SC: new count (uint32)
+    end
+
+    SC->>SD: actuator_conditioned = conditioned
+    SD-->>SC: confirmed (bool)
+
+    Note over SC,LED: Wait until next 50ms period

@@ -1,0 +1,22 @@
+sequenceDiagram
+    participant Task as Display Task
+    participant Mutex as Mutex
+    participant I2C as I2C Bus
+    participant LCD as LCD Controller
+
+    Task->>Mutex: take(100ms)
+    Mutex-->>Task: Success
+    Task->>I2C: Write clear command (0x01)
+    I2C->>LCD: I2C transfer
+    LCD-->>I2C: ACK
+    I2C-->>Task: Complete
+    Task->>I2C: Write cursor position
+    I2C->>LCD: I2C transfer
+    LCD-->>I2C: ACK
+    I2C-->>Task: Complete
+    Task->>I2C: Write text
+    I2C->>LCD: Character transfer
+    LCD-->>I2C: ACK
+    I2C-->>Task: Complete
+    Task->>Mutex: give()
+    Mutex-->>Task: Released

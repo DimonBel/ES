@@ -1,0 +1,14 @@
+sequenceDiagram
+    participant Task as SignalConditioning Task
+    participant Data as SharedData
+    participant Filter as Signal Conditioner
+    participant HW as Actuator + LED
+
+    Task->>Data: Read actuator_command
+    Data-->>Task: Return command
+    Task->>Filter: conditionSignal(cmd, 50, 100)
+    Filter->>Filter: Debounce (50ms)
+    Filter->>Filter: Validation (100ms)
+    Filter-->>Task: Return conditioned signal
+    Task->>HW: Update hardware state
+    HW-->>Task: Complete

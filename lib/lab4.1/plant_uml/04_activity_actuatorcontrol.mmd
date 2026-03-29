@@ -1,0 +1,24 @@
+flowchart TD
+    Start((Start)) --> Wait[Wait 50ms]
+    Wait --> ReadButton[Read button GPIO 18]
+    ReadButton --> CheckCooldown{cooldown<br/>elapsed?}
+
+    CheckCooldown -->|no| CooldownMsg[Print: Double-click prevented]
+    CooldownMsg --> ReadJoystick
+
+    CheckCooldown -->|yes| CheckEdge{edge<br/>detected?}
+    CheckEdge -->|yes| Toggle[Toggle actuator command]
+    Toggle --> UpdateTime[Update command time]
+    UpdateTime --> PrintToggle[Print: toggled to ON/OFF]
+    PrintToggle --> ReadJoystick
+
+    CheckEdge -->|no| ReadJoystick[Read joystick button]
+    ReadJoystick --> CheckSerial{serial<br/>command?}
+
+    CheckSerial -->|yes| ParseCmd[Parse command]
+    ParseCmd --> UpdateCmd[Update actuator_command]
+    UpdateCmd --> SignalSem[Signal semaphore]
+    SignalSem --> Loop
+
+    CheckSerial -->|no| Loop((Loop back))
+    Loop --> Wait

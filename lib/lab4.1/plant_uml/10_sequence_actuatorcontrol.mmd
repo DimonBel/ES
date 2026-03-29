@@ -1,0 +1,85 @@
+sequenceDiagram
+    participant AC as vTaskActuatorControl
+    participant BH as Button HW<br/>GPIO 18
+    participant JH as Joystick HW<br/>GPIO 25
+    participant SD as SharedData
+    participant Sem as semActuatorDisplay
+
+    Note over AC,Sem: Every 50ms cycle
+
+    AC->>BH: digitalRead(18)
+    BH-->>AC: HIGH/LOW (bool)
+
+    AC->>AC: Check edge detection<br/>current && !last
+
+    alt Button edge detected
+        AC->>AC: Check cooldown<br/>now - lastToggle > 250ms
+
+        alt Cooldown elapsed
+            AC->>AC: delayMs(50) - simple debounce
+            AC->>BH: digitalRead(18) - verify
+            BH-->>AC: LOW (confirmed)
+
+            AC->>SD: actuator_command = !actuator_command
+            SD-->>AC: confirmed (bool)
+
+            AC->>SD: actuator_command_time = now
+            SD-->>AC: timestamp (uint32)
+
+            AC->>AC: lastButtonToggleTime = now
+            AC->>AC: Print "toggled to: ON/OFF"
+        else Cooldown active
+            AC->>AC: Print "Double-click prevented"
+        end
+    end
+
+    AC->>JH: digitalRead(25)
+    JH-->>AC: HIGH/LOW (bool)
+
+    AC->>AC: Check joystick edge detection
+
+    alt Joystick edge detected
+        AC->>AC: Check cooldown
+
+        alt Cooldown elapsed
+            AC->>SD: actuator_command = !actuator_command
+            SD-->>AC: confirmed (bool)
+
+            AC->>SD: actuator_command_time = now
+            SD-->>AC: timestamp (uint32)
+
+            AC->>AC: lastButtonToggleTime = now
+        end
+    end
+
+    AC->>SD: Check serial_command_received
+    SD-->>AC: flag (bool)
+
+    alt Serial command available
+        AC->>SD: Read serial_command_buffer
+        SD-->>AC: buffer (char*)
+
+        AC->>AC: Parse command<br/>"on", "off", "toggle", "status"
+
+        alt Command is "on"
+            AC->>SD: actuator_command = true
+            SD-->>AC: confirmed (bool)
+        else Command is "off"
+            AC->>SD: actuator_command = false
+            SD-->>AC: confirmed (bool)
+        else Command is "toggle"
+            AC->>SD: actuator_command = !actuator_command
+            SD-->>AC: confirmed (bool)
+        else Command is "status"
+            AC->>SD: Read actuator_state
+            SD-->>AC: state (bool)
+            AC->>SD: Read actuator_toggle_count
+            SD-->>AC: count (uint32)
+            AC->>AC: Print status to serial
+        end
+    end
+
+    AC->>Sem: give()
+    Sem-->>AC: success (bool)
+
+    Note over AC,Sem: Wait until next 50ms period

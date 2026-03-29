@@ -1,0 +1,53 @@
+graph LR
+    subgraph Signal_Conditioning_Output["vTaskSignalConditioning Output"]
+        CheckState[Check State<br/>Function: Compare signals<br/>Logic: conditioned != state<br/>Trigger: Hardware update]
+        
+        UpdateActuator[Update Actuator<br/>Function: Actuator.turnOn/turnOff<br/>Pin: GPIO 23<br/>Type: Digital output]
+        
+        UpdateLED[Update LED<br/>Function: Led.on/off<br/>Pin: GPIO 26<br/>Type: Digital output]
+        
+        IncCount[Increment Count<br/>Function: toggle_count++<br/>Purpose: Track total toggles]
+    end
+
+    subgraph Display_Output["vTaskDisplay Output"]
+        WaitDisplay[Wait 500ms<br/>Function: vTaskDelayUntil<br/>Period: 500ms<br/>Priority: 2]
+        
+        ReadData[Read Data<br/>Function: Read SharedData<br/>Variables: state, command, count]
+        
+        Format[Format Strings<br/>Function: snprintf<br/>Line1: "Actuator: ON/OFF"<br/>Line2: "Cmd: ON/OFF Tog:123"]
+        
+        LockMutex[Lock Mutex<br/>Function: lcdMutex.take<br/>Timeout: 100ms<br/>Purpose: Protect I2C]
+    end
+
+    subgraph Actuator_Hardware["Actuator Hardware"]
+        GPIO23[GPIO 23<br/>ESP32 GPIO<br/>Direction: OUT<br/>Drive strength: High]
+        
+        Relay[Relay HW<br/>Type: SPDT<br/>Control: Digital<br/>State: Normally Open]
+        
+        ActuatorState[Actuator State<br/>OFF: LOW (0V)<br/>ON: HIGH (3.3V)<br/>Response: 150ms]
+    end
+
+    subgraph LED_Hardware["LED Hardware"]
+        GPIO26[GPIO 26<br/>ESP32 GPIO<br/>Direction: OUT<br/>Drive strength: High]
+        
+        LEDHW[LED HW<br/>Anode: GPIO 26<br/>Cathode: GND<br/>Resistor: 220Ω<br/>Color: Red]
+        
+        LEDState[LED State<br/>OFF: LOW (0V)<br/>ON: HIGH (3.3V)<br/>Function: Mirror actuator]
+    end
+
+    CheckState --> UpdateActuator
+    CheckState --> UpdateLED
+    UpdateActuator --> IncCount
+    UpdateLED --> IncCount
+    
+    UpdateActuator --> GPIO23
+    GPIO23 --> Relay
+    Relay --> ActuatorState
+    
+    UpdateLED --> GPIO26
+    GPIO26 --> LEDHW
+    LEDHW --> LEDState
+    
+    WaitDisplay --> ReadData
+    ReadData --> Format
+    Format --> LockMutex

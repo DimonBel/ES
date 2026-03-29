@@ -1,0 +1,19 @@
+graph TB
+    ESP32_Hardware[ESP32 Hardware<br/>GPIO 18: Button<br/>GPIO 23: Actuator<br/>GPIO 25: Joystick SW<br/>GPIO 34/35: Joystick X/Y<br/>GPIO 26: LED<br/>I2C: SDA21/SCL22]
+    
+    HAL[HAL Layer<br/>Actuator<br/>_pin: 23<br/>_state: State<br/><br/>Joystick<br/>_pinX: 34<br/>_pinY: 35<br/>_pinSW: 25<br/><br/>Led<br/>_pin: 26<br/>_state: bool<br/><br/>LcdI2c<br/>_address: 0x27<br/>_cols: 16<br/>_rows: 2]
+    
+    Tasks[FreeRTOS Tasks<br/>vTaskActuatorControl: 50ms P3<br/>Stack: 4096<br/><br/>vTaskSignalConditioning: 50ms P3<br/>Stack: 4096<br/><br/>vTaskDisplay: 500ms P2<br/>Stack: 4096]
+    
+    Sync[Sync Primitives<br/>lcdMutex: Mutex<br/>Timeout: 100ms<br/>Protects: LCD I2C<br/><br/>semActuatorDisplay: Binary<br/>Trigger: Display]
+    
+    Data[SharedData<br/>bool actuator_command<br/>bool actuator_state<br/>bool actuator_conditioned<br/>uint32_t actuator_command_time<br/>uint32_t actuator_toggle_count<br/>char serial_command_buffer[16]]
+
+    Config[Configuration<br/>DEBOUNCE_TIME: 50ms<br/>VALIDATION_TIME: 100ms<br/>BUTTON_COOLDOWN: 250ms<br/>ACTUATOR_CONTROL_PERIOD: 50ms<br/>SIGNAL_CONDITIONING_PERIOD: 50ms<br/>DISPLAY_PERIOD: 500ms]
+
+    ESP32_Hardware -->|GPIO/ADC| HAL
+    HAL -->|methods| Tasks
+    Tasks -->|uses| Sync
+    Tasks -->|updates| Data
+    Sync -->|protects| Data
+    Config -->|used by| Tasks

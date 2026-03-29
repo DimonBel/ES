@@ -1,0 +1,111 @@
+sequenceDiagram
+    participant D as vTaskDisplay
+    participant SD as SharedData
+    participant Sem as semActuatorDisplay
+    participant M as lcdMutex
+    participant LCD as LcdI2c
+    participant I2C as I2C Bus
+
+    Note over D,I2C: Every 500ms cycle
+
+    D->>D: Wait 500ms
+    D-->>D: elapsed (bool)
+
+    D->>Sem: take(100ms)
+    activate Sem
+    alt Semaphore signaled
+        Sem-->>D: true (unblocked)
+        deactivate Sem
+
+        D->>SD: Read actuator_state
+        SD-->>D: state (bool)
+
+        D->>SD: Read actuator_command
+        SD-->>D: command (bool)
+
+        D->>SD: Read actuator_toggle_count
+        SD-->>D: count (uint32)
+
+        D->>D: Format line 1<br/>snprintf("Actuator: %s", state)
+        D-->>D: string (char*)
+
+        D->>D: Format line 2<br/>snprintf("Cmd: %s Tog:%lu", cmd, count)
+        D-->>D: string (char*)
+
+        D->>M: take(100ms)
+        activate M
+        M-->>D: true (locked)
+        deactivate M
+
+        D->>LCD: clear()
+        activate LCD
+        LCD->>I2C: I2C write 0x01 (clear command)
+        I2C-->>LCD: ACK (0x00)
+        LCD-->>D: cleared (void)
+        deactivate LCD
+
+        D->>D: delayMs(50)
+
+        D->>LCD: setCursor(0, 0)
+        activate LCD
+        LCD->>I2C: I2C write 0x80 (DDRAM address)
+        I2C-->>LCD: ACK (0x00)
+        LCD->>I2C: I2C write 0x00 (row 0, col 0)
+        I2C-->>LCD: ACK (0x00)
+        LCD-->>D: positioned (void)
+        deactivate LCD
+
+        D->>LCD: print(line1)
+        activate LCD
+        loop Each character of line1
+            LCD->>I2C: I2C write character
+            I2C-->>LCD: ACK (0x00)
+        end
+        LCD-->>D: written (int)
+        deactivate LCD
+
+        D->>D: delayMs(50)
+
+        D->>LCD: setCursor(0, 1)
+        activate LCD
+        LCD->>I2C: I2C write 0xC0 (DDRAM address)
+        I2C-->>LCD: ACK (0x00)
+        LCD-->>D: positioned (void)
+        deactivate LCD
+
+        D->>LCD: print(line2)
+        activate LCD
+        loop Each character of line2
+            LCD->>I2C: I2C write character
+            I2C-->>LCD: ACK (0x00)
+        end
+        LCD-->>D: written (int)
+        deactivate LCD
+
+        D->>M: give()
+        activate M
+        M-->>D: released (bool)
+        deactivate M
+
+        D->>D: Check if 10 seconds elapsed
+
+        alt 10 seconds elapsed
+            D->>SD: Read actuator_state
+            SD-->>D: state (bool)
+
+            D->>SD: Read actuator_command
+            SD-->>D: command (bool)
+
+            D->>SD: Read actuator_toggle_count
+            SD-->>D: count (uint32)
+
+            D->>D: Print status report to serial
+        end
+    else Semaphore timeout
+        Sem-->>D: false (timeout)
+        deactivate Sem
+
+        D->>D: Continue with periodic update
+    end
+
+    Note over D,I2C: Wait until next 500ms period

@@ -1,0 +1,41 @@
+graph LR
+    subgraph ESP32["ESP32 Microcontroller"]
+        GPIO18[GPIO 18<br/>Button Input<br/>Internal Pull-up]
+        GPIO23[GPIO 23<br/>Actuator Output<br/>3.3V Logic]
+        GPIO25[GPIO 25<br/>Joystick Button<br/>Internal Pull-up]
+        GPIO34[GPIO 34<br/>Joystick X<br/>ADC Input]
+        GPIO35[GPIO 35<br/>Joystick Y<br/>ADC Input]
+        GPIO26[GPIO 26<br/>LED Output<br/>3.3V Logic]
+        I2C21[GPIO 21<br/>I2C SDA<br/>LCD Data]
+        I2C22[GPIO 22<br/>I2C SCL<br/>LCD Clock]
+        UART0[UART0 TX/RX<br/>Serial<br/>115200 baud]
+    end
+
+    subgraph External["External Components"]
+        BTN[Push Button<br/>Normally Open<br/>Connects to GND]
+        
+        RELAY[Relay Module<br/>SPDT<br/>Control: GPIO 23<br/>Load: 12V/24V]
+        
+        JS[Joystick<br/>X: ADC0<br/>Y: ADC1<br/>SW: GPIO]
+        
+        LEDRes[LED<br/>Red<br/>220Ω Resistor<br/>Connects to GND]
+        
+        LCDPCF[PCF8574<br/>I2C Expander<br/>Address: 0x27<br/>Controls: LCD]
+        
+        LCDHW[16x2 LCD<br/>HD44780<br/>VCC: 5V<br/>Contrast: Pot]
+        
+        USB[USB Cable<br/>Serial Monitor<br/>115200 baud]
+    end
+
+    BTN --> GPIO18
+    GPIO23 --> RELAY
+    GPIO25 --> JS
+    GPIO34 --> JS
+    GPIO35 --> JS
+    GPIO26 --> LEDRes
+    I2C21 --> LCDPCF
+    I2C22 --> LCDPCF
+    LCDPCF --> LCDHW
+    UART0 --> USB
+
+    note1{Power:<br/>ESP32: 5V USB<br/>Relay: 12V/24V External<br/>LCD: 5V External}

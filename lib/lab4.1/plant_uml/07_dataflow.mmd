@@ -1,0 +1,12 @@
+graph LR
+    Button[Button<br/>GPIO 18] -->|digital| ActCtrl[ActuatorControl]
+    Joystick[Joystick<br/>GPIO 25] -->|digital| ActCtrl
+    Serial[Serial<br/>115200] -->|commands| ActCtrl
+    ActCtrl -->|command| SharedData[SharedData]
+    SharedData -->|command| SigCond[SignalConditioning]
+    SigCond -->|conditioned| Actuator[Actuator<br/>GPIO 23]
+    SigCond -->|state| LED[LED<br/>GPIO 26]
+    SharedData -->|state| Display[Display]
+    Display -->|Actuator: ON/OFF| LCD[LCD<br/>I2C 21/22]
+
+    note1{Conditioning:<br/>Debounce: 50ms<br/>Validation: 100ms}

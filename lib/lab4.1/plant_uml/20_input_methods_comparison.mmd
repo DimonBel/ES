@@ -1,0 +1,30 @@
+graph TB
+    subgraph Methods["Input Methods"]
+        Method1[Physical Button<br/>GPIO 18<br/>Type: Digital<br/>Features:<br/>- Edge detection<br/>- 250ms cooldown<br/>- Internal pull-up]
+        
+        Method2[Joystick Button<br/>GPIO 25<br/>Type: Digital<br/>Features:<br/>- Edge detection<br/>- 250ms cooldown<br/>- Internal pull-up]
+        
+        Method3[Serial Commands<br/>UART 115200<br/>Type: Text<br/>Commands:<br/>- on<br/>- off<br/>- toggle<br/>- status]
+    end
+
+    subgraph Processing["Common Processing"]
+        EdgeDetect[Edge Detection<br/>Function: current && !last<br/>Detects new presses]
+        
+        CooldownCheck[Cooldown Check<br/>Function: now - last > 250ms<br/>Prevents double-click]
+        
+        SimpleDebounce[Simple Debounce<br/>Function: delayMs(50)<br/>Verifies button state]
+        
+        UpdateShared[Update SharedData<br/>Function: actuator_command = new<br/>Signal display task]
+    end
+
+    Method1 --> EdgeDetect
+    Method2 --> EdgeDetect
+    Method3 --> ParseSerial
+    
+    EdgeDetect --> CooldownCheck
+    ParseSerial --> UpdateShared
+    
+    CooldownCheck --> SimpleDebounce
+    SimpleDebounce --> UpdateShared
+
+    note1{All methods<br/>update<br/>actuator_command}

@@ -1,0 +1,21 @@
+sequenceDiagram
+    participant RTOS as FreeRTOS Scheduler
+    participant Task1 as ActuatorControl (P3)
+    participant Task2 as SignalConditioning (P3)
+    participant Task3 as Display (P2)
+
+    loop System running
+        RTOS->>Task1: Wake (50ms period)
+        Task1->>Task1: Process inputs
+        Task1->>RTOS: Block
+
+        RTOS->>Task2: Wake (50ms period)
+        Task2->>Task2: Signal conditioning
+        Task2->>RTOS: Block
+
+        RTOS->>Task3: Wake (500ms period)
+        Task3->>Task3: Update display
+        Task3->>RTOS: Block
+    end
+
+    Note over RTOS: P3 priority higher than P2

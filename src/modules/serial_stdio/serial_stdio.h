@@ -2,25 +2,18 @@
 #define SERIAL_STDIO_H
 
 #include <Arduino.h>
+#include <stdio.h>
 
 class SerialStdio {
 public:
+    // Инициализация драйвера Serial
     static void begin(unsigned long baudRate);
 
-    static void printWelcome();
+    // Считывание строки из Serial с помощью scanf (игнорирует пробелы и переносы)
+    static bool readCommand(char* buffer, size_t bufferSize);
 
-    static int readLine(char* buffer, int bufferSize);
-
-public:
-    static const int LINE_BUF_SIZE = 80;
-
-private:
-    static int serialPutchar(char c, FILE* stream);
-
-    static int serialGetchar(FILE* stream);
-
-    static FILE serial_stdout;
-    static FILE serial_stdin;
+    // Вывод текста в Serial с помощью printf
+    static void print(const char* format, ...);
 };
 
 #endif // SERIAL_STDIO_H

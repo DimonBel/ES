@@ -1,0 +1,36 @@
+graph TB
+    subgraph Hardware["Hardware Components"]
+        Actuator[Actuator<br/>Relay GPIO 23]
+        Button[Button<br/>GPIO 18]
+        Joystick[Joystick<br/>X=34, Y=35, SW=25]
+        LED[LED<br/>GPIO 26]
+        LCD[LCD<br/>I2C 21/22]
+    end
+
+    subgraph Tasks["FreeRTOS Tasks"]
+        ActCtrl[vTaskActuatorControl<br/>50ms, P3]
+        SigCond[vTaskSignalConditioning<br/>50ms, P3]
+        Display[vTaskDisplay<br/>500ms, P2]
+    end
+
+    subgraph Sync["Synchronization"]
+        Sem[Binary Semaphore]
+        Mutex[Mutex]
+    end
+
+    subgraph Serial["Serial Interface"]
+        UART[Serial<br/>115200 baud]
+    end
+
+    Button -->|reads| ActCtrl
+    Joystick -->|reads| ActCtrl
+    UART -->|commands| ActCtrl
+    ActCtrl -->|signals| Sem
+    Sem -->|triggers| Display
+    ActCtrl -->|command| SigCond
+    SigCond -->|controls| Actuator
+    SigCond -->|controls| LED
+    Display -->|locks| Mutex
+    Display -->|updates| LCD
+
+    note1{Signal Conditioning:<br/>Debounce: 50ms<br/>Validation: 100ms<br/>Cooldown: 250ms}

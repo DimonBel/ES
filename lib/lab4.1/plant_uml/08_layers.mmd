@@ -1,0 +1,23 @@
+graph TB
+    subgraph Application["Application Layer"]
+        AppTasks[ActuatorControl,<br/>SignalConditioning,<br/>Display]
+    end
+
+    subgraph HAL["Hardware Abstraction Layer"]
+        HWActuator[Actuator]
+        HWButton[Button]
+        HWJoystick[Joystick]
+        HWLED[LED]
+        HWLCD[LCD]
+    end
+
+    subgraph FreeRTOS["FreeRTOS Kernel"]
+        RTOSTasks[Task]
+        RTOSMutex[Mutex]
+        RTOSSem[Semaphore]
+    end
+
+    Application -->|uses| HAL
+    Application -->|creates| FreeRTOS
+
+    note{3 Tasks:<br/>50ms, 50ms,<br/>500ms}

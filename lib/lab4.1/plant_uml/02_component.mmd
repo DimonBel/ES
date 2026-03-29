@@ -1,0 +1,36 @@
+graph TB
+    subgraph HW["Hardware"]
+        ActuatorHW[Actuator<br/>GPIO 23]
+        ButtonHW[Button<br/>GPIO 18]
+        JoystickHW[Joystick<br/>X=34, Y=35, SW=25]
+        LedHW[LED<br/>GPIO 26]
+        LCDComp[LCD<br/>I2C 21/22]
+    end
+
+    subgraph App["FreeRTOS App"]
+        ActCtrlComp[ActuatorControl]
+        SigCondComp[SignalConditioning]
+        DisplayComp[Display]
+        SharedData[SharedData]
+        SignalCond[SignalConditioner]
+    end
+
+    subgraph SyncComp["Sync"]
+        SyncMutex[Mutex]
+        Semaphore[Binary Semaphore]
+    end
+
+    ActCtrlComp --> ButtonHW
+    ActCtrlComp --> JoystickHW
+    ActCtrlComp --> SharedData
+    SigCondComp --> SignalCond
+    SigCondComp --> ActuatorHW
+    SigCondComp --> LedHW
+    SigCondComp --> SharedData
+    DisplayComp --> LCDComp
+    DisplayComp --> SyncMutex
+    DisplayComp --> SharedData
+    ActCtrlComp --> Semaphore
+    DisplayComp --> Semaphore
+
+    note1{SharedData:<br/>actuator_command<br/>actuator_state<br/>actuator_conditioned<br/>toggle_count}

@@ -1,0 +1,102 @@
+sequenceDiagram
+    participant Arduino as Arduino Framework
+    participant Serial as Serial Port
+    participant Act as Actuator
+    participant JS as Joystick
+    participant LED as Led
+    participant SigCond as SignalConditioner
+    participant LCD as LcdI2c
+    participant FreeRTOS as FreeRTOS Kernel
+    participant Task1 as vTaskActuatorControl
+    participant Task2 as vTaskSignalConditioning
+    participant Task3 as vTaskDisplay
+
+    Note over Arduino,Task3: System Startup (setup())
+
+    Arduino->>Serial: begin(115200)
+    Serial-->>Arduino: initialized (bool)
+
+    Arduino->>Arduino: delayMs(2000)
+    Arduino-->>Arduino: elapsed (bool)
+
+    Arduino->>Serial: print("=== LAB 4.1 ===")
+    Serial-->>Arduino: written (int)
+
+    Arduino->>Serial: print system info
+    Serial-->>Arduino: written (int)
+
+    Arduino->>Act: new Actuator(23)
+    Act-->>Arduino: object (Actuator*)
+
+    Arduino->>Act: begin()
+    activate Act
+    Act->>Act: pinMode(23, OUTPUT)
+    Act->>Act: digitalWrite(23, LOW)
+    Act-->>Arduino: void
+    deactivate Act
+
+    Arduino->>JS: new Joystick(34, 35, 25)
+    JS-->>Arduino: object (Joystick*)
+
+    Arduino->>JS: begin()
+    activate JS
+    JS->>JS: pinMode(25, INPUT_PULLUP)
+    JS-->>Arduino: void
+    deactivate JS
+
+    Arduino->>LED: new Led(26)
+    LED-->>Arduino: object (Led*)
+
+    Arduino->>LED: begin()
+    activate LED
+    LED->>LED: pinMode(26, OUTPUT)
+    LED->>LED: off()
+    LED-->>Arduino: void
+    deactivate LED
+
+    Arduino->>SigCond: new SignalConditioner()
+    SigCond-->>Arduino: object (SignalConditioner*)
+
+    Arduino->>LCD: new LcdI2c(0x27, 16, 2)
+    LCD-->>Arduino: object (LcdI2c*)
+
+    Arduino->>LCD: begin()
+    activate LCD
+    LCD->>LCD: Wire.begin(21, 22)
+    LCD->>LCD: initialize()
+    LCD->>LCD: clear()
+    LCD->>LCD: print("Actuator Control")
+    LCD->>LCD: setCursor(0, 1)
+    LCD->>LCD: print("System Ready")
+    LCD-->>Arduino: void
+    deactivate LCD
+
+    Arduino->>Arduino: initSharedData()
+    Arduino->>Arduino: initSyncPrimitives()
+
+    Arduino->>FreeRTOS: createTask(vTaskActuatorControl)
+    FreeRTOS-->>Arduino: handle (TaskHandle_t)
+
+    Arduino->>FreeRTOS: createTask(vTaskSignalConditioning)
+    FreeRTOS-->>Arduino: handle (TaskHandle_t)
+
+    Arduino->>FreeRTOS: createTask(vTaskDisplay)
+    FreeRTOS-->>Arduino: handle (TaskHandle_t)
+
+    Arduino->>Serial: print("=== SCHEDULER STARTED ===")
+    Serial-->>Arduino: written (int)
+
+    Arduino->>FreeRTOS: vTaskStartScheduler()
+
+    Note over FreeRTOS,Task3: FreeRTOS takes control
+
+    par All tasks start
+        FreeRTOS->>Task1: Start execution
+        Task1-->>FreeRTOS: running
+        
+        FreeRTOS->>Task2: Start execution
+        Task2-->>FreeRTOS: running
+        
+        FreeRTOS->>Task3: Start execution
+        Task3-->>FreeRTOS: running
+    end

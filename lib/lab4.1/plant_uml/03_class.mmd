@@ -1,0 +1,64 @@
+classDiagram
+    class Actuator {
+        +turnOn() void
+        +turnOff() void
+        +toggle() void
+        +getState() State
+        +getStateString() const char*
+    }
+
+    class Joystick {
+        +readX() int
+        +readY() int
+        +isPressed() bool
+        +getDirection() Direction
+        +isPressDetected() bool
+    }
+
+    class Led {
+        +on() void
+        +off() void
+        +toggle() void
+    }
+
+    class LcdI2c {
+        +print(text) void
+        +clear() void
+        +setCursor(col, row) void
+    }
+
+    class SignalConditioner {
+        +conditionSignal(raw, debounce, validation) bool
+        +debounceSignal(raw, time) bool
+        +validatePersistentState(target, time) bool
+    }
+
+    class SharedData {
+        +actuator_command bool
+        +actuator_state bool
+        +actuator_conditioned bool
+        +actuator_command_time uint32
+        +actuator_toggle_count uint32
+        +serial_command_buffer char[16]
+    }
+
+    class vTaskActuatorControl {
+        +main() void
+    }
+
+    class vTaskSignalConditioning {
+        +main() void
+    }
+
+    class vTaskDisplay {
+        +main() void
+    }
+
+    vTaskActuatorControl --> Joystick : uses
+    vTaskActuatorControl --> SharedData : uses
+    vTaskSignalConditioning --> SignalConditioner : uses
+    vTaskSignalConditioning --> Actuator : uses
+    vTaskSignalConditioning --> Led : uses
+    vTaskSignalConditioning --> SharedData : uses
+    vTaskDisplay --> LcdI2c : uses
+    vTaskDisplay --> SharedData : uses

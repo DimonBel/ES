@@ -1,0 +1,23 @@
+gantt
+    title Actuator Control System Timing
+    dateFormat X
+    axisFormat %Lms
+
+    section Input Processing
+    Read Button      :active, 0, 5
+    Edge Detection   :active, 5, 5
+    Cooldown Check   :active, 10, 5
+    Update Command   :active, 15, 5
+    Signal Display   :crit, 20, 5
+
+    section Signal Conditioning
+    Read Command     :active, 0, 5
+    Apply Debounce   :active, 5, 50
+    Apply Validation :active, 55, 100
+    Update Hardware  :crit, 155, 5
+
+    section Display
+    Wait Semaphore   :active, 20, 5
+    Acquire Mutex    :active, 25, 5
+    Update LCD       :crit, 30, 30
+    Release Mutex    :active, 60, 5
