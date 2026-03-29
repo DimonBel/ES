@@ -51,9 +51,30 @@ void vTaskActuatorControl(void *pvParameters) {
             sharedData.actuator_command_time = currentTime;
 
             const char* cmd = sharedData.serial_command_buffer;
-            // printf("[ACTUATOR_CTRL] Serial command: %s\n", cmd);
+            
+            // Try to parse as number first
+            bool isNumeric = true;
+            for(size_t i = 0; cmd[i] != '\0'; i++) {
+                if(!isdigit((unsigned char)cmd[i])) {
+                    isNumeric = false;
+                    break;
+                }
+            }
 
-            if (strcmp(cmd, "on") == 0) {
+            if (isNumeric && strlen(cmd) > 0) {
+                int val = atoi(cmd);
+                if (val >= 0 && val <= 100) {
+                    sharedData.servo_speed = val;
+                    printf("[CONTROL] Terminal Speed: %d%%\n", val);
+                    // Automatically turn on if speed is > 0 and it was off
+                    if (val > 0 && !sharedData.actuator_command) {
+                        sharedData.actuator_command = true;
+                        printf("[CONTROL] Automatically turning ON relay\n");
+                    }
+                } else {
+                    printf("[ERROR] Incorrect number: %d. Please enter 0-100.\n", val);
+                }
+            } else if (strcmp(cmd, "on") == 0) {
                 sharedData.actuator_command = true;
                 printf("[ACTUATOR_CTRL] Command: ON\n");
             } else if (strcmp(cmd, "off") == 0) {
@@ -178,12 +199,13 @@ void vTaskServoControl(void *pvParameters) {
 
     printf("[SERVO_CTRL] Task started (period: %dms)\n", SERVO_CONTROL_PERIOD_MS);
 
-    uint32_t lastServoUpdate = 0; // For cooldown
+    int lastPotPercent = -1;
+    int lastAppliedSpeed = -1;
 
     for (;;) {
         vTaskDelayUntil(&xLastWakeTime, xFrequency);
 
-        if (servo == nullptr || potentiometer == nullptr) {
+        if (servo == nullptr || potentiometer == nullptr || actuator == nullptr) {
             kernel_primitives::delayMs(100);
             continue;
         }
@@ -193,43 +215,52 @@ void vTaskServoControl(void *pvParameters) {
         // Read potentiometer value
         potentiometer->scan();
         int potPercent = potentiometer->getPercentage();
-        int potRaw = potentiometer->getRaw();
+        
+        // Initial sync
+        if (lastPotPercent == -1) {
+            lastPotPercent = potPercent;
+            sharedData.servo_speed = potPercent;
+            lastAppliedSpeed = potPercent;
+        }
 
-        // Update shared data
-        sharedData.potentiometer_raw = potRaw;
+        // Update shared data for status reporting
+        sharedData.potentiometer_raw = potentiometer->getRaw();
         sharedData.potentiometer_percent = potPercent;
 
-        // Synchronize servo with relay state
+        // Detect if Terminal changed the speed
+        if (sharedData.servo_speed != lastAppliedSpeed && sharedData.servo_speed != potPercent) {
+            lastPotPercent = potPercent;
+        }
+
+        // Logic: Only update speed from potentiometer if IT MOVES significantly (> 5%)
+        if (abs(potPercent - lastPotPercent) > 5) {
+            sharedData.servo_speed = potPercent;
+            lastPotPercent = potPercent;
+        }
+
+        // Synchronize everything with relay state
         sharedData.servo_enabled = sharedData.actuator_state;
 
         if (!sharedData.servo_enabled) {
             servo->stop();
             actuator->setSpeed(0);
+            lastAppliedSpeed = -1; // Force re-apply when enabled
         } else {
-            // Update DC motor speed (Actuator)
-            actuator->setSpeed(potPercent);
+            // Apply speed if it changed (either by Pot or Terminal)
+            if (sharedData.servo_speed != lastAppliedSpeed) {
+                lastAppliedSpeed = sharedData.servo_speed;
+                
+                // Update DC motor speed (Now using the shared speed!)
+                actuator->setSpeed(lastAppliedSpeed);
 
-            // Apply cooldown to prevent rapid changes for Servo
-            if ((currentTime - lastServoUpdate) >= SERVO_COOLDOWN_MS) {
-                // Only update servo if potentiometer value changed significantly
-                if (abs(potPercent - sharedData.servo_speed) > 2) { // Threshold: 2%
-                    sharedData.servo_speed = potPercent;
-                    sharedData.servo_command_time = currentTime;
-                    
-                    // Map speed to angle (0-100% -> 0-180 degrees)
-                    uint8_t angle = (potPercent * 180) / 100;
-                    sharedData.servo_angle = angle;
+                // Update Servo angle IMMEDIATELY (Instant response)
+                uint8_t angle = (lastAppliedSpeed * 180) / 100;
+                sharedData.servo_angle = angle;
+                servo->setAngle(angle); 
 
-                    // Control servo with ramping (smooth movement)
-                    servo->moveTo(angle, 2); // Ramp speed: 2 degrees per step
-
-                    lastServoUpdate = currentTime;
-                    printf("[CONTROL] Potentiometer: %d%% -> Angle: %d deg, Motor Speed: %d%%\n", 
-                        potPercent, angle, potPercent);
-                }
+                printf("[CONTROL] Speed set to: %d%% (Angle: %d deg)\n", 
+                    lastAppliedSpeed, angle);
             }
-            // Update servo for smooth movement
-            servo->update();
         }
 
         // Signal display task to update

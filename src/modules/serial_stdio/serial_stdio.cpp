@@ -1,74 +1,50 @@
 #include "serial_stdio.h"
+#include <stdio.h>
 #include <stdarg.h>
-
-static char s_cmdBuffer[32];
-static size_t s_cmdIndex = 0;
+#include <ctype.h>
+#include <Arduino.h>
+#include "esp_vfs_dev.h"
+#include "driver/uart.h"
 
 void SerialStdio::begin(unsigned long baudRate) {
+    // Initialize hardware UART via Arduino Serial (easiest way to set up the driver)
     Serial.begin(baudRate);
-    s_cmdIndex = 0;
-    memset(s_cmdBuffer, 0, sizeof(s_cmdBuffer));
+    
+    // This hooks UART0 (the default serial port) into the VFS for standard streams.
+    esp_vfs_dev_uart_register();
+    esp_vfs_dev_uart_use_driver(UART_NUM_0);
+    
+    //Disable buffering to ensure input/output is immediate
+    setvbuf(stdin, NULL, _IONBF, 0);
+    setvbuf(stdout, NULL, _IONBF, 0);
 }
 
 bool SerialStdio::readCommand(char* buffer, size_t bufferSize) {
-    while (Serial.available()) {
-        char c = Serial.read();
-        
-        // Handle newline/carriage return as end of command
-        if (c == '\n' || c == '\r') {
-            if (s_cmdIndex > 0) {
-                s_cmdBuffer[s_cmdIndex] = '\0';
-                strncpy(buffer, s_cmdBuffer, bufferSize - 1);
-                buffer[bufferSize - 1] = '\0';
-                
-                // Reset for next command
-                s_cmdIndex = 0;
-                return true;
-            }
-            continue;
+    // Pure stdio implementation using scanf()
+    // This is the standard C library way to read a formatted word.
+    // Note: This will block the task calling it (loopTask) until a word is entered.
+    // In FreeRTOS, other tasks (Actuator, Servo, Display) continue running normally.
+    
+    char format[16];
+    // Create a safe format string like "%15s" to prevent buffer overflow
+    snprintf(format, sizeof(format), "%%%us", (unsigned int)(bufferSize - 1));
+    
+    // Read one word from stdin
+    if (scanf(format, buffer) == 1) {
+        // Convert to lowercase using standard C tolower()
+        for (size_t i = 0; buffer[i] != '\0'; i++) {
+            buffer[i] = tolower((unsigned char)buffer[i]);
         }
-        
-        // Buffer character if there's space
-        if (s_cmdIndex < sizeof(s_cmdBuffer) - 1) {
-            // Convert to lowercase
-            if (c >= 'A' && c <= 'Z') {
-                c += 32;
-            }
-            s_cmdBuffer[s_cmdIndex++] = c;
-            
-            // Optional: Echo character back to terminal so user can see what they type
-            Serial.print(c);
-        }
+        return true;
     }
     
     return false;
 }
 
 void SerialStdio::print(const char* format, ...) {
-    char loc_buf[128];
-    char * temp = loc_buf;
+    // Pure stdio implementation using vprintf()
     va_list arg;
-    va_list copy;
     va_start(arg, format);
-    va_copy(copy, arg);
-    int len = vsnprintf(temp, sizeof(loc_buf), format, copy);
-    va_end(copy);
-    if(len < 0) {
-        va_end(arg);
-        return;
-    }
-    if(len >= sizeof(loc_buf)){
-        temp = (char*) malloc(len+1);
-        if(temp == NULL) {
-            va_end(arg);
-            return;
-        }
-        vsnprintf(temp, len+1, format, arg);
-    }
+    vprintf(format, arg);
     va_end(arg);
-    
-    Serial.print(temp);
-    if(temp != loc_buf){
-        free(temp);
-    }
 }
