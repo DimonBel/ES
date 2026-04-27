@@ -20,9 +20,6 @@ void SerialStdio::begin(unsigned long baudRate) {
 }
 
 bool SerialStdio::readCommand(char* buffer, size_t bufferSize) {
-    // Pure stdio implementation using scanf()
-    // This is the standard C library way to read a formatted word.
-    // Note: This will block the task calling it (loopTask) until a word is entered.
     // In FreeRTOS, other tasks (Actuator, Servo, Display) continue running normally.
     
     char format[16];
@@ -42,7 +39,6 @@ bool SerialStdio::readCommand(char* buffer, size_t bufferSize) {
 }
 
 void SerialStdio::print(const char* format, ...) {
-    // Pure stdio implementation using vprintf()
     va_list arg;
     va_start(arg, format);
     vprintf(format, arg);

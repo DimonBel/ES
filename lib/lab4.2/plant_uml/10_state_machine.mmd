@@ -1,0 +1,21 @@
+stateDiagram
+    [*] --> SystemOff
+
+    SystemOff --> SystemOn: Joystick pressed or Serial on
+    SystemOff --> SystemOn: Terminal command speed > 0
+    SystemOff --> SystemOn: Potentiometer moved > 5%
+
+    SystemOn --> SystemOff: Joystick pressed or Serial off
+    SystemOn --> SystemOff: Terminal command speed = 0
+    SystemOn --> SystemOn: Terminal command speed 1-100
+    SystemOn --> SystemOn: Potentiometer changed
+
+    SystemOn --> ServoRunning: Signal conditioned 150ms
+    ServoRunning --> SystemOn: Signal fails validation
+
+    ServoRunning --> SystemOff: Servo disabled
+    ServoRunning --> ServoRunning: Speed changed
+
+    note right of SystemOff: System OFF Relay OFF Servo OFF
+    note right of SystemOn: System ON Relay ON Servo OFF
+    note right of ServoRunning: System ON Relay ON Servo ON

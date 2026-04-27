@@ -1,0 +1,41 @@
+graph TB
+    subgraph Hardware["Hardware Components - Lab 4.2"]
+        Relay[Relay<br>Binary Actuator<br>GPIO 23]
+        Servo[Servo Motor<br>Analog Actuator<br>GPIO 18 PWM]
+        Pot[Potentiometer<br>Speed Control<br>GPIO 34 ADC]
+        Joystick[Joystick<br>X=35, Y=32, SW=0]
+        LED[LED<br>Status Indicator<br>GPIO 26]
+        LCD[LCD Display<br>I2C 21/22]
+    end
+
+    subgraph Tasks["FreeRTOS Tasks - 4 Concurrent"]
+        ActCtrl[vTaskActuatorControl<br>50ms, P3<br>Input Processing]
+        SigCond[vTaskSignalConditioning<br>50ms, P3<br>Signal Processing]
+        ServoCtrl[vTaskServoControl<br>50ms, P3<br>Servo Position]
+        Display[vTaskDisplay<br>500ms, P2<br>LCD Updates]
+    end
+
+    subgraph Sync["Synchronization Primitives"]
+        Sem[Binary Semaphore<br>Display Trigger]
+        Mutex[Mutex<br>LCD I2C Protection]
+    end
+
+    subgraph Serial["Serial Interface"]
+        UART[Serial Terminal<br>115200 baud<br>Commands: on/off/toggle/0-100]
+    end
+
+    Joystick -->|reads| ActCtrl
+    UART -->|commands| ActCtrl
+    ActCtrl -->|signals| Sem
+    Sem -->|triggers| Display
+    ActCtrl -->|command| SigCond
+    SigCond -->|controls| Relay
+    SigCond -->|controls| LED
+    SigCond -->|enables| ServoCtrl
+    Pot -->|reads| ServoCtrl
+    ServoCtrl -->|controls| Servo
+    ServoCtrl -->|signals| Sem
+    Display -->|locks| Mutex
+    Display -->|updates| LCD
+
+    note[Dual Actuator System: Binary Relay with 150ms delay Analog Servo with instant response Coordination Servo enabled only when Relay ON Inputs Joystick Potentiometer Terminal]

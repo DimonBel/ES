@@ -1,0 +1,43 @@
+graph TB
+    subgraph HW["Hardware Layer"]
+        RelayHW[Relay<br>GPIO 23<br>Binary Output]
+        ServoHW[Servo<br>GPIO 18<br>PWM Output]
+        PotHW[Potentiometer<br>GPIO 34<br>ADC Input]
+        JoystickHW[Joystick<br>X=35, Y=32, SW=0<br>Digital+Analog]
+        LedHW[LED<br>GPIO 26<br>Digital Output]
+        LCDHW[LCD<br>I2C 21/22<br>16x2 Display]
+        UARTHW[Serial<br>115200 baud<br>UART0]
+    end
+
+    subgraph App["FreeRTOS Application"]
+        ActCtrlComp[ActuatorControl<br>Task 1]
+        SigCondComp[SignalConditioning<br>Task 2]
+        ServoCtrlComp[ServoControl<br>Task 3]
+        DisplayComp[Display<br>Task 4]
+        SharedData[SharedData<br>Inter-task Comm]
+        SignalCond[SignalConditioner<br>Binary Processing]
+    end
+
+    subgraph SyncComp["Synchronization"]
+        SyncMutex[Mutex<br>LCD Protection]
+        Semaphore[Binary Semaphore<br>Display Trigger]
+    end
+
+    ActCtrlComp --> JoystickHW
+    ActCtrlComp --> UARTHW
+    ActCtrlComp --> SharedData
+    SigCondComp --> SignalCond
+    SigCondComp --> RelayHW
+    SigCondComp --> LedHW
+    SigCondComp --> SharedData
+    ServoCtrlComp --> PotHW
+    ServoCtrlComp --> ServoHW
+    ServoCtrlComp --> SharedData
+    DisplayComp --> LCDHW
+    DisplayComp --> SyncMutex
+    DisplayComp --> SharedData
+    ActCtrlComp --> Semaphore
+    ServoCtrlComp --> Semaphore
+    DisplayComp --> Semaphore
+
+    note[SharedData Structure: actuator_command bool actuator_state bool servo_speed int 0-100 servo_angle int 0-180 potentiometer_percent int servo_enabled bool toggle_count uint32]

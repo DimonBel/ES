@@ -1,0 +1,60 @@
+graph TB
+    ESP32[ESP32 Microcontroller<br>Dual Core Xtensa LX6<br>240MHz]
+
+    subgraph GPIO_Outputs["GPIO Outputs"]
+        GPIO23[GPIO 23<br>Relay Control<br>Digital Output<br>3.3V Logic]
+        GPIO26[GPIO 26<br>LED Status<br>Digital Output<br>Current Limited]
+        GPIO18[GPIO 18<br>Servo PWM<br>PWM Output<br>50Hz, 1-2ms pulse]
+    end
+
+    subgraph GPIO_Inputs["GPIO Inputs"]
+        GPIO34[GPIO 34<br>Potentiometer<br>ADC1_CH6<br>0-3.3V → 0-4095]
+        GPIO35[GPIO 35<br>Joystick X<br>ADC1_CH7<br>0-3.3V → 0-4095]
+        GPIO32[GPIO 32<br>Joystick Y<br>ADC1_CH4<br>0-3.3V → 0-4095]
+        GPIO0[GPIO 0<br>Joystick Button<br>Digital Input<br>Internal Pull-up]
+    end
+
+    subgraph I2C["I2C Bus"]
+        SDA[GPIO 21<br>I2C SDA<br>Data Line]
+        SCL[GPIO 22<br>I2C SCL<br>Clock Line<br>100kHz]
+    end
+
+    subgraph UART["Serial Interface"]
+        TX[GPIO 1<br>UART TX<br>Serial Output]
+        RX[GPIO 3<br>UART RX<br>Serial Input<br>115200 baud]
+    end
+
+    subgraph External_Components["External Components"]
+        Relay[Relay Module<br>SPDT<br>Control: 3.3V<br>Load: Up to 250V/10A]
+        ServoMotor[Servo Motor<br>SG90 or similar<br>Control: PWM<br>Range: 0-180°]
+        Pot[10kΩ Potentiometer<br>Voltage Divider<br>Range: 0-100%]
+        JoyModule[Joystick Module<br>2x Analog + 1 Button<br>Built-in resistors]
+        LED[LED + Resistor<br>Red/Green<br>220Ω Resistor<br>Current: ~15mA]
+        LCD[16x2 LCD<br>I2C Interface<br>Address: 0x27<br>Backlight: Yes]
+    end
+
+    ESP32 --> GPIO23
+    ESP32 --> GPIO26
+    ESP32 --> GPIO18
+    ESP32 --> GPIO34
+    ESP32 --> GPIO35
+    ESP32 --> GPIO32
+    ESP32 --> GPIO0
+    ESP32 --> SDA
+    ESP32 --> SCL
+    ESP32 --> TX
+    ESP32 --> RX
+
+    GPIO23 --> Relay
+    GPIO26 --> LED
+    GPIO18 --> ServoMotor
+    GPIO34 --> Pot
+    GPIO35 --> JoyModule
+    GPIO32 --> JoyModule
+    GPIO0 --> JoyModule
+    SDA --> LCD
+    SCL --> LCD
+    TX --> UART
+    RX --> UART
+
+    note[Pin Configuration Summary: Outputs 23 Relay 26 LED 18 Servo PWM Inputs 34 Pot 35 Joy X 32 Joy Y 0 Joy SW I2C 21 SDA 22 SCL UART 1 TX 3 RX]

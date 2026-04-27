@@ -1,0 +1,19 @@
+flowchart TD
+    Start((Start)) --> ReadPotentiometer[Read potentiometer value]
+    ReadPotentiometer --> CheckMovement{Potentiometer<br/>moved >5%?}
+    
+    CheckMovement -->|yes| UpdateSpeed[Update servo_speed from potentiometer]
+    CheckMovement -->|no| CheckRelay
+    
+    UpdateSpeed --> CheckRelay{Relay<br/>enabled?}
+    
+    CheckRelay -->|no| StopServo[Stop servo and set speed to 0]
+    CheckRelay -->|yes| UpdateServo[Update servo position and angle]
+    
+    StopServo --> SignalDisplay[Signal display task]
+    UpdateServo --> SignalDisplay
+    
+    SignalDisplay --> Loop((Loop every 50ms))
+    Loop --> ReadPotentiometer
+
+    note[Task: Control analog servo synchronized with relay state]

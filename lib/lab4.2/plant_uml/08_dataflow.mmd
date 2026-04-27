@@ -1,0 +1,15 @@
+graph LR
+    Joystick[Joystick<br>GPIO 35,32,0] -->|digital| ActCtrl[ActuatorControl]
+    Serial[Serial<br>115200] -->|commands| ActCtrl
+    ActCtrl -->|command| SharedData[SharedData]
+    SharedData -->|command| SigCond[SignalConditioning]
+    SigCond -->|conditioned| Relay[Relay<br>GPIO 23]
+    SigCond -->|state| LED[LED<br>GPIO 26]
+    SigCond -->|enables| ServoCtrl[ServoControl]
+    Pot[Potentiometer<br>GPIO 34] -->|ADC| ServoCtrl
+    ServoCtrl -->|speed| Servo[Servo<br>GPIO 18]
+    ServoCtrl -->|speed| Relay
+    SharedData -->|state| Display[Display]
+    Display -->|Actuator: ON/OFF<br>Servo: 0-100%| LCD[LCD<br>I2C 21/22]
+
+    note[Dual Actuator Flow: Binary Command Conditioning Relay Analog Potentiometer Terminal Servo Coordination Relay enables Servo]

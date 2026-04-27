@@ -1,0 +1,12 @@
+flowchart TD
+    Start((Start)) --> ReadCommand[Read actuator_command]
+    ReadCommand --> ApplyConditioning[Apply signal conditioning debounce 50ms validation 100ms]
+    ApplyConditioning --> CheckChanged{State<br>changed?}
+    
+    CheckChanged -->|yes| UpdateHardware[Update relay and LED hardware]
+    CheckChanged -->|no| Loop
+    
+    UpdateHardware --> Loop((Loop every 50ms))
+    Loop --> ReadCommand
+
+    note[Task: Apply signal conditioning and control binary actuator]

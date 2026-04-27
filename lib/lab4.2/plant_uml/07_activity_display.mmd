@@ -1,0 +1,14 @@
+flowchart TD
+    Start((Start)) --> WaitForSignal[Wait for signal semaphore]
+    WaitForSignal --> ReadData[Read actuator state command servo speed]
+    ReadData --> FormatDisplay[Format display strings]
+    FormatDisplay --> UpdateLCD[Update LCD with new data]
+    UpdateLCD --> CheckReport{10s<br/>elapsed?}
+    
+    CheckReport -->|yes| PrintReport[Print dual actuator status report]
+    CheckReport -->|no| Loop
+    
+    PrintReport --> Loop((Loop every 500ms))
+    Loop --> WaitForSignal
+
+    note[Task: Update LCD display with system status]

@@ -1,0 +1,92 @@
+sequenceDiagram
+    participant AC as vTaskActuatorControl
+    participant JH as Joystick HW
+    participant SD as SharedData
+    participant SC as vTaskSignalConditioning
+    participant SigCond as SignalConditioner
+    participant SV as vTaskServoControl
+    participant Pot as Potentiometer
+    participant Relay as Relay GPIO 23
+    participant Servo as Servo GPIO 18
+    participant D as vTaskDisplay
+    participant Sem as semActuatorDisplay
+
+    Note over AC,Sem: Initial State: Relay OFF, Servo OFF
+
+    AC->>JH: scan()
+    AC->>JH: isPressed()
+    JH-->>AC: true (button pressed)
+
+    AC->>AC: Check cooldown > 250ms
+    AC->>SD: actuator_command = true
+    SD-->>AC: confirmed
+
+    AC->>SD: actuator_command_time = now
+    AC->>Sem: give()
+
+    Note over SC,Servo: Signal Conditioning Task (50ms)
+
+    SC->>SD: Read actuator_command
+    SD-->>SC: true
+
+    SC->>SigCond: conditionSignal(true, 50, 100)
+    activate SigCond
+    SigCond->>SigCond: debounceSignal(50ms)
+    SigCond->>SigCond: validatePersistentState(100ms)
+    SigCond-->>SC: true
+    deactivate SigCond
+
+    SC->>SD: actuator_state = true
+    SC->>Relay: turnOn()
+    activate Relay
+    Relay->>Relay: digitalWrite(23, HIGH)
+    Relay-->>SC: void
+    deactivate Relay
+
+    Note over SV,Servo: Servo Control Task (50ms)
+
+    SV->>Pot: scan()
+    activate Pot
+    Pot->>Pot: analogRead(34)
+    Pot-->>SV: raw value (0-4095)
+    deactivate Pot
+
+    SV->>SD: potentiometer_percent = 50%
+    SV->>SD: servo_speed = 50%
+
+    SV->>SD: servo_enabled = actuator_state
+    SD-->>SV: true
+
+    SV->>SV: Calculate angle = 50% * 180 = 90°
+    SV->>SD: servo_angle = 90
+
+    SV->>Servo: setAngle(90)
+    activate Servo
+    Servo->>Servo: PWM output (GPIO 18)
+    Servo-->>SV: void
+    deactivate Servo
+
+    SV->>Relay: setSpeed(50)
+    activate Relay
+    Relay->>Relay: Apply speed control
+    Relay-->>SV: void
+    deactivate Relay
+
+    SV->>Sem: give()
+
+    Note over D,Sem: Display Task (500ms)
+
+    D->>Sem: take(100ms)
+    Sem-->>D: true
+
+    D->>SD: Read actuator_state
+    SD-->>D: true
+
+    D->>SD: Read servo_speed
+    SD-->>D: 50
+
+    D->>D: Format "Act:ON Srv:50%"
+    D->>D: Format "Cmd:ON Tog:1"
+    D->>D: Update LCD
+
+    Note over AC,Sem: System Running:<br>Relay ON, Servo at 90°

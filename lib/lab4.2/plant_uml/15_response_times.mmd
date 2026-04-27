@@ -1,0 +1,49 @@
+graph TB
+    subgraph Input["Input Sources"]
+        JoyInput[Joystick Button<br>Digital Toggle]
+        PotInput[Potentiometer<br>Analog Speed<br>Threshold: 5%]
+        TermInput[Terminal Command<br>Digital/Analog]
+    end
+
+    subgraph Binary_Path["Binary Actuator Response"]
+        EdgeDetect[Edge Detection<br>+ Cooldown Check<br><1ms]
+        Debounce[Debounce<br>50ms<br>Filter Noise]
+        Validation[Validation<br>100ms<br>Confirm Stability]
+        RelayUpdate[Relay Update<br><1ms]
+        LEDUpdate[LED Update<br><1ms]
+    end
+
+    subgraph Analog_Path["Analog Actuator Response"]
+        ADCRead[ADC Read<br><1ms]
+        ThresholdCheck[Threshold Check<br>5% Movement]
+        AngleCalc[Angle Calculation<br><1ms]
+        PWMUpdate[PWM Update<br><1ms]
+    end
+
+    subgraph Total_Times["Total Response Times"]
+        BinaryTime[Binary Actuator<br>Total: ~152ms<br>50ms debounce + 100ms validation + 2ms hardware]
+        AnalogTime[Analog Actuator<br>Total: ~3ms<br>1ms ADC + 1ms calc + 1ms PWM]
+        DisplayTime[Display Update<br>Total: ~653ms<br>Max 100ms semaphore + 500ms cycle + 50ms LCD]
+    end
+
+    JoyInput --> EdgeDetect
+    TermInput --> EdgeDetect
+    EdgeDetect --> Debounce
+    Debounce --> Validation
+    Validation --> RelayUpdate
+    Validation --> LEDUpdate
+    RelayUpdate --> BinaryTime
+    LEDUpdate --> BinaryTime
+
+    PotInput --> ADCRead
+    TermInput --> AngleCalc
+    ADCRead --> ThresholdCheck
+    ThresholdCheck --> AngleCalc
+    AngleCalc --> PWMUpdate
+    PWMUpdate --> AnalogTime
+
+    RelayUpdate -->|Semaphore Signal| DisplayTime
+    LEDUpdate -->|Semaphore Signal| DisplayTime
+    PWMUpdate -->|Semaphore Signal| DisplayTime
+
+    note[Response Characteristics: Binary 152ms robust but slow Analog 3ms fast real-time Display 653ms max can be delayed Coordination Servo instant Relay conditioned]

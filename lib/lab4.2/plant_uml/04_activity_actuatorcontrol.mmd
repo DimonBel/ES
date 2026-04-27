@@ -1,0 +1,9 @@
+flowchart TD
+    Start((Start)) --> ReadInputs[Read Joystick and Serial inputs]
+    ReadInputs --> ProcessCommands[Process commands on/off/toggle/0-100]
+    ProcessCommands --> UpdateCommand[Update actuator_command]
+    UpdateCommand --> SignalDisplay[Signal display task]
+    SignalDisplay --> Loop((Loop every 50ms))
+    Loop --> ReadInputs
+
+    note[Task: Process user inputs and generate actuator commands]

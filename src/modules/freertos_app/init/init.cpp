@@ -2,12 +2,11 @@
 
 #include <Arduino.h>
 #include <stdio.h>
+#include <string.h>
 #include "freertos_app/state/state.h"
 #include "freertos_app/sync/sync.h"
 #include "freertos_app/tasks/tasks.h"
 #include "kernel_primitives/task/task.h"
-#include "servo/servo.h"
-#include "potentiometer/potentiometer.h"
 
 namespace freertos_app::internal {
 
@@ -16,57 +15,45 @@ void setupApplication() {
     kernel_primitives::delayMs(2000);
 
     printf("\n==========================================\n");
-    printf("=== LAB 4.2 - VARIANT C (100% Points) ===\n");
-    printf("=== Dual Actuator Control System ===\n");
+    printf("=== LAB 6.2.1 - VARIANT B              ===\n");
+    printf("=== ON-OFF Control with Hysteresis      ===\n");
+    printf("=== Motor Position Control via L298N    ===\n");
     printf("==========================================\n");
-    printf("\nBinary Actuator (Relay):\n");
-    printf("  - Pin: GPIO %d\n", ACTUATOR_PIN);
-    printf("  - Control: Serial commands, Button\n");
-    printf("\nAnalog Actuator (Servo):\n");
-    printf("  - Pin: GPIO %d (PWM)\n", SERVO_PIN);
-    printf("  - Control: Potentiometer (GPIO %d)\n", POTENTIOMETER_PIN);
-    printf("\nDisplay:\n");
-    printf("  - LCD: I2C SDA=%d, SCL=%d (0x27)\n", LCD_SDA_PIN, LCD_SCL_PIN);
-    printf("==========================================\n");
-    printf("\nBinary Actuator Commands (Serial):\n");
-    printf("  'on'     - Turn relay ON\n");
-    printf("  'off'    - Turn relay OFF\n");
-    printf("  'toggle' - Toggle relay state\n");
-    printf("  'status' - Display current state\n");
-    printf("\nAnalog Actuator (Servo):\n");
-    printf("  - Rotate potentiometer to control speed (0-100%%)\n");
-    printf("  - Servo angle: 0-180 degrees\n");
+    printf("Hardware wiring:\n");
+    printf("  SetPoint : Potentiometer GPIO %d\n", POTENTIOMETER_PIN);
+    printf("  Value    : Joystick X    GPIO %d\n", JOYSTICK_X_PIN);
+    printf("  L298N IN1: GPIO %d\n", MOTOR_IN1_PIN);
+    printf("  L298N IN2: GPIO %d\n", MOTOR_IN2_PIN);
+    printf("  L298N ENA: GPIO %d (PWM, 50%% fixed)\n", MOTOR_ENA_PIN);
+    printf("  LCD      : I2C SDA=%d SCL=%d (0x27)\n", LCD_SDA_PIN, LCD_SCL_PIN);
+    printf("Serial commands:\n");
+    printf("  status   – print current state\n");
+    printf("  stop     – emergency stop motor\n");
+    printf("  run      – re-enable control after stop\n");
+    printf("  hystX    – set hysteresis to X%% (e.g. hyst8)\n");
     printf("==========================================\n\n");
 
-    // Initialize Actuator (Relay)
-    actuator = new Actuator(ACTUATOR_PIN);
-    actuator->begin();
-    printf("Binary actuator (relay) initialized (OFF)\n");
+    // Motor (L298N)
+    motor = new Motor(MOTOR_IN1_PIN, MOTOR_IN2_PIN, MOTOR_ENA_PIN);
+    motor->begin();
+    printf("Motor (L298N) initialized – STOP\n");
 
-    // Initialize Servo (Analog actuator)
-    servo = new Servo(SERVO_PIN);
-    servo->begin();
-    printf("Analog actuator (servo) initialized (center position)\n");
-
-    // Initialize Potentiometer (Speed control)
+    // Potentiometer – SetPoint input
     potentiometer = new Potentiometer(POTENTIOMETER_PIN);
     potentiometer->begin();
-    printf("Potentiometer initialized for speed control\n");
+    printf("Potentiometer initialized (SetPoint GPIO %d)\n", POTENTIOMETER_PIN);
 
-    // Initialize UI components
+    // Joystick – Value / simulated position sensor
     joystick = new Joystick(JOYSTICK_X_PIN, JOYSTICK_Y_PIN, JOYSTICK_SW_PIN);
     joystick->begin();
-    printf("Joystick initialized\n");
+    printf("Joystick X initialized (Value GPIO %d)\n", JOYSTICK_X_PIN);
 
+    // Status LED
     led = new Led(LED_PIN);
     led->begin();
-    printf("LED initialized (OFF)\n");
+    printf("LED initialized (GPIO %d)\n", LED_PIN);
 
-    // Initialize Signal Conditioner
-    signalConditioner = new SignalConditioner();
-    printf("Signal conditioner initialized\n");
-
-    // Initialize LCD
+    // LCD
     printf("Initializing LCD...\n");
     kernel_primitives::delayMs(200);
     lcd = new LcdI2c(0x27, 16, 2);
@@ -74,56 +61,41 @@ void setupApplication() {
         lcd->begin();
         kernel_primitives::delayMs(500);
         lcd->setCursor(0, 0);
-        lcd->print("Dual Actuator");
+        lcd->print("Lab 6.2.1 Ready");
         kernel_primitives::delayMs(100);
         lcd->setCursor(0, 1);
-        lcd->print("System Ready");
+        lcd->print("ON-OFF Hyst Ctrl");
         kernel_primitives::delayMs(100);
         printf("LCD initialized\n");
     } else {
-        printf("ERROR: Failed to create LCD object!\n");
+        printf("ERROR: Failed to create LCD!\n");
     }
 
-    // Initialize shared data
-    sharedData.actuator_command = false;
-    sharedData.actuator_state = false;
-    sharedData.actuator_conditioned = false;
-    sharedData.actuator_command_time = 0;
-    sharedData.actuator_toggle_count = 0;
+    // Shared data
     sharedData.serial_command_received = false;
-    sharedData.serial_command_index = 0;
+    sharedData.serial_command_index    = 0;
     memset(sharedData.serial_command_buffer, 0, sizeof(sharedData.serial_command_buffer));
-
-    // Initialize servo data
-    sharedData.servo_speed = 50;          // Start at 50%
-    sharedData.servo_angle = 90;          // Center position (90 degrees)
-    sharedData.potentiometer_raw = 0;
-    sharedData.potentiometer_percent = 0;
-    sharedData.servo_enabled = true;
-    sharedData.servo_command_time = 0;
+    sharedData.setpoint   = 50;
+    sharedData.value      = 50;
+    sharedData.output     = 0;
+    sharedData.hysteresis = DEFAULT_HYSTERESIS;
+    sharedData.motorSpeed = MOTOR_SATURATION_SPEED;
 
     if (!initSyncPrimitives()) {
-        printf("ERROR: Failed to create semaphores/mutex!\n");
-        while (1);
+        printf("ERROR: Failed to create sync primitives!\n");
+        while (1) {}
     }
 
     printf("Creating FreeRTOS tasks...\n");
-
     if (createApplicationTasks()) {
-        printf("=== FREE-RTOS SCHEDULER STARTED ===\n");
-        printf("Tasks running:\n");
-        printf("  - Actuator Control (priority %d, period: %dms)\n", TASK_PRIORITY_ACTUATOR, ACTUATOR_CONTROL_PERIOD_MS);
-        printf("  - Signal Conditioning (priority %d)\n", TASK_PRIORITY_CONDITIONING);
-        printf("  - Servo Control (priority %d, period: %dms)\n", TASK_PRIORITY_SERVO, SERVO_CONTROL_PERIOD_MS);
-        printf("  - Display (priority %d, period: %dms)\n", TASK_PRIORITY_DISPLAY, DISPLAY_PERIOD_MS);
-        printf("==========================================\n");
-        printf("Dual actuator control system active...\n\n");
-        printf("Binary actuator: Ready for commands\n");
-        printf("Analog actuator: Ready for potentiometer input\n\n");
-        printf("Waiting for input...\n\n");
+        printf("=== FREERTOS SCHEDULER STARTED ===\n");
+        printf("  Acquisition  P%d  %dms\n", TASK_PRIORITY_ACQUISITION, ACQUISITION_PERIOD_MS);
+        printf("  OnOffControl P%d  %dms\n", TASK_PRIORITY_CONTROL,     CONTROL_PERIOD_MS);
+        printf("  Display      P%d  %dms\n", TASK_PRIORITY_DISPLAY,      DISPLAY_PERIOD_MS);
+        printf("==========================================\n\n");
     } else {
         printf("ERROR: Failed to create tasks!\n");
-        while (1);
+        while (1) {}
     }
 }
 

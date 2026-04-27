@@ -1,0 +1,53 @@
+flowchart TD
+    Start((Task Execution)) --> CheckNull{components<br>valid?}
+
+    CheckNull -->|no| LogNull[Log: Component NULL]
+    LogNull --> DelayNull[Delay 100ms]
+    DelayNull --> Loop((Continue Loop))
+
+    CheckNull -->|yes| TryOperation[Try operation]
+
+    TryOperation --> CheckSuccess{operation<br>success?}
+
+    CheckSuccess -->|yes| UpdateState[Update state]
+    CheckSuccess -->|no| LogError[Log error message]
+
+    UpdateState --> CheckMutex{need<br>mutex?}
+    CheckMutex -->|yes| TryMutex[Try mutex take 100ms]
+    CheckMutex -->|no| SignalSem
+
+    TryMutex --> MutexSuccess{mutex<br>acquired?}
+    MutexSuccess -->|yes| CriticalSection[Execute critical section]
+    MutexSuccess -->|no| LogMutexTimeout[Log: Mutex timeout]
+    LogMutexTimeout --> SignalSem
+
+    CriticalSection --> GiveMutex[Give mutex]
+    GiveMutex --> SignalSem[Signal semaphore]
+
+    LogError --> CheckRecover{recover<br>possible?}
+
+    CheckRecover -->|yes| Recover[Recover operation]
+    CheckRecover -->|no| Fallback[Fallback to safe state]
+
+    Recover --> UpdateState
+    Fallback --> SignalSem
+
+    SignalSem --> CheckReport{error<br>rate<br>high?}
+
+    CheckReport -->|yes| IncrementError[Increment error counter]
+    CheckReport -->|no| Check10s{10s<br>elapsed?}
+
+    IncrementError --> CheckThreshold{error<br>count<br>>10?}
+
+    CheckThreshold -->|yes| LogCritical[Log: Critical error rate]
+    CheckThreshold -->|no| Check10s
+
+    LogCritical --> ResetCounter[Reset error counter]
+    ResetCounter --> Check10s
+
+    Check10s -->|yes| ResetCounter
+    Check10s -->|no| Loop
+
+    Loop --> Start
+
+    note[Error Handling Strategy: 1 NULL pointer checks 2 Mutex timeout protection 3 Fallback to safe state 4 Error rate monitoring 5 Critical error logging]

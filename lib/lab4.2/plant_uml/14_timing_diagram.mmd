@@ -1,0 +1,41 @@
+gantt
+    title Dual Actuator System - Task Timing (50ms = 1 unit)
+    dateFormat YYYY-MM-DD
+
+    section Priority 3 Tasks
+    ActuatorControl      :a1, 2024-01-01, 1d
+    ActuatorControl      :a2, after a1, 1d
+    ActuatorControl      :a3, after a2, 1d
+    ActuatorControl      :a4, after a3, 1d
+    ActuatorControl      :a5, after a4, 1d
+    ActuatorControl      :a6, after a5, 1d
+    ActuatorControl      :a7, after a6, 1d
+    ActuatorControl      :a8, after a7, 1d
+    ActuatorControl      :a9, after a8, 1d
+    ActuatorControl      :a10, after a9, 1d
+
+    SignalConditioning   :s1, 2024-01-01, 1d
+    SignalConditioning   :s2, after s1, 1d
+    SignalConditioning   :s3, after s2, 1d
+    SignalConditioning   :s4, after s3, 1d
+    SignalConditioning   :s5, after s4, 1d
+    SignalConditioning   :s6, after s5, 1d
+    SignalConditioning   :s7, after s6, 1d
+    SignalConditioning   :s8, after s7, 1d
+    SignalConditioning   :s9, after s8, 1d
+    SignalConditioning   :s10, after s9, 1d
+
+    ServoControl         :v1, 2024-01-01, 1d
+    ServoControl         :v2, after v1, 1d
+    ServoControl         :v3, after v2, 1d
+    ServoControl         :v4, after v3, 1d
+    ServoControl         :v5, after v4, 1d
+    ServoControl         :v6, after v5, 1d
+    ServoControl         :v7, after v6, 1d
+    ServoControl         :v8, after v7, 1d
+    ServoControl         :v9, after v8, 1d
+    ServoControl         :v10, after v9, 1d
+
+    section Priority 2 Tasks
+    Display              :d1, 2024-01-01, 10d
+    Display              :d2, after d1, 10d

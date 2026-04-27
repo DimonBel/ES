@@ -1,0 +1,47 @@
+graph TB
+    subgraph Scheduler["FreeRTOS Scheduler"]
+        Priority3[Priority 3<br>Highest<br>Preemptive]
+        Priority2[Priority 2<br>Medium<br>Preemptive]
+        Priority1[Priority 1<br>Lowest<br>Idle]
+    end
+
+    subgraph Tasks_P3["Priority 3 Tasks (50ms)"]
+        Task1[vTaskActuatorControl<br>Input Processing<br>Stack: 4096<br>CPU: ~1-2%]
+        Task2[vTaskSignalConditioning<br>Signal Processing<br>Stack: 4096<br>CPU: ~1-2%]
+        Task3[vTaskServoControl<br>Servo Position<br>Stack: 4096<br>CPU: ~1-2%]
+    end
+
+    subgraph Tasks_P2["Priority 2 Tasks (500ms)"]
+        Task4[vTaskDisplay<br>LCD Updates<br>Stack: 4096<br>CPU: ~0.5%]
+    end
+
+    subgraph Timing["Timing Diagram"]
+        T0[0ms<br>ActCtrl Start]
+        T1[50ms<br>SigCond Start]
+        T2[100ms<br>ServoCtrl Start]
+        T3[150ms<br>ActCtrl Next]
+        T4[200ms<br>SigCond Next]
+        T5[250ms<br>ServoCtrl Next]
+        T6[500ms<br>Display Start]
+        T7[550ms<br>ActCtrl Continue]
+    end
+
+    Priority3 --> Task1
+    Priority3 --> Task2
+    Priority3 --> Task3
+    Priority2 --> Task4
+
+    Task1 --> T0
+    Task2 --> T1
+    Task3 --> T2
+    Task4 --> T6
+
+    T0 --> T1
+    T1 --> T2
+    T2 --> T3
+    T3 --> T4
+    T4 --> T5
+    T5 --> T6
+    T6 --> T7
+
+    note[Priority Assignment Rationale: P3 Critical Input processing signal conditioning servo control P2 Important Display updates can tolerate delays All P3 tasks have same priority round-robin scheduling Total CPU usage 3-5%]

@@ -1,0 +1,49 @@
+graph TB
+    subgraph Input["Input Methods"]
+        Joy[Joystick Button<br>Digital Toggle<br>GPIO 0]
+        Pot[Potentiometer<br>Analog Speed<br>GPIO 34]
+        Term[Terminal<br>Digital Commands<br>0-100 / on/off/toggle]
+    end
+
+    subgraph Binary_Path["Binary Actuator Path"]
+        CmdAct[Actuator Command<br>bool]
+        SigCond[Signal Conditioning<br>Debounce 50ms<br>Validation 100ms]
+        Relay[Relay State<br>GPIO 23]
+    end
+
+    subgraph Analog_Path["Analog Actuator Path"]
+        CmdSpeed[Speed Command<br>int 0-100]
+        NoCond[No Conditioning<br>Instant Response]
+        Servo[Servo Position<br>GPIO 18 PWM]
+    end
+
+    subgraph Coordination["Coordination Logic"]
+        Enable[Servo Enable Flag<br>= Relay State]
+        CheckEnabled{Servo<br>Enabled?}
+        ApplySpeed[Apply Speed<br>to Relay & Servo]
+        StopAll[Stop Servo<br>Set Speed 0]
+    end
+
+    Joy --> CmdAct
+    Term --> CmdAct
+    CmdAct --> SigCond
+    SigCond --> Relay
+
+    Pot --> CmdSpeed
+    Term --> CmdSpeed
+    CmdSpeed --> NoCond
+    NoCond --> Servo
+
+    Relay --> Enable
+    Enable --> CheckEnabled
+
+    CheckEnabled -->|yes| ApplySpeed
+    CheckEnabled -->|no| StopAll
+
+    ApplySpeed --> Servo
+    ApplySpeed --> Relay
+
+    StopAll --> Servo
+    StopAll --> Relay
+
+    note[Coordination Rules: 1 Servo enabled only when Relay ON 2 Potentiometer threshold 5% movement 3 Terminal override immediate 4 Both actuators share speed value]
