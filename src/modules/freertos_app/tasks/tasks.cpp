@@ -9,8 +9,9 @@
 
 namespace freertos_app::internal {
 
-// ─── Task 1: Acquisition (50 ms) ─────────────────────────────────────────────
-// Reads SetPoint (potentiometer) and Value (joystick X = position sensor).
+// ─── Task 1: Acquisition (1000 ms) ────────────────────────────────────────────
+// Reads temperature from DS18B20 (750 ms conversion included via delay()).
+// Button: short press (<500 ms) = SP+1°C, long press (≥500 ms) = SP-1°C.
 void vTaskAcquisition(void *pvParameters) {
     (void)pvParameters;
     TickType_t xLastWakeTime = xTaskGetTickCount();
@@ -21,26 +22,33 @@ void vTaskAcquisition(void *pvParameters) {
     for (;;) {
         vTaskDelayUntil(&xLastWakeTime, xFrequency);
 
-        // SetPoint: potentiometer → 0-100 %
-        if (potentiometer != nullptr) {
-            potentiometer->scan();
-            sharedData.setpoint = potentiometer->getPercentage();
-        }
+        // Button is scanned in vTaskOnOffControl (100 ms) for better responsiveness
 
-        // Value: joystick X → ESP32 ADC is 12-bit (0-4095) → 0-100 %
-        if (joystick != nullptr) {
-            joystick->scan();
-            uint16_t rawX = joystick->getX();
-            sharedData.value = (int)((rawX * 100UL) / 4095);
+        // ── Temperature: read DHT11 or simulate if sensor absent ─────────
+        if (dht11Sensor != nullptr) {
+            float t = dht11Sensor->readTemperature();
+            if (t > -100.0f) {
+                sharedData.temperature = t;
+            } else {
+                // No real sensor: simulate heating/cooling for demo
+                float &temp = sharedData.temperature;
+                if (sharedData.relayOn) {
+                    temp += 0.2f;
+                } else {
+                    temp -= 0.1f;
+                }
+                if (temp < 15.0f) temp = 15.0f;
+                if (temp > 70.0f) temp = 70.0f;
+                printf("[ACQ] SIMULATED Temp=%.1f C\n", temp);
+            }
         }
     }
 }
 
-// ─── Task 2: ON-OFF Control with Hysteresis (50 ms) ──────────────────────────
-// error = SetPoint – Value
-//  error >  +hysteresis  → FORWARD  (motor at 50 % saturation)
-//  error <  -hysteresis  → BACKWARD (motor at 50 % saturation)
-//  |error| ≤  hysteresis → maintain last state (deadband / hysteresis)
+// ─── Task 2: ON-OFF Control with Hysteresis (100 ms) ─────────────────────────
+// Relay ON  when temp < setpoint - hysteresis  (below lower bound → heat)
+// Relay OFF when temp > setpoint + hysteresis  (above upper bound → cool)
+// Within deadband: maintain current relay state (no switching).
 void vTaskOnOffControl(void *pvParameters) {
     (void)pvParameters;
     TickType_t xLastWakeTime = xTaskGetTickCount();
@@ -48,13 +56,10 @@ void vTaskOnOffControl(void *pvParameters) {
 
     printf("[CTRL] Task started (%dms)\n", CONTROL_PERIOD_MS);
 
-    int  lastOutput   = 0;
     bool emergencyStop = false;
 
     for (;;) {
         vTaskDelayUntil(&xLastWakeTime, xFrequency);
-
-        if (motor == nullptr) continue;
 
         // ── Serial command handling ────────────────────────────────────────
         if (sharedData.serial_command_received) {
@@ -63,30 +68,40 @@ void vTaskOnOffControl(void *pvParameters) {
 
             if (strcmp(cmd, "stop") == 0) {
                 emergencyStop = true;
-                motor->stop();
-                lastOutput = 0;
-                sharedData.output = 0;
+                if (relay != nullptr) relay->turnOff();
+                sharedData.relayOn = false;
                 if (led != nullptr) led->off();
-                printf("[CTRL] Emergency STOP\n");
+                printf("[CTRL] Emergency STOP – relay OFF\n");
 
             } else if (strcmp(cmd, "run") == 0) {
                 emergencyStop = false;
                 printf("[CTRL] Control re-enabled\n");
 
             } else if (strcmp(cmd, "status") == 0) {
-                printf("[STATUS] SP:%d%% Val:%d%% Dir:%s H:%d%% Speed:%d%%\n",
-                    sharedData.setpoint, sharedData.value,
-                    motor->getDirectionString(),
-                    sharedData.hysteresis, sharedData.motorSpeed);
+                printf("[STATUS] SP:%.1f T:%.1f Relay:%s H:%.1f\n",
+                       sharedData.setpoint, sharedData.temperature,
+                       sharedData.relayOn ? "ON" : "OFF",
+                       sharedData.hysteresis);
 
             } else if (strncmp(cmd, "hyst", 4) == 0 && cmd[4] != '\0') {
-                // "hyst8" → hysteresis = 8 %
-                int h = atoi(cmd + 4);
-                if (h >= 1 && h <= 20) {
+                // "hyst2" → hysteresis = 2 °C
+                float h = atof(cmd + 4);
+                if (h >= 0.1f && h <= 10.0f) {
                     sharedData.hysteresis = h;
-                    printf("[CTRL] Hysteresis set to %d%%\n", h);
+                    printf("[CTRL] Hysteresis set to %.1f degC\n", h);
                 } else {
-                    printf("[CTRL] Invalid hysteresis (1-20): %d\n", h);
+                    printf("[CTRL] Invalid hysteresis (0.1-10): %.1f\n", h);
+                }
+
+            } else if (strncmp(cmd, "sp", 2) == 0 && cmd[2] != '\0') {
+                // "sp35" → setpoint = 35 °C
+                float sp = atof(cmd + 2);
+                if (sp >= SETPOINT_MIN && sp <= SETPOINT_MAX) {
+                    sharedData.setpoint = sp;
+                    printf("[CTRL] SetPoint set to %.1f degC\n", sp);
+                } else {
+                    printf("[CTRL] SetPoint out of range (%.0f-%.0f)\n",
+                           SETPOINT_MIN, SETPOINT_MAX);
                 }
             }
 
@@ -94,53 +109,67 @@ void vTaskOnOffControl(void *pvParameters) {
             sharedData.serial_command_index = 0;
         }
 
-        if (emergencyStop) continue;
-
-        // ── ON-OFF controller with hysteresis ─────────────────────────────
-        int sp    = sharedData.setpoint;
-        int val   = sharedData.value;
-        int hyst  = sharedData.hysteresis;
-        int speed = sharedData.motorSpeed;
-        int error = sp - val;
-
-        int newOutput = lastOutput;   // stay in current state inside deadband
-
-        if (error > hyst) {
-            newOutput = 1;    // FORWARD – value too low, drive up
-        } else if (error < -hyst) {
-            newOutput = -1;   // BACKWARD – value too high, drive down
-        }
-
-        // Apply only on state change (no redundant writes)
-        if (newOutput != lastOutput) {
-            lastOutput = newOutput;
-
-            if (newOutput == 1) {
-                motor->forward(speed);
-                if (led != nullptr) led->on();
-                printf("[CTRL] FORWARD  SP:%d Val:%d Err:%+d\n", sp, val, error);
-            } else if (newOutput == -1) {
-                motor->backward(speed);
-                if (led != nullptr) led->on();
-                printf("[CTRL] BACKWARD SP:%d Val:%d Err:%+d\n", sp, val, error);
-            } else {
-                motor->stop();
-                if (led != nullptr) led->off();
-                printf("[CTRL] STOP     SP:%d Val:%d Err:%+d\n", sp, val, error);
+        // ── Button: short press = SP+1°C, long press = SP-1°C ─────────────
+        if (joystick != nullptr) {
+            joystick->scan();
+            uint32_t dur = joystick->getPressDuration();
+            if (dur > 0) {
+                float prev = sharedData.setpoint;
+                if (dur >= 500) {
+                    sharedData.setpoint -= SETPOINT_STEP;
+                    if (sharedData.setpoint < SETPOINT_MIN)
+                        sharedData.setpoint = SETPOINT_MIN;
+                } else {
+                    sharedData.setpoint += SETPOINT_STEP;
+                    if (sharedData.setpoint > SETPOINT_MAX)
+                        sharedData.setpoint = SETPOINT_MAX;
+                }
+                printf("[BTN] SetPoint: %.1f -> %.1f degC (%s press)\n",
+                       prev, sharedData.setpoint,
+                       dur >= 500 ? "long" : "short");
             }
         }
 
-        sharedData.output = newOutput;
+        if (emergencyStop || relay == nullptr) continue;
+
+        // ── ON-OFF controller with hysteresis ─────────────────────────────
+        float temp = sharedData.temperature;
+        float sp   = sharedData.setpoint;
+        float hyst = sharedData.hysteresis;
+        bool  wasOn = sharedData.relayOn;
+        bool  newOn = wasOn;
+
+        if (temp < sp - hyst) {
+            newOn = true;   // below lower bound → heat
+        } else if (temp > sp + hyst) {
+            newOn = false;  // above upper bound → stop
+        }
+        // within deadband: newOn = wasOn (no change)
+
+        if (newOn != wasOn) {
+            sharedData.relayOn = newOn;
+            if (newOn) {
+                relay->turnOn();
+                if (led != nullptr) led->on();
+                printf("[CTRL] Relay ON   SP:%.1f T:%.1f (below %.1f)\n",
+                       sp, temp, sp - hyst);
+            } else {
+                relay->turnOff();
+                if (led != nullptr) led->off();
+                printf("[CTRL] Relay OFF  SP:%.1f T:%.1f (above %.1f)\n",
+                       sp, temp, sp + hyst);
+            }
+        }
 
         // Signal display task
         semControlDisplay.give();
     }
 }
 
-// ─── Task 3: Display (200 ms) ─────────────────────────────────────────────────
-// LCD: line 1 → "SP:xxx% V:xxx%"   line 2 → "Dir:XXX  H:xx%"
-// Serial Plotter: "SetPoint:xx Value:xx Output:xx\n"
-//   Output is scaled to –100 / 0 / +100 for easy plotting.
+// ─── Task 3: Display (500 ms) ─────────────────────────────────────────────────
+// LCD line 1: "SP:30.0 T:25.4C"
+// LCD line 2: "Relay:ON  H:1.0C"
+// Serial Plotter: "SetPoint:30.0 Temp:25.4 Output:1"
 void vTaskDisplay(void *pvParameters) {
     (void)pvParameters;
     TickType_t xLastWakeTime = xTaskGetTickCount();
@@ -151,28 +180,23 @@ void vTaskDisplay(void *pvParameters) {
     for (;;) {
         vTaskDelayUntil(&xLastWakeTime, xFrequency);
 
-        int sp  = sharedData.setpoint;
-        int val = sharedData.value;
-        int out = sharedData.output;
+        float sp   = sharedData.setpoint;
+        float temp = sharedData.temperature;
+        bool  on   = sharedData.relayOn;
 
         // ── LCD update ────────────────────────────────────────────────────
         if (semControlDisplay.take(pdMS_TO_TICKS(150))) {
-            const char *dirStr = (motor != nullptr) ? motor->getDirectionString() : "---";
             char line1[17], line2[17];
-
-            // "SP: 50% V: 30%  " – max 16 chars
-            snprintf(line1, sizeof(line1), "SP:%3d%% V:%3d%%", sp, val);
-            // "Dir:FWD  H: 5%  "
-            snprintf(line2, sizeof(line2), "Dir:%-3s  H:%2d%%", dirStr, sharedData.hysteresis);
-
+            // "SP:30.0 T:25.4C"  (16 chars)
+            snprintf(line1, sizeof(line1), "SP:%-4.1f T:%-4.1fC", sp, temp);
+            // "Rel:ON   H:1.0C"
+            snprintf(line2, sizeof(line2), "Rel:%-3s  H:%.1fC",
+                     on ? "ON" : "OFF", sharedData.hysteresis);
             updateLCD(line1, line2);
         }
 
         // ── Arduino Serial Plotter ────────────────────────────────────────
-        // Label:value pairs separated by spaces.
-        // Output: +100 = FORWARD, 0 = STOP, –100 = BACKWARD
-        int plotOut = out * 100;
-        printf("SetPoint:%d Value:%d Output:%d\n", sp, val, plotOut);
+        printf("SetPoint:%.1f Temp:%.1f Output:%d\n", sp, temp, on ? 1 : 0);
     }
 }
 
