@@ -28,7 +28,7 @@ const uint32_t CONTROL_PERIOD_MS     = 100;
 const uint32_t DISPLAY_PERIOD_MS     = 500;
 
 // Control constants
-const float DEFAULT_SETPOINT   = 20.0f;   // °C
+const float DEFAULT_SETPOINT   = 23.0f;   // °C
 const float DEFAULT_HYSTERESIS = 1.0f;    // °C deadband
 const float SETPOINT_MIN       = 20.0f;
 const float SETPOINT_MAX       = 60.0f;

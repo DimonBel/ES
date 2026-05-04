@@ -9,8 +9,6 @@
 
 namespace freertos_app::internal {
 
-// ─── Task 1: Acquisition (1000 ms) ────────────────────────────────────────────
-// Reads temperature from DS18B20 (750 ms conversion included via delay()).
 // Button: short press (<500 ms) = SP+1°C, long press (≥500 ms) = SP-1°C.
 void vTaskAcquisition(void *pvParameters) {
     (void)pvParameters;
@@ -45,7 +43,6 @@ void vTaskAcquisition(void *pvParameters) {
     }
 }
 
-// ─── Task 2: ON-OFF Control with Hysteresis (100 ms) ─────────────────────────
 // Relay ON  when temp < setpoint - hysteresis  (below lower bound → heat)
 // Relay OFF when temp > setpoint + hysteresis  (above upper bound → cool)
 // Within deadband: maintain current relay state (no switching).
@@ -61,7 +58,7 @@ void vTaskOnOffControl(void *pvParameters) {
     for (;;) {
         vTaskDelayUntil(&xLastWakeTime, xFrequency);
 
-        // ── Serial command handling ────────────────────────────────────────
+        // ── Serial command handling ───────────
         if (sharedData.serial_command_received) {
             sharedData.serial_command_received = false;
             const char *cmd = sharedData.serial_command_buffer;
@@ -166,7 +163,6 @@ void vTaskOnOffControl(void *pvParameters) {
     }
 }
 
-// ─── Task 3: Display (500 ms) ─────────────────────────────────────────────────
 // LCD line 1: "SP:30.0 T:25.4C"
 // LCD line 2: "Relay:ON  H:1.0C"
 // Serial Plotter: "SetPoint:30.0 Temp:25.4 Output:1"
