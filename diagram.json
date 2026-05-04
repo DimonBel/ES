@@ -18,10 +18,10 @@
       "attrs": { "temperature": "25", "humidity": "50" }
     },
     {
-      "type": "wokwi-relay-module",
-      "id": "relay",
+      "type": "wokwi-l298n",
+      "id": "l298n",
       "top": 0,
-      "left": -270,
+      "left": -310,
       "attrs": {}
     },
     {
@@ -59,9 +59,11 @@
     ["esp:3V3",   "dht:VCC", "red",   ["h30", "v-60"]],
     ["esp:D5",    "dht:SDA", "green", ["h40"]],
 
-    ["esp:GND.1", "relay:GND", "black",  ["h-20", "v-100"]],
-    ["esp:3V3",   "relay:VCC", "red",    ["h-30", "v-80"]],
-    ["esp:D23",   "relay:IN",  "orange", ["h-40"]],
+    ["esp:GND.1", "l298n:GND",  "black",  ["h-20", "v-100"]],
+    ["esp:VIN",   "l298n:VCC",  "red",   ["h-30", "v-80"]],
+    ["esp:D25",   "l298n:IN1",  "orange",["h-40"]],
+    ["esp:D26",   "l298n:IN2",  "yellow",["h-40"]],
+    ["esp:D27",   "l298n:ENA",  "green", ["h-40"]],
 
     ["esp:D2",    "rled:2",  "yellow", ["h-20"]],
     ["rled:1",    "led:A",   "yellow", ["h-10"]],

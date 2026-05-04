@@ -4,7 +4,7 @@
 #include <Arduino.h>
 #include "lcd/lcd.h"
 #include "dht11/dht11.h"
-#include "actuator/actuator.h"
+#include "motor/motor.h"
 #include "joystick/joystick.h"
 #include "led/led.h"
 #include "kernel_primitives/mutex/mutex.h"
@@ -14,30 +14,36 @@ namespace freertos_app::internal {
 
 struct SharedData {
     // Serial command interface
-    bool serial_command_received;
-    char serial_command_buffer[16];
+    bool    serial_command_received;
+    char    serial_command_buffer[16];
     uint8_t serial_command_index;
 
-    // Lab 5.1 Variant A – ON-OFF Temperature Control with Hysteresis
-    float setpoint;      // target temperature in °C
-    float temperature;   // measured temperature in °C
-    bool  relayOn;       // current relay state
-    float hysteresis;    // deadband in °C
+    // Lab 5.2 Variant A – PID Temperature Control (DHT11 + L298N)
+    float setpoint;      // target temperature °C
+    float temperature;   // measured temperature °C
+    float pidOutput;     // 0–100 %
+
+    // PID state
+    float kp, ki, kd;
+    float integral;
+    float prevError;
 };
 
 // LCD pins
-extern const uint8_t LCD_SDA_PIN;      // GPIO 21
-extern const uint8_t LCD_SCL_PIN;      // GPIO 22
+extern const uint8_t LCD_SDA_PIN;   // GPIO 21
+extern const uint8_t LCD_SCL_PIN;   // GPIO 22
 
-// Sensor pin
-extern const uint8_t DHT11_PIN;        // GPIO 5
+// DHT11 sensor pin
+extern const uint8_t DHT11_PIN;     // GPIO 5
 
-// Relay pin
-extern const uint8_t RELAY_PIN;        // GPIO 23
+// L298N motor driver pins
+extern const uint8_t MOTOR_IN1_PIN; // GPIO 25
+extern const uint8_t MOTOR_IN2_PIN; // GPIO 26
+extern const uint8_t MOTOR_ENA_PIN; // GPIO 27 (PWM)
 
-// Input / status pins
-extern const uint8_t JOYSTICK_SW_PIN;  // GPIO 18
-extern const uint8_t LED_PIN;          // GPIO 2
+// Button / LED
+extern const uint8_t JOYSTICK_SW_PIN; // GPIO 18
+extern const uint8_t LED_PIN;         // GPIO 2
 
 // Task configuration
 extern const uint32_t    TASK_STACK_SIZE;
@@ -52,17 +58,19 @@ extern const uint32_t DISPLAY_PERIOD_MS;
 
 // Control constants
 extern const float DEFAULT_SETPOINT;
-extern const float DEFAULT_HYSTERESIS;
 extern const float SETPOINT_MIN;
 extern const float SETPOINT_MAX;
 extern const float SETPOINT_STEP;
+extern const float DEFAULT_KP;
+extern const float DEFAULT_KI;
+extern const float DEFAULT_KD;
 
 // Hardware objects
-extern LcdI2c   *lcd;
+extern LcdI2c      *lcd;
 extern Dht11Sensor *dht11Sensor;
-extern Actuator *relay;
-extern Joystick *joystick;
-extern Led      *led;
+extern Motor       *motor;
+extern Joystick    *joystick;
+extern Led         *led;
 
 // Synchronization
 extern kernel_primitives::Mutex lcdMutex;

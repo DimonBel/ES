@@ -3,6 +3,9 @@
 
 namespace freertos_app::internal {
 
+void vTaskAcquisition(void *pvParameters);
+void vTaskPIDControl(void *pvParameters);
+void vTaskDisplay(void *pvParameters);
 bool createApplicationTasks();
 
 }

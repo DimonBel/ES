@@ -9,9 +9,11 @@
 
 namespace freertos_app::internal {
 
+static inline float clampf(float v, float lo, float hi) {
+    return v < lo ? lo : (v > hi ? hi : v);
+}
+
 // ─── Task 1: Acquisition (1000 ms) ────────────────────────────────────────────
-// Reads temperature from DS18B20 (750 ms conversion included via delay()).
-// Button: short press (<500 ms) = SP+1°C, long press (≥500 ms) = SP-1°C.
 void vTaskAcquisition(void *pvParameters) {
     (void)pvParameters;
     TickType_t xLastWakeTime = xTaskGetTickCount();
@@ -22,143 +24,116 @@ void vTaskAcquisition(void *pvParameters) {
     for (;;) {
         vTaskDelayUntil(&xLastWakeTime, xFrequency);
 
-        // Button is scanned in vTaskOnOffControl (100 ms) for better responsiveness
-
-        // ── Temperature: read DHT11 or simulate if sensor absent ─────────
         if (dht11Sensor != nullptr) {
             float t = dht11Sensor->readTemperature();
             if (t > -100.0f) {
                 sharedData.temperature = t;
             } else {
-                // No real sensor: simulate heating/cooling for demo
+                // Simulate for Wokwi / no-sensor demo
                 float &temp = sharedData.temperature;
-                if (sharedData.relayOn) {
-                    temp += 0.2f;
+                if (sharedData.pidOutput > 5.0f) {
+                    temp += 0.05f * (sharedData.pidOutput / 100.0f) * 10.0f;
                 } else {
-                    temp -= 0.1f;
+                    temp -= 0.05f;
                 }
-                if (temp < 15.0f) temp = 15.0f;
-                if (temp > 70.0f) temp = 70.0f;
+                temp = clampf(temp, 10.0f, 70.0f);
                 printf("[ACQ] SIMULATED Temp=%.1f C\n", temp);
             }
         }
     }
 }
 
-// ─── Task 2: ON-OFF Control with Hysteresis (100 ms) ─────────────────────────
-// Relay ON  when temp < setpoint - hysteresis  (below lower bound → heat)
-// Relay OFF when temp > setpoint + hysteresis  (above upper bound → cool)
-// Within deadband: maintain current relay state (no switching).
-void vTaskOnOffControl(void *pvParameters) {
+// ─── Task 2: PID Control (100 ms) ─────────────────────────────────────────────
+// PID output (0–100%) drives L298N ENA via PWM → variable heater power.
+// Anti-windup: integral only accumulates when output is not saturated.
+void vTaskPIDControl(void *pvParameters) {
     (void)pvParameters;
     TickType_t xLastWakeTime = xTaskGetTickCount();
     const TickType_t xFrequency = pdMS_TO_TICKS(CONTROL_PERIOD_MS);
+    const float dt = CONTROL_PERIOD_MS / 1000.0f;  // 0.1 s
 
-    printf("[CTRL] Task started (%dms)\n", CONTROL_PERIOD_MS);
-
-    bool emergencyStop = false;
+    printf("[PID] Task started (%dms)\n", CONTROL_PERIOD_MS);
 
     for (;;) {
         vTaskDelayUntil(&xLastWakeTime, xFrequency);
 
-        // ── Serial command handling ────────────────────────────────────────
-        if (sharedData.serial_command_received) {
-            sharedData.serial_command_received = false;
-            const char *cmd = sharedData.serial_command_buffer;
-
-            if (strcmp(cmd, "stop") == 0) {
-                emergencyStop = true;
-                if (relay != nullptr) relay->turnOff();
-                sharedData.relayOn = false;
-                if (led != nullptr) led->off();
-                printf("[CTRL] Emergency STOP – relay OFF\n");
-
-            } else if (strcmp(cmd, "run") == 0) {
-                emergencyStop = false;
-                printf("[CTRL] Control re-enabled\n");
-
-            } else if (strcmp(cmd, "status") == 0) {
-                printf("[STATUS] SP:%.1f T:%.1f Relay:%s H:%.1f\n",
-                       sharedData.setpoint, sharedData.temperature,
-                       sharedData.relayOn ? "ON" : "OFF",
-                       sharedData.hysteresis);
-
-            } else if (strncmp(cmd, "hyst", 4) == 0 && cmd[4] != '\0') {
-                // "hyst2" → hysteresis = 2 °C
-                float h = atof(cmd + 4);
-                if (h >= 0.1f && h <= 10.0f) {
-                    sharedData.hysteresis = h;
-                    printf("[CTRL] Hysteresis set to %.1f degC\n", h);
-                } else {
-                    printf("[CTRL] Invalid hysteresis (0.1-10): %.1f\n", h);
-                }
-
-            } else if (strncmp(cmd, "sp", 2) == 0 && cmd[2] != '\0') {
-                // "sp35" → setpoint = 35 °C
-                float sp = atof(cmd + 2);
-                if (sp >= SETPOINT_MIN && sp <= SETPOINT_MAX) {
-                    sharedData.setpoint = sp;
-                    printf("[CTRL] SetPoint set to %.1f degC\n", sp);
-                } else {
-                    printf("[CTRL] SetPoint out of range (%.0f-%.0f)\n",
-                           SETPOINT_MIN, SETPOINT_MAX);
-                }
-            }
-
-            memset(sharedData.serial_command_buffer, 0, sizeof(sharedData.serial_command_buffer));
-            sharedData.serial_command_index = 0;
-        }
-
-        // ── Button: short press = SP+1°C, long press = SP-1°C ─────────────
+        // ── Button ─────────────────────────────────────────────────────────
+        // < 500 ms  → SP +1°C
+        // 500–5000ms → SP -1°C
+        // ≥ 5000 ms  → reset PID integral
         if (joystick != nullptr) {
             joystick->scan();
             uint32_t dur = joystick->getPressDuration();
             if (dur > 0) {
-                float prev = sharedData.setpoint;
-                if (dur >= 500) {
-                    sharedData.setpoint -= SETPOINT_STEP;
-                    if (sharedData.setpoint < SETPOINT_MIN)
-                        sharedData.setpoint = SETPOINT_MIN;
+                if (dur >= 5000) {
+                    sharedData.integral  = 0.0f;
+                    sharedData.prevError = 0.0f;
+                    printf("[BTN] PID integral RESET (held %lums)\n", (unsigned long)dur);
+                } else if (dur >= 500) {
+                    float prev = sharedData.setpoint;
+                    sharedData.setpoint = clampf(sharedData.setpoint - SETPOINT_STEP,
+                                                 SETPOINT_MIN, SETPOINT_MAX);
+                    sharedData.integral = 0.0f;
+                    printf("[BTN] SP-- : %.1f -> %.1f C\n", prev, sharedData.setpoint);
                 } else {
-                    sharedData.setpoint += SETPOINT_STEP;
-                    if (sharedData.setpoint > SETPOINT_MAX)
-                        sharedData.setpoint = SETPOINT_MAX;
+                    float prev = sharedData.setpoint;
+                    sharedData.setpoint = clampf(sharedData.setpoint + SETPOINT_STEP,
+                                                 SETPOINT_MIN, SETPOINT_MAX);
+                    sharedData.integral = 0.0f;
+                    printf("[BTN] SP++ : %.1f -> %.1f C\n", prev, sharedData.setpoint);
                 }
-                printf("[BTN] SetPoint: %.1f -> %.1f degC (%s press)\n",
-                       prev, sharedData.setpoint,
-                       dur >= 500 ? "long" : "short");
             }
         }
 
-        if (emergencyStop || relay == nullptr) continue;
-
-        // ── ON-OFF controller with hysteresis ─────────────────────────────
-        float temp = sharedData.temperature;
-        float sp   = sharedData.setpoint;
-        float hyst = sharedData.hysteresis;
-        bool  wasOn = sharedData.relayOn;
-        bool  newOn = wasOn;
-
-        if (temp < sp - hyst) {
-            newOn = true;   // below lower bound → heat
-        } else if (temp > sp + hyst) {
-            newOn = false;  // above upper bound → stop
-        }
-        // within deadband: newOn = wasOn (no change)
-
-        if (newOn != wasOn) {
-            sharedData.relayOn = newOn;
-            if (newOn) {
-                relay->turnOn();
-                if (led != nullptr) led->on();
-                printf("[CTRL] Relay ON   SP:%.1f T:%.1f (below %.1f)\n",
-                       sp, temp, sp - hyst);
-            } else {
-                relay->turnOff();
-                if (led != nullptr) led->off();
-                printf("[CTRL] Relay OFF  SP:%.1f T:%.1f (above %.1f)\n",
-                       sp, temp, sp + hyst);
+        // ── Serial: read-only status ──────────────────────────────────────
+        if (sharedData.serial_command_received) {
+            sharedData.serial_command_received = false;
+            if (strcmp(sharedData.serial_command_buffer, "status") == 0) {
+                printf("[PID] SP:%.1f T:%.1f Out:%.1f%% Kp:%.2f Ki:%.2f Kd:%.2f I:%.2f\n",
+                       sharedData.setpoint, sharedData.temperature,
+                       sharedData.pidOutput,
+                       sharedData.kp, sharedData.ki, sharedData.kd,
+                       sharedData.integral);
             }
+            memset(sharedData.serial_command_buffer, 0,
+                   sizeof(sharedData.serial_command_buffer));
+            sharedData.serial_command_index = 0;
+        }
+
+        if (motor == nullptr) continue;
+
+        // ── PID algorithm ─────────────────────────────────────────────────
+        float sp    = sharedData.setpoint;
+        float temp  = sharedData.temperature;
+        float kp    = sharedData.kp;
+        float ki    = sharedData.ki;
+        float kd    = sharedData.kd;
+        float error = sp - temp;
+
+        float pTerm = kp * error;
+        float dTerm = kd * (error - sharedData.prevError) / dt;
+
+        // Compute tentative output (integral not yet updated)
+        float rawOut = pTerm + sharedData.integral + dTerm;
+        float output = clampf(rawOut, 0.0f, 100.0f);
+
+        // Anti-windup: integrate only when output is not saturated
+        if (output > 0.0f && output < 100.0f) {
+            sharedData.integral += ki * error * dt;
+            // Clamp integral itself to prevent runaway
+            sharedData.integral = clampf(sharedData.integral, -100.0f, 100.0f);
+        }
+
+        sharedData.prevError = error;
+        sharedData.pidOutput = output;
+
+        // ── Actuate heater via L298N PWM ──────────────────────────────────
+        if (output < 1.0f) {
+            motor->stop();
+            if (led != nullptr) led->off();
+        } else {
+            motor->forward((uint8_t)output);
+            if (led != nullptr) led->on();
         }
 
         // Signal display task
@@ -167,9 +142,9 @@ void vTaskOnOffControl(void *pvParameters) {
 }
 
 // ─── Task 3: Display (500 ms) ─────────────────────────────────────────────────
-// LCD line 1: "SP:30.0 T:25.4C"
-// LCD line 2: "Relay:ON  H:1.0C"
-// Serial Plotter: "SetPoint:30.0 Temp:25.4 Output:1"
+// LCD line 1: "SP:20.0 T:19.5C"
+// LCD line 2: "PID:45%  E:-0.5"
+// Serial Plotter: "SetPoint:20.0 Temp:19.5 Output:45.0"
 void vTaskDisplay(void *pvParameters) {
     (void)pvParameters;
     TickType_t xLastWakeTime = xTaskGetTickCount();
@@ -182,21 +157,19 @@ void vTaskDisplay(void *pvParameters) {
 
         float sp   = sharedData.setpoint;
         float temp = sharedData.temperature;
-        bool  on   = sharedData.relayOn;
+        float out  = sharedData.pidOutput;
+        float err  = sp - temp;
 
-        // ── LCD update ────────────────────────────────────────────────────
+        // ── LCD ───────────────────────────────────────────────────────────
         if (semControlDisplay.take(pdMS_TO_TICKS(150))) {
             char line1[17], line2[17];
-            // "SP:30.0 T:25.4C"  (16 chars)
             snprintf(line1, sizeof(line1), "SP:%-4.1f T:%-4.1fC", sp, temp);
-            // "Rel:ON   H:1.0C"
-            snprintf(line2, sizeof(line2), "Rel:%-3s  H:%.1fC",
-                     on ? "ON" : "OFF", sharedData.hysteresis);
+            snprintf(line2, sizeof(line2), "PID:%-3.0f%%  E:%-+4.1f", out, err);
             updateLCD(line1, line2);
         }
 
         // ── Arduino Serial Plotter ────────────────────────────────────────
-        printf("SetPoint:%.1f Temp:%.1f Output:%d\n", sp, temp, on ? 1 : 0);
+        printf("SetPoint:%.1f Temp:%.1f Output:%.1f\n", sp, temp, out);
     }
 }
 
@@ -210,7 +183,7 @@ bool createApplicationTasks() {
         TASK_PRIORITY_ACQUISITION, nullptr);
 
     ok &= kernel_primitives::createTask(
-        vTaskOnOffControl, "OnOffCtrl",
+        vTaskPIDControl, "PIDCtrl",
         TASK_STACK_SIZE, nullptr,
         TASK_PRIORITY_CONTROL, nullptr);
 
