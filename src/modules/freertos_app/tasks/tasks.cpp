@@ -8,17 +8,6 @@
 
 namespace freertos_app::internal {
 
-// ─── Finite State Machine ─────────────────────────────────────────────────────
-//
-//   ┌───────────────────────────────────────────────────────┐
-//   │              AUTOMAT FINIT – Button/LED               │
-//   ├──────────┬─────────────────┬─────────────────────────┤
-//   │  State   │     Event       │  Next State  │  Action   │
-//   ├──────────┼─────────────────┼──────────────┼──────────-┤
-//   │ LED_OFF  │  button press   │   LED_ON     │  LED on   │
-//   │ LED_ON   │  button press   │   LED_OFF    │  LED off  │
-//   └──────────┴─────────────────┴──────────────┴───────────┘
-//
 // Input event: debounced button press (rising edge)
 // Initial state: LED_OFF
 
@@ -51,7 +40,7 @@ static void fsmRun() {
     }
 }
 
-// ─── FSM Task (50 ms) 
+// ─── FSM Task (100 ms) 
 void vTaskFSM(void *pvParameters) {
     (void)pvParameters;
     TickType_t xLastWakeTime = xTaskGetTickCount();
@@ -66,7 +55,7 @@ void vTaskFSM(void *pvParameters) {
     }
 }
 
-// ─── Display Task (500 ms) ────────────────────────────────────────────────────
+// ─── Display Task (500 ms) 
 // Refreshes LCD and serial with current LED state.
 void vTaskDisplay(void *pvParameters) {
     (void)pvParameters;
@@ -90,7 +79,7 @@ void vTaskDisplay(void *pvParameters) {
     }
 }
 
-// ─── Task creation ────────────────────────────────────────────────────────────
+// Task creation 
 bool createApplicationTasks() {
     bool ok = true;
 

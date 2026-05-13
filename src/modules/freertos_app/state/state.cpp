@@ -16,7 +16,7 @@ const UBaseType_t TASK_PRIORITY_FSM     = tskIDLE_PRIORITY + 3;
 const UBaseType_t TASK_PRIORITY_DISPLAY = tskIDLE_PRIORITY + 2;
 
 // Task periods
-const uint32_t FSM_PERIOD_MS     = 50;
+const uint32_t FSM_PERIOD_MS     = 100;
 const uint32_t DISPLAY_PERIOD_MS = 500;
 const uint32_t DEBOUNCE_MS       = 200;
 
