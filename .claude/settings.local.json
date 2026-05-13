@@ -1,0 +1,10 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(pdflatex -interaction=nonstopmode lab5.2.tex)",
+      "Read(//mnt/**)",
+      "Bash(ls /mnt/)",
+      "Bash(grep -n \"\\\\\\\\\\\\\\\\draw\\\\|\\\\\\\\\\\\\\\\node\\\\|coordinate\" /mnt/d/ES/latex-doc/lab5.2.tex)"
+    ]
+  }
+}
